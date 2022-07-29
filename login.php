@@ -13,7 +13,7 @@
 
 <body>
     <h1 class="text-center">
-        Name des Spiels
+        Anmelden
     </h1>
     <ul class="nav nav-tabs justify-content-center">
         <li class="nav-item">
@@ -29,7 +29,7 @@
             <a class="nav-link" href="rangliste.php">Rangliste</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="rangliste.php">Mein Spiel</a>
+            <a class="nav-link" href="game.php">Mein Spiel</a>
         </li>
     </ul>
     <section class="vh-100">
@@ -88,7 +88,7 @@
                         <div class="text-center text-lg-start mt-4 pt-2">
                             <button type="button" class="btn btn-primary btn-lg"
                                 style="padding-left: 2.5rem; padding-right: 2.5rem;">Login</button>
-                            <p class="small fw-bold mt-2 pt-1 mb-0">Don't have an account? <a href="#!"
+                            <p class="small fw-bold mt-2 pt-1 mb-0">Don't have an account? <a href="register.php"
                                     class="link-danger">Register</a></p>
                         </div>
 

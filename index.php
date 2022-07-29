@@ -34,7 +34,7 @@
             <a class="nav-link" href="rangliste.php">Rangliste</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="rangliste.php">Mein Spiel</a>
+            <a class="nav-link" href="game.php">Mein Spiel</a>
         </li>
     </ul>
     <form>
@@ -61,6 +61,8 @@
             <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2" checked />
             <label class="form-check-label" for="flexRadioDefault2">nur mit Passwort</label>
         </div>
+        <button type="button" class="btn btn-primary btn-lg" style="padding-left: 2.5rem; padding-right: 2.5rem;">Neues
+            Spiel erstellen</button>
     </form>
     <div class="container">
         <?php
