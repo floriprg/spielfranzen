@@ -12,7 +12,7 @@
 
 <body>
     <h1 class="text-center">
-        Name des Spiels
+        Registrieren
     </h1>
     <ul class="nav nav-tabs justify-content-center">
         <li class="nav-item">
@@ -26,6 +26,9 @@
         </li>
         <li class="nav-item">
             <a class="nav-link" href="rangliste.php">Rangliste</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="rangliste.php">Mein Spiel</a>
         </li>
     </ul>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"

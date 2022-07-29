@@ -9,8 +9,7 @@
     <meta name="robots" content="INDEX,FOLLOW">
     <meta name="description"
         content="Spiele Spiel Franzen online gegen echte Gegner! Nimm an einem Spiel teil oder beginne dein eigenes! Für 3 Spieler.">
-    <meta name="keywords" content="hbfffffffffffffweqhrbhvwehrbhvfuwvrquwgbfhuvhbewrsgvjbhwethb, Spiel Franzen, Franzen,
-Stechen, Bettl, spiel-franzen.kerokuapp.com">
+    <meta name="keywords" content="Spiel Franzen">
     <meta name="author" content="Florian Unterfrauner">
     <meta name="language" content="de">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet"
@@ -33,6 +32,9 @@ Stechen, Bettl, spiel-franzen.kerokuapp.com">
         </li>
         <li class="nav-item">
             <a class="nav-link" href="rangliste.php">Rangliste</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="rangliste.php">Mein Spiel</a>
         </li>
     </ul>
     <form>

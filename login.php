@@ -28,6 +28,9 @@
         <li class="nav-item">
             <a class="nav-link" href="rangliste.php">Rangliste</a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link" href="rangliste.php">Mein Spiel</a>
+        </li>
     </ul>
     <section class="vh-100">
         <div class="container-fluid h-custom">
