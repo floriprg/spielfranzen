@@ -9,7 +9,7 @@
     <meta name="robots" content="INDEX,FOLLOW">
     <meta name="description"
         content="Spiele Spiel Franzen online gegen echte Gegner! Nimm an einem Spiel teil oder beginne dein eigenes! Für 3 Spieler.">
-    <meta name="keywords" content="Spiel Franzen, Franzen,
+    <meta name="keywords" content="hbfffffffffffffweqhrbhvwehrbhvfuwvrquwgbfhuvhbewrsgvjbhwethb, Spiel Franzen, Franzen,
 Stechen, Bettl, spiel-franzen.kerokuapp.com">
     <meta name="author" content="Florian Unterfrauner">
     <meta name="language" content="de">
