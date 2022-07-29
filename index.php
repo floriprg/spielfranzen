@@ -1,11 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spiel Franzen</title>
+    <meta name="robots" content="INDEX,FOLLOW">
+    <meta name="description"
+        content="Spiele Spiel Franzen online gegen echte Gegner! Nimm an einem Spiel teil oder beginne dein eigenes! Für 3 Spieler.">
+    <meta name="keywords" content="Spiel Franzen, Franzen,
+Stechen, Bettl, spiel-franzen.kerokuapp.com">
+    <meta name="author" content="Florian Unterfrauner">
+    <meta name="language" content="de">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
 </head>
@@ -28,6 +35,31 @@
             <a class="nav-link" href="rangliste.php">Rangliste</a>
         </li>
     </ul>
+    <form>
+        <div class="form-group">
+            <h2>Neues Spiel erstellen</h2>
+            <label for="exampleInputEmail1">Name des Spiels</label>
+            <input type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp"
+                placeholder="Gib den Namen des Spiels ein">
+        </div>
+        <!-- Default radio -->
+        Teilnehmen dürfen:
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault1" />
+            <label class="form-check-label" for="flexRadioDefault1">alle</label>
+        </div>
+
+        <!-- Default checked radio -->
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2" checked />
+            <label class="form-check-label" for="flexRadioDefault2">Registrierte</label>
+        </div>
+        <!-- Default checked radio -->
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2" checked />
+            <label class="form-check-label" for="flexRadioDefault2">nur mit Passwort</label>
+        </div>
+    </form>
     <div class="container">
         <?php
 $host = getenv('DATABASE_URL');

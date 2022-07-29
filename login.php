@@ -41,7 +41,7 @@
                         <div class="d-flex flex-row align-items-center justify-content-center justify-content-lg-start">
                             <p class="lead fw-normal mb-0 me-3">Sign in with</p>
                             <button type="button" class="btn btn-primary btn-floating mx-1">
-                                <i class="fab fa-facebook-f"></i>
+                                <i class="bi bi-facebook"></i>
                             </button>
 
                             <button type="button" class="btn btn-primary btn-floating mx-1">
@@ -103,16 +103,16 @@
 
             <!-- Right -->
             <div>
-                <a href="#!" class="text-white me-4">
+                <a href="facebook.com" class="text-white me-4">
                     <i class="fab fa-facebook-f"></i>
                 </a>
-                <a href="#!" class="text-white me-4">
+                <a href="twitter.com" class="text-white me-4">
                     <i class="fab fa-twitter"></i>
                 </a>
-                <a href="#!" class="text-white me-4">
+                <a href="google.com" class="text-white me-4">
                     <i class="fab fa-google"></i>
                 </a>
-                <a href="#!" class="text-white">
+                <a href="linkedin.com" class="text-white">
                     <i class="fab fa-linkedin-in"></i>
                 </a>
             </div>
