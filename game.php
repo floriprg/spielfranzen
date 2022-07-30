@@ -38,8 +38,9 @@
 
 </html>
 <?php
-echo '<div class="d-flex flex-row">';
+echo '<div class="d-flex flex-column">';
 echo '
+<div class="d-flex flex-row">
 <div class="card m-3" style="width: 8rem;">
   <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
     <div class="card-body">
@@ -58,6 +59,9 @@ echo '
         <h5 class="card-title">Name des Spielers</h5>
     </div>
 </div>
+</div>
+
+
 <table class="table">
   <thead>
     <tr>
