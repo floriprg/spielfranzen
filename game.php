@@ -38,7 +38,7 @@
 
 </html>
 <?php
-echo '<div class="d-flex flex-wrap">';
+echo '<div class="d-flex">';
 echo '
 <div class="d-flex flex-row">
 <div class="card m-3" style="width: 8rem;">
