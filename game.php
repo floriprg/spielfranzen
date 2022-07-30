@@ -38,8 +38,55 @@
 
 </html>
 <?php
+echo '<div class="d-flex flex-row">';
 echo '
-    
+<div>
+<div class="card m-3" style="width: 18rem;">
+  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
+    <div class="card-body">
+        <h5 class="card-title">Name des Spielers</h5>
+    </div>
+</div>
+<div class="card m-3" style="width: 18rem;">
+  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
+    <div class="card-body">
+        <h5 class="card-title">Name des Spielers</h5>
+    </div>
+</div>
+<div class="card m-3" style="width: 18rem;">
+  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
+    <div class="card-body">
+        <h5 class="card-title">Name des Spielers</h5>
+    </div>
+</div>
+<div>
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col">Punkte</th>
+      <th scope="col">Spieler 1</th>
+      <th scope="col">Spieler 2</th>
+      <th scope="col">Spieler 3</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row">1</th>
+      <td>100</td>
+      <td>-50</td>
+      <td>-50</td>
+    </tr>
+    <tr>
+      <th scope="row">2</th>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+<div id="karten">
 
+</div>
 ';
+echo '</div>';
 ?>
