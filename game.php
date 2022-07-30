@@ -28,7 +28,7 @@
             <a class="nav-link" href="rangliste.php">Rangliste</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link active" href="rangliste.php">Mein Spiel</a>
+            <a class="nav-link active" href="game.php">Mein Spiel</a>
         </li>
     </ul>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"
@@ -37,3 +37,9 @@
 </body>
 
 </html>
+<?php
+echo '
+    
+
+';
+?>
