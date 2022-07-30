@@ -43,32 +43,29 @@
     </p> 
     <div class="collapse" id="collapseExample">
       <div class="card card-body">
-        <form>
+        hallo
+        <!--<form>
         <div class="form-group">
             <label for="exampleInputEmail1">Name des Spiels</label>
             <input type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp"
                 placeholder="Gib den Namen des Spiels ein">
         </div>
-        <!-- Default radio -->
         Teilnehmen dürfen:
         <div class="form-check">
             <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault1" />
             <label class="form-check-label" for="flexRadioDefault1">alle</label>
         </div>
-
-        <!-- Default checked radio -->
         <div class="form-check">
             <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2" checked />
             <label class="form-check-label" for="flexRadioDefault2">Registrierte</label>
         </div>
-        <!-- Default checked radio -->
         <div class="form-check">
             <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2" checked />
             <label class="form-check-label" for="flexRadioDefault2">nur mit Passwort</label>
         </div>
         <button type="button" class="btn btn-primary btn-lg" style="padding-left: 2.5rem; padding-right: 2.5rem;">Neues
             Spiel erstellen</button>
-    </form>
+    </form>-->
       </div> 
     </div> 
     
