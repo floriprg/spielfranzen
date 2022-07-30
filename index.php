@@ -20,7 +20,7 @@
     <h1 class="text-center">
         Spiel Franzen
     </h1>
-    <ul class="nav nav-tabs d-flex flex-row">
+    <ul class="nav nav-tabs justify-content-center d-flex flex-row">
         <li class="nav-item">
             <a class="nav-link active" aria-current="page" href="index.php">Spielen</a>
         </li>
@@ -37,7 +37,13 @@
             <a class="nav-link" href="game.php">Mein Spiel</a>
         </li>
     </ul>
-    <form>
+    <p>
+      <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample"> Button with data-target 
+      </button> 
+    </p> 
+    <div class="collapse" id="collapseExample">
+      <div class="card card-body">
+        <form>
         <div class="form-group">
             <h2>Neues Spiel erstellen</h2>
             <label for="exampleInputEmail1">Name des Spiels</label>
@@ -64,6 +70,9 @@
         <button type="button" class="btn btn-primary btn-lg" style="padding-left: 2.5rem; padding-right: 2.5rem;">Neues
             Spiel erstellen</button>
     </form>
+      </div> 
+    </div> 
+    
     <div class="container">
         <?php
 $host = getenv('DATABASE_URL');
