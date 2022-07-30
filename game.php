@@ -41,19 +41,19 @@
 echo '<div class="d-flex flex-row">';
 echo '
 <div>
-<div class="card m-3" style="width: 18rem;">
+<div class="card m-3" style="width: 8rem;">
   <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
     <div class="card-body">
         <h5 class="card-title">Name des Spielers</h5>
     </div>
 </div>
-<div class="card m-3" style="width: 18rem;">
+<div class="card m-3" style="width: 8rem;">
   <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
     <div class="card-body">
         <h5 class="card-title">Name des Spielers</h5>
     </div>
 </div>
-<div class="card m-3" style="width: 18rem;">
+<div class="card m-3" style="width: 8rem;">
   <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
     <div class="card-body">
         <h5 class="card-title">Name des Spielers</h5>
