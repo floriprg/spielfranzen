@@ -43,8 +43,7 @@
     </p> 
     <div class="collapse" id="collapseExample">
       <div class="card card-body">
-        hallo
-        <!--<form>
+        <form>
         <div class="form-group">
             <label for="exampleInputEmail1">Name des Spiels</label>
             <input type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp"
@@ -65,7 +64,7 @@
         </div>
         <button type="button" class="btn btn-primary btn-lg" style="padding-left: 2.5rem; padding-right: 2.5rem;">Neues
             Spiel erstellen</button>
-    </form>-->
+    </form>
       </div> 
     </div> 
     
