@@ -38,14 +38,13 @@
         </li>
     </ul>
     <p>
-      <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample"> Button with data-target 
+      <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">Neues Spiel erstellen
       </button> 
     </p> 
     <div class="collapse" id="collapseExample">
       <div class="card card-body">
         <form>
         <div class="form-group">
-            <h2>Neues Spiel erstellen</h2>
             <label for="exampleInputEmail1">Name des Spiels</label>
             <input type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp"
                 placeholder="Gib den Namen des Spiels ein">
