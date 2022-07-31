@@ -39,10 +39,9 @@
             <a class="nav-link" href="game.php">Mein Spiel</a>
         </li>
     </ul>
-    <p>
       <button class="btn btn-primary collapsed" type="button" data-toggle="collapse" data-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">Neues Spiel erstellen
       </button> 
-    </p> 
+  
     <div class="collapse" id="collapseExample">
       <div class="card card-body">
         <form>
