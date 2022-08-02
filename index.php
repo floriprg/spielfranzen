@@ -22,7 +22,7 @@
     <h1 class="text-center">
         Spiel Franzen
     </h1>
-    <ul class="nav nav-tabs justify-content-center d-flex flex-row">
+    <ul class="nav nav-tabs nav-justified">
         <li class="nav-item">
             <a class="nav-link active" aria-current="page" href="index.php">Spielen</a>
         </li>
