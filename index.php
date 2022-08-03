@@ -1,3 +1,16 @@
+<?php
+if (isset($_POST['newgame'])) {
+    $con = getenv('DBURL');
+    if ($con) {
+        pg_connect("$con");
+    }
+    else {
+        $con = $_ENV["DBURL"];
+        pg_connect("$con");
+    }
+}
+?>
+
 <!DOCTYPE html>
 <html lang="de">
 
@@ -15,12 +28,12 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9511027260579899"
-     crossorigin="anonymous"></script>
-     <style src="style.css"></style>
+        crossorigin="anonymous"></script>
+    <style src="style.css"></style>
 </head>
 
 <body>
-    
+
     <h1 class="text-center">
         Spiel Franzen
     </h1>
@@ -41,31 +54,34 @@
             <a class="nav-link" href="game.php">Mein Spiel</a>
         </li>
     </ul>
-      <div class="card card-body">
-        <form>
-        <div class="form-group">
-            <label for="exampleInputEmail1">Name des Spiels</label>
-            <input type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp"
-                placeholder="Gib den Namen des Spiels ein">
+    <div class="container">
+        <div class="card card-body">
+            <form method="post" autocomplete="nope">
+                <div class="form-group">
+                    <label for="exampleInputEmail1">Name des Spiels</label>
+                    <input type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp"
+                        placeholder="Gib den Namen des Spiels ein">
+                </div>
+                Teilnehmen dürfen:
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault1" />
+                    <label class="form-check-label" for="flexRadioDefault1">alle</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2"
+                        checked />
+                    <label class="form-check-label" for="flexRadioDefault2">Registrierte</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2"
+                        checked />
+                    <label class="form-check-label" for="flexRadioDefault2">nur mit Passwort</label>
+                </div>
+                <input type="submit" name="newgame" class="btn btn-primary" value="Neues Spiel erstellen">
+
+            </form>
         </div>
-        Teilnehmen dürfen:
-        <div class="form-check">
-            <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault1" />
-            <label class="form-check-label" for="flexRadioDefault1">alle</label>
-        </div>
-        <div class="form-check">
-            <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2" checked />
-            <label class="form-check-label" for="flexRadioDefault2">Registrierte</label>
-        </div>
-        <div class="form-check">
-            <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2" checked />
-            <label class="form-check-label" for="flexRadioDefault2">nur mit Passwort</label>
-        </div>
-        <button type="button" class="btn btn-primary btn-lg" style="padding-left: 2.5rem; padding-right: 2.5rem;">Neues
-            Spiel erstellen</button>
-    </form>
-    </div> 
-    
+    </div>
     <div class="container">
         <?php
 $host = getenv('DATABASE_URL');
