@@ -1,14 +1,49 @@
 <?php
-if (isset($_POST['newgame'])) {
-    $con = getenv('DBURL');
-    if ($con) {
-        pg_connect("$con");
+function sql($sql)
+{
+    return pg_query(pg_connect("host=ec2-34-242-84-130.eu-west-1.compute.amazonaws.com port=5432 dbname=d2stjk7j24ibr user=ziekgdhkxuqkta password=c7029fdf0002ed1705c9fbf741c8a9dcf6fc3d4ca04f4c1957d7d7b3a1277543"), $sql);
+}
+
+if (isset($_POST['newgame']) && $_POST['name'] != "") {
+    header("location: index.php");
+    $string = $_POST['name'];
+    if ($string != strip_tags($string)) {
+        echo "Sie dürfen keine HTML Tags eingeben!";
     }
     else {
-        $con = $_ENV["DBURL"];
-        pg_connect("$con");
+        sql("insert into spiele(name, fertig, erlaubte, s1, s2, s3)values('" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', 'Spieler 1', 'Spieler 2', 'Spieler 3');");
+        pg_close();
     }
 }
+function getSpiele()
+{
+    echo '
+    <div class="d-flex flex-wrap">';
+    $data = sql("select * from spiele where fertig = false;");
+    while ($row = pg_fetch_row($data)) {
+        //card item
+        echo "
+            <div class='card m-3' style='width: 18rem;'>
+                <div class='card-body'>
+                    <h5 class='card-title'>$row[1]</h5>
+                    <ul>
+                        <li>$row[2]</li>
+                        <li>$row[3]</li>
+                        <li>$row[4]</li>
+                    </ul>
+                    Erlaubte:
+                    $row[6]
+                    <br>
+                    <a href='game.php?s=$row[0]' class='btn btn-primary'>Teilnehmen</a>
+                </div>
+            </div>
+        ";
+    }
+    echo "
+    </div>";
+    pg_close();
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -37,9 +72,9 @@ if (isset($_POST['newgame'])) {
     <h1 class="text-center">
         Spiel Franzen
     </h1>
-    <ul class="nav nav-tabs nav-justified">
+    <ul class="nav nav-tabs justify-content-center">
         <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="index.php">Spielen</a>
+            <a class="nav-link active" href="index.php">Spielen</a>
         </li>
         <li class="nav-item">
             <a class="nav-link" href="login.php">Anmelden</a>
@@ -59,22 +94,22 @@ if (isset($_POST['newgame'])) {
             <form method="post" autocomplete="nope">
                 <div class="form-group">
                     <label for="exampleInputEmail1">Name des Spiels</label>
-                    <input type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp"
-                        placeholder="Gib den Namen des Spiels ein">
+                    <input type="name" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp"
+                        placeholder="Gib den Namen des Spiels ein" name="name">
                 </div>
                 Teilnehmen dürfen:
                 <div class="form-check">
-                    <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault1" />
+                    <input class="form-check-input" type="radio" name="erlaubte" value="alle" id="flexRadioDefault1" />
                     <label class="form-check-label" for="flexRadioDefault1">alle</label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2"
-                        checked />
+                    <input class="form-check-input" type="radio" name="erlaubte" value="Registrierte"
+                        id="flexRadioDefault2" checked />
                     <label class="form-check-label" for="flexRadioDefault2">Registrierte</label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2"
-                        checked />
+                    <input class="form-check-input" type="radio" name="erlaubte" value="nur mit Passwort"
+                        id="flexRadioDefault2" checked />
                     <label class="form-check-label" for="flexRadioDefault2">nur mit Passwort</label>
                 </div>
                 <input type="submit" name="newgame" class="btn btn-primary" value="Neues Spiel erstellen">
@@ -84,26 +119,7 @@ if (isset($_POST['newgame'])) {
     </div>
     <div class="container">
         <?php
-$host = getenv('DATABASE_URL');
-if ($host == "") {
-    $host = "postgres://ziekgdhkxuqkta:c7029fdf0002ed1705c9fbf741c8a9dcf6fc3d4ca04f4c1957d7d7b3a1277543@ec2-34-242-84-130.eu-west-1.compute.amazonaws.com:5432/d2stjk7j24ibr";
-}
-echo '<div class="d-flex flex-wrap">';
-for ($i = 0; $i < 10; $i++) {
-    echo '<div class="card m-3" style="width: 18rem;">
-  <div class="card-body">
-    <h5 class="card-title">Name des Spiels</h5>
-    <ul>
-        <li>Spieler 1</li>
-        <li>Spieler 2</li>
-        <li>Spieler 3</li>
-    </ul>
-   <a href="index.php?s=' . $i . '" class="btn btn-primary">Teilnehmen</a>
-  </div>
-</div>
-';
-}
-echo "</div>";
+getSpiele();
 ?>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"
