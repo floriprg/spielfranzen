@@ -1,18 +1,20 @@
 <?php
-function sql($sql)
-{
-    return pg_query(pg_connect("host=ec2-34-242-84-130.eu-west-1.compute.amazonaws.com port=5432 dbname=d2stjk7j24ibr user=ziekgdhkxuqkta password=c7029fdf0002ed1705c9fbf741c8a9dcf6fc3d4ca04f4c1957d7d7b3a1277543"), $sql);
-}
+require "config.php";
 
-if (isset($_POST['newgame']) && $_POST['name'] != "") {
-    header("location: index.php");
-    $string = $_POST['name'];
-    if ($string != strip_tags($string)) {
-        echo "Sie dürfen keine HTML Tags eingeben!";
+if (isset($_POST['newgame'])) {
+    if ($_POST['name'] == "") {
+        echo "Gib einen Namen ein!";
     }
     else {
-        sql("insert into spiele(name, fertig, erlaubte, s1, s2, s3)values('" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', 'Spieler 1', 'Spieler 2', 'Spieler 3');");
-        pg_close();
+        header("location: index.php");
+        $string = $_POST['name'];
+        if ($string != strip_tags($string)) {
+            echo "Sie dürfen keine HTML Tags eingeben!";
+        }
+        else {
+            sql("insert into spiele(name, fertig, erlaubte, s1, s2, s3)values('" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', 'Spieler 1', 'Spieler 2', 'Spieler 3');");
+            pg_close();
+        }
     }
 }
 function getSpiele()
@@ -23,7 +25,7 @@ function getSpiele()
     while ($row = pg_fetch_row($data)) {
         //card item
         echo "
-            <div class='card m-3' style='width: 18rem;'>
+            <div class='card m-3' style='width: 18.25rem;'>
                 <div class='card-body'>
                     <h5 class='card-title'>$row[1]</h5>
                     <ul>
@@ -89,6 +91,7 @@ function getSpiele()
             <a class="nav-link" href="game.php">Mein Spiel</a>
         </li>
     </ul>
+    <br>
     <div class="container">
         <div class="card card-body">
             <form method="post" autocomplete="nope">
@@ -109,8 +112,8 @@ function getSpiele()
                 </div>
                 <div class="form-check">
                     <input class="form-check-input" type="radio" name="erlaubte" value="nur mit Passwort"
-                        id="flexRadioDefault2" checked />
-                    <label class="form-check-label" for="flexRadioDefault2">nur mit Passwort</label>
+                        id="flexRadioDefault3" checked />
+                    <label class="form-check-label" for="flexRadioDefault3">nur mit Passwort</label>
                 </div>
                 <input type="submit" name="newgame" class="btn btn-primary" value="Neues Spiel erstellen">
 

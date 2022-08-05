@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>Mein Spiel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
 </head>
@@ -38,9 +38,9 @@
 
 </html>
 <?php
-echo '<div class="d-flex flex-column">';
+echo '<div class="container">';
 echo '
-<div class="d-flex flex-row">
+<div class="d-flex flex-wrap">
 <div class="card m-3" style="width: 8rem;">
   <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
     <div class="card-body">
@@ -58,7 +58,6 @@ echo '
     <div class="card-body">
         <h5 class="card-title">Name des Spielers</h5>
     </div>
-</div>
 </div>
 
 
@@ -89,6 +88,8 @@ echo '
 <div id="karten">
 
 </div>
+</div>
+
 ';
 echo '</div>';
 ?>
