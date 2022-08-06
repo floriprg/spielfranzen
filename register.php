@@ -121,9 +121,21 @@ include 'vendor/autoload.php';
 require "config.php";
 use \Firebase\JWT\JWT;
 $now = time();
-if (isset($_POST['register'])) {
-    header("location: index.php");
-    sql("insert into users (username, pwd, email) values ('" . $_POST['username'] . "', '" . $_POST['pwd'] . "','" . $_POST['email'] . "');");
-   echo "erfolgreich registriert!";
+$sql2 = "select * from users where name ='" . $_POST['username'] . "' OR email='" . sha512(pg_escape_string($_POST['email'])) . "'";
+$data = sql($sql2);
+$login_check = pg_num_rows($data);
+if ($login_check == 0) {
+    $sql = "insert into users(username,email,pwd)values('" . $_POST['username'] . "','" . sha512(pg_escape_string($_POST['email'])) . "','" . sha512($_POST['pwd']) . "')";
+    $ret = pg_query($dbconn, $sql);
+    if ($ret) {
+        echo "Data saved Successfully";
+    }
+    else {
+        echo "Something Went Wrong";
+    }
 }
+else {
+    echo("Email oder Benutzername wird bereits verwendet!");
+}
+
 ?>

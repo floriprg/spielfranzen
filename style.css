@@ -1,2 +1,12 @@
 
-nav-tabs{ display:inline-flex; }
+.position-relative-example {
+height: 100%;
+width: 100%;
+background-color: #ffffff;
+}
+.position-relative-example div {
+width: 15em;
+height: 20em;
+background-color: #343a40;
+border-radius: .25rem;
+}

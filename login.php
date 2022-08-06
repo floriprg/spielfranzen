@@ -135,11 +135,28 @@ use \Firebase\JWT\JWT;
 $now = time();
 
 if (isset($_POST['login'])){
-    header("location: index.php");
-    $data = sql("select * from users where username = '" . $_POST['username'] . "' AND pwd = '" . $_POST['pwd'] . "';");
+    $hashpassword = sha512($_POST['pwd']);
+    $username = sha512(pg_escape_string($_POST['username']));
+    $sql = "select id from users where username = '" . $username . "' and pwd ='" . $hashpassword . "'";
+    $data = pg_query($dbconn, $sql);
+    $login_check = pg_num_rows($data);
+    $i = 0;
     while ($row = pg_fetch_row($data)) {
-        echo "erfolgreich angemeldet!";
-        
+        $i++;
+        $id = $row[0];
+    }
+    if ($login_check > 0) {
+        echo "Login Successfully";
+        $token = openssl_random_pseudo_bytes(100);
+        $token = bin2hex($token);
+        $time = time() + 3600;
+        $sql2 = "UPDATE users set token = '" . $token . "' WHERE  id = {$id}; UPDATE users set tokentimeout =  $time";
+        $ret = pg_query($dbconn, $sql2);
+        header("location: index.php?to=$token");
+        exit(1);
+    }
+    else {
+        echo "Invalid Details";
     }
 }
 ?>

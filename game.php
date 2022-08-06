@@ -8,6 +8,8 @@
     <title>Mein Spiel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
 </head>
 
 <body>
@@ -34,6 +36,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous">
     </script>
+    <script src="game.js"></script>
 </body>
 
 </html>
@@ -85,11 +88,11 @@ echo '
     </tr>
   </tbody>
 </table>
-<div id="karten">
+<div id="karten" class="card m-3" style="width: 8rem;">';
 
-</div>
-</div>
+echo "";
 
+echo '</div>
+</div>
 ';
-echo '</div>';
 ?>

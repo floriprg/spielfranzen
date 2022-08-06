@@ -12,7 +12,7 @@ if (isset($_POST['newgame'])) {
             echo "Sie dürfen keine HTML Tags eingeben!";
         }
         else {
-            sql("insert into spiele(name, fertig, erlaubte, s1, s2, s3)values('" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', 'Spieler 1', 'Spieler 2', 'Spieler 3');");
+            sql("insert into spiele(name, fertig, erlaubte, s1, s2, s3)values('" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', '{\"name\":\"Spieler1\"}', '{\"name\":\"Spieler2\"}', '{\"name\":\"Spieler3\"}');");
             pg_close();
         }
     }
@@ -24,17 +24,21 @@ function getSpiele()
     $data = sql("select * from spiele where fertig = false;");
     while ($row = pg_fetch_row($data)) {
         //card item
+        $s1 = json_decode($row[4], false);
+        $s2 = json_decode($row[5], false);
+        $s3 = json_decode($row[6], false);
+
         echo "
             <div class='card m-3' style='width: 18.25rem;'>
                 <div class='card-body'>
                     <h5 class='card-title'>$row[1]</h5>
                     <ul>
-                        <li>$row[2]</li>
-                        <li>$row[3]</li>
-                        <li>$row[4]</li>
+                        <li>$s1->name</li>
+                        <li>$s2->name</li>
+                        <li>$s3->name</li>
                     </ul>
                     Erlaubte:
-                    $row[6]
+                    $row[3]
                     <br>
                     <a href='game.php?s=$row[0]' class='btn btn-primary'>Teilnehmen</a>
                 </div>
