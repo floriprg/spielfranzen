@@ -90,7 +90,7 @@
                                         </div>
 
                                         <div class="d-flex justify-content-center mx-4 mb-3 mb-lg-4">
-                                            <input type="submit" name="register" class="btn btn-primary"
+                                            <input type="submit" name="submit" class="btn btn-primary"
                                                 value="Registrieren">
                                         </div>
 
@@ -117,25 +117,34 @@
 
 </html>
 <?php
+function sha512($string)
+{
+    $h = $string;
+    for ($i = 0; $i < 100; $i++) {
+        $h = hash('sha512', $h);
+    }
+    return $h;
+}
 include 'vendor/autoload.php';
 require "config.php";
-use \Firebase\JWT\JWT;
-$now = time();
-$sql2 = "select * from users where name ='" . $_POST['username'] . "' OR email='" . sha512(pg_escape_string($_POST['email'])) . "'";
-$data = sql($sql2);
-$login_check = pg_num_rows($data);
-if ($login_check == 0) {
-    $sql = "insert into users(username,email,pwd)values('" . $_POST['username'] . "','" . sha512(pg_escape_string($_POST['email'])) . "','" . sha512($_POST['pwd']) . "')";
-    $ret = pg_query($dbconn, $sql);
-    if ($ret) {
-        echo "Data saved Successfully";
+if (isset($_POST['submit']) && !empty($_POST['submit'])) {
+
+    $now = time();
+    $sql2 = "select * from users where username ='" . sha512(pg_escape_string($_POST['username'])) . "' OR email='" . sha512(pg_escape_string($_POST['email'])) . "'";
+    $data = sql($sql2);
+    $login_check = pg_num_rows($data);
+    if ($login_check == 0) {
+        $sql = "insert into users(username,email,pwd)values('" . sha512(pg_escape_string($_POST['username'])) . "','" . sha512(pg_escape_string($_POST['email'])) . "','" . sha512($_POST['pwd']) . "')";
+        $ret = sql($sql);
+        if ($ret) {
+            echo "Data saved Successfully";
+        }
+        else {
+            echo "Something Went Wrong";
+        }
     }
     else {
-        echo "Something Went Wrong";
+        echo("Email oder Benutzername wird bereits verwendet!");
     }
 }
-else {
-    echo("Email oder Benutzername wird bereits verwendet!");
-}
-
 ?>

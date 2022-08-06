@@ -40,7 +40,7 @@
                         class="img-fluid" alt="Sample image">
                 </div>
                 <div class="col-md-8 col-lg-6 col-xl-4 offset-xl-1">
-                    <form id="loginform" method="post" autocomplete="nope">
+                    <form method="post" autocomplete="nope">
                         <div class="d-flex flex-row align-items-center justify-content-center justify-content-lg-start">
                             <p class="lead fw-normal mb-0 me-3">Anmelden mit</p>
                             <button type="button" class="btn btn-primary btn-floating mx-1">
@@ -85,11 +85,11 @@
                             <a href="#!" class="text-body">Forgot password?</a>
                         </div>
 
-                        <div class="text-center text-lg-start mt-4 pt-2">
-                            <input type="submit" name="login" class="btn btn-primary" value="Anmelden">
-                            <p class="small fw-bold mt-2 pt-1 mb-0">Don't have an account? <a href="register.php"
-                                    class="link-danger">Register</a></p>
-                        </div>
+                        <br>
+                        <input type="submit" name="submit" class="btn btn-primary" value="Anmelden">
+                        <p class="small fw-bold mt-2 pt-1 mb-0">Don't have an account? <a href="register.php"
+                                class="link-danger">Register</a></p>
+
 
                     </form>
                 </div>
@@ -129,16 +129,26 @@
 
 </html>
 <?php
+function sha512($string)
+{
+    $h = $string;
+    for ($i = 0; $i < 100; $i++) {
+        $h = hash('sha512', $h);
+    }
+    return $h;
+}
 include 'vendor/autoload.php';
 require "config.php";
-use \Firebase\JWT\JWT;
 $now = time();
 
-if (isset($_POST['login'])){
+if (isset($_POST['submit']) && !empty($_POST['submit'])) {
+
     $hashpassword = sha512($_POST['pwd']);
     $username = sha512(pg_escape_string($_POST['username']));
+    echo "$hashpassword<br>";
+    echo "$$username";
     $sql = "select id from users where username = '" . $username . "' and pwd ='" . $hashpassword . "'";
-    $data = pg_query($dbconn, $sql);
+    $data = sql($sql);
     $login_check = pg_num_rows($data);
     $i = 0;
     while ($row = pg_fetch_row($data)) {
