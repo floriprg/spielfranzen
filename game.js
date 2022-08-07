@@ -34,17 +34,20 @@ function game() {
     let s1 = {
         name: "name",
         punkte: 0,
-        karten: neuekarten()
+        karten: neuekarten(),
+        s: 0
     };
     let s2 = {
         name: "name",
         punkte: 0,
-        karten: neuekarten()
+        karten: neuekarten(),
+        s: 0
     };
     let s3 = {
         name: "name",
         punkte: 0,
-        karten: neuekarten()
+        karten: neuekarten(),
+        s: 0
     };
     console.log(JSON.stringify(s1));
     sql("update spiele set s1 ='" + JSON.stringify(s1) + "' where id = '" + s + "';");
@@ -52,6 +55,5 @@ function game() {
     sql("update spiele set s3 ='" + JSON.stringify(s3) + "' where id = '" + s + "';");
 
 }
-
 
 game();

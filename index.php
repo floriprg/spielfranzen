@@ -1,67 +1,3 @@
-<?php
-
-require "config.php";
-
-if (isset($_POST['newgame'])) {
-    if ($_POST['name'] == "") {
-        echo "Gib einen Namen ein!";
-    }
-    else {
-        if (!$_GET['to']) {
-            $to = "notoken";
-        }
-        else {
-            $to = $_GET['to'];
-        }
-        header("location: index.php?to=" . $to . "");
-        $string = $_POST['name'];
-        if ($string != strip_tags($string)) {
-            echo "Sie dürfen keine HTML Tags eingeben!";
-        }
-        else {
-            $data = sql("select username from users where token = '" . $_GET['to'] . "';");
-            while ($row = pg_fetch_row($data)) {
-                echo "$_row[0]";
-                sql("insert into spiele(name, fertig, erlaubte, s1, s2, s3)values('" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', '{\"name\":\"" . $row[0] . "\"}', '{\"name\":\"frei\"}', '{\"name\":\"frei\"}');");
-            }
-        }
-    }
-}
-function getSpiele()
-{
-    echo '
-    <div class="d-flex flex-wrap">';
-    $data = sql("select * from spiele where fertig = false;");
-    while ($row = pg_fetch_row($data)) {
-        //card item
-        $s1 = json_decode($row[4], false);
-        $s2 = json_decode($row[5], false);
-        $s3 = json_decode($row[6], false);
-
-        echo "
-            <div class='card m-3' style='width: 18.25rem;'>
-                <div class='card-body'>
-                    <h5 class='card-title'>$row[1]</h5>
-                    <ul>
-                        <li>$s1->name</li>
-                        <li>$s2->name</li>
-                        <li>$s3->name</li>
-                    </ul>
-                    Erlaubte:
-                    $row[3]
-                    <br>
-                    <a href='game.php?s=$row[0]' class='btn btn-primary'>Teilnehmen</a>
-                </div>
-            </div>
-        ";
-    }
-    echo "
-    </div>";
-    pg_close();
-}
-
-?>
-
 <!DOCTYPE html>
 <html lang="de">
 
@@ -113,6 +49,73 @@ function getSpiele()
     </ul>
     <br>
     <div class="container">
+        <?php
+require "config.php";
+
+if (!isset($_GET['to'])) {
+    echo '<div class="alert alert-warning" role="alert">
+        Du bist nicht angemeldet! <a href="login.php">Melde dich an</a>  oder <a href="register.php">registriere dich </a> um ein Spiel zu erstellen
+        </div>';
+}
+
+if (isset($_POST['newgame'])) {
+    $to = $_GET['to'];
+    header("location: index.php?to=" . $to . "");
+    if ($_GET['to'] == "") {
+
+    }
+    if ($_POST['name'] == "") {
+        echo '<div class="alert alert-warning" role="alert">
+                Gib einen Namen ein!
+                </div>';
+    }
+    else {
+        $string = $_POST['name'];
+        if ($string != strip_tags($string)) {
+            echo "Sie dürfen keine HTML Tags eingeben!";
+        }
+        else {
+            $data = sql("select username from users where token = '" . $_GET['to'] . "';");
+            while ($row = pg_fetch_row($data)) {
+                echo "$_row[0]";
+                sql("insert into spiele(name, fertig, erlaubte, s1, s2, s3)values('" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', '{\"name\":\"" . $row[0] . "\"}', '{\"name\":\"frei\"}', '{\"name\":\"frei\"}');");
+            }
+        }
+    }
+}
+function getSpiele()
+{
+    echo '
+    <div class="d-flex flex-wrap">';
+    $data = sql("select * from spiele where fertig = false;");
+    while ($row = pg_fetch_row($data)) {
+        //card item
+        $s1 = json_decode($row[4], false);
+        $s2 = json_decode($row[5], false);
+        $s3 = json_decode($row[6], false);
+
+        echo "
+            <div class='card m-3' style='width: 18.25rem;'>
+                <div class='card-body'>
+                    <h5 class='card-title'>$row[1]</h5>
+                    <ul>
+                        <li>$s1->name</li>
+                        <li>$s2->name</li>
+                        <li>$s3->name</li>
+                    </ul>
+                    Erlaubte:
+                    $row[3]
+                    <br>
+                    <a href='game.php?s=$row[0]' class='btn btn-primary'>Teilnehmen</a>
+                </div>
+            </div>
+        ";
+    }
+    echo "
+    </div>";
+    pg_close();
+}
+?>
         <div class="card card-body">
             <form method="post" autocomplete="nope">
                 <div class="form-group">
