@@ -150,9 +150,7 @@ $now = time();
 if (isset($_POST['submit']) && !empty($_POST['submit'])) {
 
     $hashpassword = sha512($_POST['pwd']);
-    $username = sha512(pg_escape_string($_POST['username']));
-    echo "$hashpassword<br>";
-    echo "$$username";
+    $username = pg_escape_string($_POST['username']);
     $sql = "select id from users where username = '" . $username . "' and pwd ='" . $hashpassword . "'";
     $data = sql($sql);
     $login_check = pg_num_rows($data);
@@ -163,16 +161,30 @@ if (isset($_POST['submit']) && !empty($_POST['submit'])) {
     }
     if ($login_check > 0) {
         echo "Login Successfully";
-        $token = openssl_random_pseudo_bytes(100);
-        $token = bin2hex($token);
-        $time = time() + 3600;
-        $sql2 = "UPDATE users set token = '" . $token . "' WHERE  id = {$id}; UPDATE users set tokentimeout =  $time";
-        $ret = sql($sql2);
+        $token = newtoken($id);
         echo("<script>window.location = 'index.php?to=$token'</script>");
         exit(1);
     }
     else {
         echo "Invalid Details";
+    }
+}
+
+function newtoken($id)
+{
+    $token = openssl_random_pseudo_bytes(100);
+    $token = bin2hex($token);
+    $time = time() + 3600;
+    $sql1 = "select * from users where token = '" . $token . "';";
+    $data = sql($sql1);
+    $tokencheck = pg_num_rows($data);
+    if ($tokencheck == 0) {
+        $sql2 = "UPDATE users set token = '" . $token . "' WHERE  id = {$id}; UPDATE users set tokentimeout =  $time";
+        sql($sql2);
+        return $token;
+    }
+    else {
+        newtoken($id);
     }
 }
 ?>

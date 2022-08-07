@@ -136,11 +136,11 @@ require "config.php";
 if (isset($_POST['submit']) && !empty($_POST['submit'])) {
 
     $now = time();
-    $sql2 = "select * from users where username ='" . sha512(pg_escape_string($_POST['username'])) . "' OR email='" . sha512(pg_escape_string($_POST['email'])) . "'";
+    $sql2 = "select * from users where username ='" . $_POST['username'] . "' OR email='" . sha512(pg_escape_string($_POST['email'])) . "'";
     $data = sql($sql2);
     $login_check = pg_num_rows($data);
     if ($login_check == 0) {
-        $sql = "insert into users(username,email,pwd)values('" . sha512(pg_escape_string($_POST['username'])) . "','" . sha512(pg_escape_string($_POST['email'])) . "','" . sha512($_POST['pwd']) . "')";
+        $sql = "insert into users(username,email,pwd)values('" . $_POST['username'] . "','" . sha512(pg_escape_string($_POST['email'])) . "','" . sha512($_POST['pwd']) . "')";
         $ret = sql($sql);
         if ($ret) {
             echo "Data saved Successfully";

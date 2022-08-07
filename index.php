@@ -1,4 +1,5 @@
 <?php
+
 require "config.php";
 
 if (isset($_POST['newgame'])) {
@@ -6,14 +7,23 @@ if (isset($_POST['newgame'])) {
         echo "Gib einen Namen ein!";
     }
     else {
-        header("location: index.php");
+        if (!$_GET['to']) {
+            $to = "notoken";
+        }
+        else {
+            $to = $_GET['to'];
+        }
+        header("location: index.php?to=" . $to . "");
         $string = $_POST['name'];
         if ($string != strip_tags($string)) {
             echo "Sie dürfen keine HTML Tags eingeben!";
         }
         else {
-            sql("insert into spiele(name, fertig, erlaubte, s1, s2, s3)values('" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', '{\"name\":\"Spieler1\"}', '{\"name\":\"Spieler2\"}', '{\"name\":\"Spieler3\"}');");
-            pg_close();
+            $data = sql("select username from users where token = '" . $_GET['to'] . "';");
+            while ($row = pg_fetch_row($data)) {
+                echo "$_row[0]";
+                sql("insert into spiele(name, fertig, erlaubte, s1, s2, s3)values('" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', '{\"name\":\"" . $row[0] . "\"}', '{\"name\":\"frei\"}', '{\"name\":\"frei\"}');");
+            }
         }
     }
 }
