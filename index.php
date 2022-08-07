@@ -52,13 +52,13 @@
         <?php
 require "config.php";
 
-if (!isset($_GET['to'])) {
+if (!isset($_GET['to']) || ($_GET['to'] == "null")) {
     echo '<div class="alert alert-warning" role="alert">
-        Du bist nicht angemeldet! <a href="login.php">Melde dich an</a>  oder <a href="register.php">registriere dich </a> um ein Spiel zu erstellen
+        Du bist nicht angemeldet! <a href="login.php">Melde dich an</a>  oder <a href="register.php">registriere dich </a> um ein Spiel zu erstellen oder an einem Spiel teilzunehmen!
         </div>';
 }
-
-if (isset($_POST['newgame'])) {
+function spielerstellen()
+{
     $to = $_GET['to'];
     header("location: index.php?to=" . $to . "");
     if ($_GET['to'] == "") {
@@ -77,11 +77,13 @@ if (isset($_POST['newgame'])) {
         else {
             $data = sql("select username from users where token = '" . $_GET['to'] . "';");
             while ($row = pg_fetch_row($data)) {
-                echo "$_row[0]";
-                sql("insert into spiele(name, fertig, erlaubte, s1, s2, s3)values('" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', '{\"name\":\"" . $row[0] . "\"}', '{\"name\":\"frei\"}', '{\"name\":\"frei\"}');");
+                sql("insert into spiele(name, fertig, erlaubte, s1, s2, s3)values('" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', '{\"name\":\"" . $row[0] . "\"}', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}');");
             }
         }
     }
+}
+if (isset($_POST['newgame'])) {
+    spielerstellen();
 }
 function getSpiele()
 {
@@ -99,9 +101,9 @@ function getSpiele()
                 <div class='card-body'>
                     <h5 class='card-title'>$row[1]</h5>
                     <ul>
-                        <li>$s1->name</li>
-                        <li>$s2->name</li>
-                        <li>$s3->name</li>
+                        <li class='" . (($s1->name == 'offen') ? 'text-success' : 'text-danger') . "'>$s1->name</li>
+                        <li class='" . (($s2->name == 'offen') ? 'text-success' : 'text-danger') . "'>$s2->name</li>
+                        <li class='" . (($s3->name == 'offen') ? 'text-success' : 'text-danger') . "'>$s3->name</li>
                     </ul>
                     Erlaubte:
                     $row[3]

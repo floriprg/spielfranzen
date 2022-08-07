@@ -80,7 +80,8 @@
                                         <div class="d-flex flex-row align-items-center mb-4">
                                             <i class="fas fa-key fa-lg me-3 fa-fw"></i>
                                             <div class="form-outline flex-fill mb-0">
-                                                <input type="password" id="form3Example4cd" class="form-control" />
+                                                <input name="pwd2" type="password" id="form3Example4cd"
+                                                    class="form-control" />
                                                 <label class="form-label" for="form3Example4cd">Passwort
                                                     wiederholen</label>
                                             </div>
@@ -133,24 +134,47 @@ function sha512($string)
 }
 include 'vendor/autoload.php';
 require "config.php";
-if (isset($_POST['submit']) && !empty($_POST['submit'])) {
-
-    $now = time();
-    $sql2 = "select * from users where username ='" . $_POST['username'] . "' OR email='" . sha512(pg_escape_string($_POST['email'])) . "'";
-    $data = sql($sql2);
-    $login_check = pg_num_rows($data);
-    if ($login_check == 0) {
-        $sql = "insert into users(username,email,pwd)values('" . $_POST['username'] . "','" . sha512(pg_escape_string($_POST['email'])) . "','" . sha512($_POST['pwd']) . "')";
-        $ret = sql($sql);
-        if ($ret) {
-            echo "Data saved Successfully";
+function login()
+{
+    if (isset($_POST['submit'])) {
+        $to = $_GET['to'];
+        header("location: index.php?to=" . $to . "");
+        if (!empty($_POST['username']) && !empty($_POST['email']) && !empty($_POST['pwd'])) {
+            if ($_POST['pwd'] != $_POST['pwd2']) {
+                echo '<div class="alert alert-danger" role="alert">
+                Passwörter stimmen nicht überein!
+                </div>';
+            }
+            $now = time();
+            $sql2 = "select * from users where username ='" . $_POST['username'] . "' OR email='" . sha512(pg_escape_string($_POST['email'])) . "'";
+            $data = sql($sql2);
+            $login_check = pg_num_rows($data);
+            if ($login_check == 0) {
+                $sql = "insert into users(username,email,pwd)values('" . $_POST['username'] . "','" . sha512(pg_escape_string($_POST['email'])) . "','" . sha512($_POST['pwd']) . "')";
+                $ret = sql($sql);
+                if ($ret) {
+                    echo '<div class="alert alert-success" role="alert">
+                    Erfolgreich registriert!
+                    </div>';
+                }
+                else {
+                    echo '<div class="alert alert-danger" role="alert">
+                    Etwas ist schiefgelaufen!
+                    </div>';
+                }
+            }
+            else {
+                echo('<div class="alert alert-danger" role="alert">
+                    Email oder Benutzername wird bereits verwendet!
+                    </div>');
+            }
         }
         else {
-            echo "Something Went Wrong";
+            echo '<div class="alert alert-warning" role="alert">
+        Fülle alle Felder aus!
+        </div>';
         }
     }
-    else {
-        echo("Email oder Benutzername wird bereits verwendet!");
-    }
 }
+login();
 ?>
