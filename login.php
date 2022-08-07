@@ -17,19 +17,25 @@
     </h1>
     <ul class="nav nav-tabs justify-content-center">
         <li class="nav-item">
-            <a class="nav-link" aria-current="page" href="index.php">Spielen</a>
+            <button class="nav-link "
+                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='index.php?to=' + params.to;">Spielen</button>
         </li>
         <li class="nav-item">
-            <a class="nav-link active" href="login.php">Anmelden</a>
+            <button class="nav-link active"
+                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='login.php?to=' + params.to;">Anmelden</button>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="register.php">Registrieren</a>
+            <button class="nav-link"
+                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='register.php?to=' + params.to;">Registrieren</button>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="rangliste.php">Rangliste</a>
+            <button class="nav-link"
+                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='rangliste.php?to=' + params.to;">Rangliste</button>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="game.php">Mein Spiel</a>
+            <button class="nav-link"
+                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='game.php?to=' + params.to;">Mein
+                Spiel</button>
         </li>
     </ul>
     <section class="vh-100">
@@ -161,8 +167,8 @@ if (isset($_POST['submit']) && !empty($_POST['submit'])) {
         $token = bin2hex($token);
         $time = time() + 3600;
         $sql2 = "UPDATE users set token = '" . $token . "' WHERE  id = {$id}; UPDATE users set tokentimeout =  $time";
-        $ret = pg_query($dbconn, $sql2);
-        header("location: index.php?to=$token");
+        $ret = sql($sql2);
+        echo("<script>window.location = 'index.php?to=$token'</script>");
         exit(1);
     }
     else {
