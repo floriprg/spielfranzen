@@ -47,58 +47,172 @@
 
 </html>
 <?php
-echo '<div class="container">';
-echo '
-<div class="d-flex flex-wrap">
-<div class="card m-3" style="width: 8rem;">
-  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
-    <div class="card-body">
-        <h5 class="card-title">Name des Spielers</h5>
-    </div>
-</div>
-<div class="card m-3" style="width: 8rem;">
-  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
-    <div class="card-body">
-        <h5 class="card-title">Name des Spielers</h5>
-    </div>
-</div>
-<div class="card m-3" style="width: 8rem;">
-  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
-    <div class="card-body">
-        <h5 class="card-title">Name des Spielers</h5>
-    </div>
-</div>
+require "config.php";
+while ($row = pg_fetch_row(sql("select s1, s2, s3 from spiele where id = $_GET[s]"))) {
+  $name = gettokendata()->name;
+  $s1 = json_decode($row[0], false);
+  $s2 = json_decode($row[1], false);
+  $s3 = json_decode($row[2], false);
+  if ($s1->name == "offen") {
+    $s1->name = $name;
+    sql("insert into spiele (s1) values '$s1'");
+    kartenausteilen();
+  }
+  else if ($s2->name == "offen") {
+    $s2->name = $name;
+    sql("insert into spiele (s2) values '$s2'");
+    kartenausteilen();
 
+  }
+  else if ($s3->name == "offen") {
+    $s3->name = $name;
+    sql("insert into spiele (s3) values '$s3'");
+    kartenausteilen();
 
-<table class="table">
+  }
+  else {
+    echo '<div class="alert alert-warning" role="alert">
+        Dieses Spiel ist leider schon besetzt
+        </div>';
+  }
+}
+function kartenausteilen()
+{
+  echo '<div class="container">';
+  echo '
+  <div class="d-flex flex-wrap justify-content-center">
+    <div class="card m-2" style="width: 6rem;">
+      <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
+      <div class="card-body">
+        <h5 class="card-title">Name des Spielers</h5>
+      </div>
+    </div>
+    <div class="card m-2" style="width: 6rem;">
+      <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
+      <div class="card-body">
+        <h5 class="card-title">Name des Spielers</h5>
+      </div>
+    </div>
+    <div class="card m-2" style="width: 6rem;">
+      <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
+      <div class="card-body">
+        <h5 class="card-title">Name des Spielers</h5>
+      </div>
+    </div>
+
+  <p>
+  <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExample"
+    aria-expanded="false" aria-controls="collapseExample">
+    Punktetabelle
+  </button>
+  </p>
+  <div class="collapse" id="collapseExample">
+  <div class="card card-body">     
+  <table class="table w-25">
   <thead>
-    <tr>
-      <th scope="col">Punkte</th>
-      <th scope="col">Spieler 1</th>
-      <th scope="col">Spieler 2</th>
-      <th scope="col">Spieler 3</th>
-    </tr>
+  <tr>
+    <th scope="col">Punkte</th>
+    <th scope="col">Spieler 1</th>
+    <th scope="col">Spieler 2</th>
+    <th scope="col">Spieler 3</th>
+  </tr>
   </thead>
   <tbody>
-    <tr>
-      <th scope="row">1</th>
-      <td>100</td>
-      <td>-50</td>
-      <td>-50</td>
-    </tr>
-    <tr>
-      <th scope="row">2</th>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-    </tr>
+  <tr>
+    <th scope="row">1</th>
+    <td>100</td>
+    <td>-50</td>
+    <td>-50</td>
+  </tr>
+  <tr>
+    <th scope="row">2</th>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+  </tr>
+  <tr>
+    <th scope="row">3</th>
+    <td>100</td>
+    <td>-50</td>
+    <td>-50</td>
+  </tr>
+  <tr>
+    <th scope="row">4</th>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+  </tr>
+  <tr>
+    <th scope="row">5</th>
+    <td>100</td>
+    <td>-50</td>
+    <td>-50</td>
+  </tr>
+  <tr>
+    <th scope="row">6</th>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+  </tr>
+  <tr>
+    <th scope="row">7</th>
+    <td>100</td>
+    <td>-50</td>
+    <td>-50</td>
+  </tr>
+  <tr>
+    <th scope="row">9</th>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+  </tr>
+  <tr>
+    <th scope="row">10</th>
+    <td>100</td>
+    <td>-50</td>
+    <td>-50</td>
+  </tr>
+
   </tbody>
-</table>
-<div id="karten" class="card m-3" style="width: 8rem;">';
-
-echo "";
-
-echo '</div>
-</div>
-';
+  </table>
+  </div>
+  </div>';
+  echo '
+  <div class="d-flex flex-row">
+  <div class="card m-0.5" style="width: 9vw;">
+  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap"> 
+  </div>
+  <div class="card m-0.5" style="width: 9vw;">
+  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap"> 
+  </div>
+  <div class="card m-0.5" style="width: 9vw;">
+  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
+  </div>
+  <div class="card m-0.5" style="width: 9vw;">
+  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
+  </div>
+  <div class="card m-0.5" style="width: 9vw;">
+  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
+  </div>
+  <div class="card m-0.5" style="width: 9vw;">
+  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap"> 
+  </div>
+  <div class="card m-0.5" style="width: 9vw;">
+  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap"> 
+  </div>
+  <div class="card m-0.5" style="width: 9vw;">
+  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
+  </div>
+  <div class="card m-0.5" style="width: 9vw;">
+  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
+  </div>
+  <div class="card m-0.5" style="width: 9vw;">
+  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
+  </div>
+  </div>
+  ';
+  echo '</div>
+  </div>
+  ';
+}
 ?>

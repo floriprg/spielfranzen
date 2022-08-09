@@ -1,3 +1,71 @@
+<?php
+header('Access-Control-Allow-Origin:*');
+header('Access-Control-Allow-Method:POST');
+use \Firebase\JWT\JWT;
+
+include 'vendor/autoload.php';
+require "config.php";
+$now = time();
+
+if (isset($_POST['submit']) && !empty($_POST['submit'])) {
+    //header("location: login.php");
+    $hashpassword = sha512($_POST['pwd']);
+    $username = pg_escape_string($_POST['username']);
+    $sql = "select id, username, email from users where username = '" . $username . "' and pwd ='" . $hashpassword . "'";
+    $data = sql($sql);
+    $login_check = pg_num_rows($data);
+    $i = 0;
+    while ($row = pg_fetch_row($data)) {
+        $i++;
+        $id = $row[0];
+        $name = $row[1];
+        $email = $row[2];
+    }
+    if ($login_check > 0) {
+        //mit jwt
+        $payload = [
+            'iss' => "localhost",
+            'aud' => 'localhost',
+            'exp' => time() + 1000, //10 mint
+            'data' => [
+                'id' => $id,
+                'name' => $name,
+                'email' => $email,
+            ],
+        ];
+        $secret_key = "Hochsteller";
+        $jwt = JWT::encode($payload, $secret_key, 'HS256');
+        echo json_encode([
+            'status' => 1,
+            'jwt' => $jwt,
+            'message' => 'Login Successfully',
+        ]);
+        echo("<script>window.location = 'index.php?to=$jwt'</script>");
+        exit(1);
+    }
+    else {
+        echo "Invalid Details";
+    }
+}
+
+function newtoken($id)
+{
+    $token = openssl_random_pseudo_bytes(100);
+    $token = bin2hex($token);
+    $time = time() + 3600;
+    $sql1 = "select * from users where token = '" . $token . "';";
+    $data = sql($sql1);
+    $tokencheck = pg_num_rows($data);
+    if ($tokencheck == 0) {
+        $sql2 = "UPDATE users set token = '" . $token . "' WHERE  id = {$id}; UPDATE users set tokentimeout =  $time";
+        sql($sql2);
+        return $token;
+    }
+    else {
+        newtoken($id);
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -134,57 +202,3 @@
 </body>
 
 </html>
-<?php
-function sha512($string)
-{
-    $h = $string;
-    for ($i = 0; $i < 100; $i++) {
-        $h = hash('sha512', $h);
-    }
-    return $h;
-}
-include 'vendor/autoload.php';
-require "config.php";
-$now = time();
-
-if (isset($_POST['submit']) && !empty($_POST['submit'])) {
-
-    $hashpassword = sha512($_POST['pwd']);
-    $username = pg_escape_string($_POST['username']);
-    $sql = "select id from users where username = '" . $username . "' and pwd ='" . $hashpassword . "'";
-    $data = sql($sql);
-    $login_check = pg_num_rows($data);
-    $i = 0;
-    while ($row = pg_fetch_row($data)) {
-        $i++;
-        $id = $row[0];
-    }
-    if ($login_check > 0) {
-        echo "Login Successfully";
-        $token = newtoken($id);
-        echo("<script>window.location = 'index.php?to=$token'</script>");
-        exit(1);
-    }
-    else {
-        echo "Invalid Details";
-    }
-}
-
-function newtoken($id)
-{
-    $token = openssl_random_pseudo_bytes(100);
-    $token = bin2hex($token);
-    $time = time() + 3600;
-    $sql1 = "select * from users where token = '" . $token . "';";
-    $data = sql($sql1);
-    $tokencheck = pg_num_rows($data);
-    if ($tokencheck == 0) {
-        $sql2 = "UPDATE users set token = '" . $token . "' WHERE  id = {$id}; UPDATE users set tokentimeout =  $time";
-        sql($sql2);
-        return $token;
-    }
-    else {
-        newtoken($id);
-    }
-}
-?>

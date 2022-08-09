@@ -50,7 +50,6 @@ function game() {
         karten: neuekarten(),
         s: 0
     };
-    console.log(JSON.stringify(s1));
     sql("update spiele set s1 ='" + JSON.stringify(s1) + "' where id = '" + s + "';");
     sql("update spiele set s2 ='" + JSON.stringify(s2) + "' where id = '" + s + "';");
     sql("update spiele set s3 ='" + JSON.stringify(s3) + "' where id = '" + s + "';");
