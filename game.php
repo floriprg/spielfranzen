@@ -48,7 +48,7 @@
 </html>
 <?php
 require "config.php";
-while ($row = pg_fetch_row(sql("select s1, s2, s3 from spiele where id = $_GET[s]"))) {
+while ($row = pg_fetch_row(sql("select s1, s2, s3 from spiele where id = " . $_GET['s'] . ";"))) {
   $name = gettokendata()->name;
   $s1 = json_decode($row[0], false);
   $s2 = json_decode($row[1], false);
