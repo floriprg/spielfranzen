@@ -14,28 +14,36 @@
 
 <body>
     <h1 class="text-center">
-        Name des Spiels
+        <?php
+require "config.php";
+if (isset($_GET['s'])) {
+  $data = sql("select name from spiele where id = " . $_GET['s'] . "");
+  while ($row = pg_fetch_row($data)) {
+    echo "$row[0]";
+  }
+}
+
+?>
     </h1>
     <ul class="nav nav-tabs justify-content-center">
         <li class="nav-item">
             <button class="nav-link "
-                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='index.php?to=' + params.to;">Spielen</button>
+                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='index.php?to=' + params.to + '&s=' + params.s">Spielen</button>
         </li>
         <li class="nav-item">
             <button class="nav-link "
-                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='login.php?to=' + params.to;">Anmelden</button>
+                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='login.php?to=' + params.to + '&s=' + params.s">Anmelden</button>
         </li>
         <li class="nav-item">
             <button class="nav-link"
-                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='register.php?to=' + params.to;">Registrieren</button>
+                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='register.php?to=' + params.to + '&s=' + params.s">Registrieren</button>
         </li>
         <li class="nav-item">
             <button class="nav-link"
-                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='rangliste.php?to=' + params.to;">Rangliste</button>
+                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='rangliste.php?to=' + params.to + '&s=' + params.s">Rangliste</button>
         </li>
         <li class="nav-item">
-            <button class="nav-link active"
-                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='game.php?to=' + params.to;">Mein
+            <button class="nav-link active">Mein
                 Spiel</button>
         </li>
     </ul>
@@ -47,34 +55,38 @@
 
 </html>
 <?php
-require "config.php";
-while ($row = pg_fetch_row(sql("select s1, s2, s3 from spiele where id = " . $_GET['s'] . ";"))) {
-  $name = gettokendata()->name;
+$nameofgame = "Name des Spiels";
+include 'vendor/autoload.php';
+//require "config.php";
+$data1 = sql("select s1, s2, s3, name from spiele where id = " . $_GET['s'] . ";");
+while ($row = pg_fetch_row($data1)) {
+  $data = gettokendata();
+  $name = $data->name;
   $s1 = json_decode($row[0], false);
   $s2 = json_decode($row[1], false);
   $s3 = json_decode($row[2], false);
-  if ($s1->name == "offen") {
-    $s1->name = $name;
-    sql("insert into spiele (s1) values '$s1'");
-    kartenausteilen();
-  }
-  else if ($s2->name == "offen") {
-    $s2->name = $name;
-    sql("insert into spiele (s2) values '$s2'");
-    kartenausteilen();
+  $nameofgame = $row[3];
+}
 
-  }
-  else if ($s3->name == "offen") {
-    $s3->name = $name;
-    sql("insert into spiele (s3) values '$s3'");
-    kartenausteilen();
-
-  }
-  else {
-    echo '<div class="alert alert-warning" role="alert">
-        Dieses Spiel ist leider schon besetzt
-        </div>';
-  }
+if ($s1->name == "offen") {
+  $s1->name = $name;
+  sql("insert into spiele (s1) values ('" . json_encode($s1) . "');");
+  kartenausteilen();
+}
+else if ($s2->name == "offen") {
+  $s2->name = $name;
+  sql("insert into spiele (s2) values ('" . json_encode($s2) . "');");
+  kartenausteilen();
+}
+else if ($s3->name == "offen") {
+  $s3->name = $name;
+  sql("insert into spiele (s3) values ('" . json_encode($s3) . "');");
+  kartenausteilen();
+}
+else {
+  echo '<div class="alert alert-warning" role="alert">
+ Dieses Spiel ist leider schon besetzt
+ </div>';
 }
 function kartenausteilen()
 {

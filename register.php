@@ -1,3 +1,51 @@
+<?php
+
+include 'vendor/autoload.php';
+require "config.php";
+function login()
+{
+    if (isset($_POST['submit'])) {
+        $to = $_GET['to'];
+        header("location: register.php?to=" . $to . "");
+        if (!empty($_POST['username']) && !empty($_POST['email']) && !empty($_POST['pwd'])) {
+            if ($_POST['pwd'] != $_POST['pwd2']) {
+                echo '<div class="alert alert-danger" role="alert">
+                Passwörter stimmen nicht überein!
+                </div>';
+            }
+            $now = time();
+            $sql2 = "select * from users where username ='" . $_POST['username'] . "' OR email='" . sha512(pg_escape_string($_POST['email'])) . "'";
+            $data = sql($sql2);
+            $login_check = pg_num_rows($data);
+            if ($login_check == 0) {
+                $sql = "insert into users(username,email,pwd)values('" . $_POST['username'] . "','" . sha512(pg_escape_string($_POST['email'])) . "','" . sha512($_POST['pwd']) . "')";
+                $ret = sql($sql);
+                if ($ret) {
+                    echo '<div class="alert alert-success" role="alert">
+                    Erfolgreich registriert!
+                    </div>';
+                }
+                else {
+                    echo '<div class="alert alert-danger" role="alert">
+                    Etwas ist schiefgelaufen!
+                    </div>';
+                }
+            }
+            else {
+                echo('<div class="alert alert-danger" role="alert">
+                    Email oder Benutzername wird bereits verwendet!
+                    </div>');
+            }
+        }
+        else {
+            echo '<div class="alert alert-warning" role="alert">
+        Fülle alle Felder aus!
+        </div>';
+        }
+    }
+}
+login();
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -17,23 +65,23 @@
     <ul class="nav nav-tabs justify-content-center">
         <li class="nav-item">
             <button class="nav-link "
-                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='index.php?to=' + params.to;">Spielen</button>
+                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='index.php?to=' + params.to + '&s=' + params.s">Spielen</button>
         </li>
         <li class="nav-item">
             <button class="nav-link "
-                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='login.php?to=' + params.to;">Anmelden</button>
+                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='login.php?to=' + params.to + '&s=' + params.s">Anmelden</button>
         </li>
-        <li class="nav-item">
-            <button class="nav-link active"
-                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='register.php?to=' + params.to;">Registrieren</button>
+        <li class="nav-item active">
+            <button class="nav-link"
+                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='register.php?to=' + params.to + '&s=' + params.s">Registrieren</button>
+        </li>
+        <li class="nav-item ">
+            <button class="nav-link"
+                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='rangliste.php?to=' + params.to + '&s=' + params.s">Rangliste</button>
         </li>
         <li class="nav-item">
             <button class="nav-link"
-                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='rangliste.php?to=' + params.to;">Rangliste</button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link"
-                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='game.php?to=' + params.to;">Mein
+                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='game.php?to=' + params.to + '&s=' + params.s">Mein
                 Spiel</button>
         </li>
     </ul>
@@ -123,58 +171,3 @@
 </body>
 
 </html>
-<?php
-function sha512($string)
-{
-    $h = $string;
-    for ($i = 0; $i < 100; $i++) {
-        $h = hash('sha512', $h);
-    }
-    return $h;
-}
-include 'vendor/autoload.php';
-require "config.php";
-function login()
-{
-    if (isset($_POST['submit'])) {
-        $to = $_GET['to'];
-        header("location: index.php?to=" . $to . "");
-        if (!empty($_POST['username']) && !empty($_POST['email']) && !empty($_POST['pwd'])) {
-            if ($_POST['pwd'] != $_POST['pwd2']) {
-                echo '<div class="alert alert-danger" role="alert">
-                Passwörter stimmen nicht überein!
-                </div>';
-            }
-            $now = time();
-            $sql2 = "select * from users where username ='" . $_POST['username'] . "' OR email='" . sha512(pg_escape_string($_POST['email'])) . "'";
-            $data = sql($sql2);
-            $login_check = pg_num_rows($data);
-            if ($login_check == 0) {
-                $sql = "insert into users(username,email,pwd)values('" . $_POST['username'] . "','" . sha512(pg_escape_string($_POST['email'])) . "','" . sha512($_POST['pwd']) . "')";
-                $ret = sql($sql);
-                if ($ret) {
-                    echo '<div class="alert alert-success" role="alert">
-                    Erfolgreich registriert!
-                    </div>';
-                }
-                else {
-                    echo '<div class="alert alert-danger" role="alert">
-                    Etwas ist schiefgelaufen!
-                    </div>';
-                }
-            }
-            else {
-                echo('<div class="alert alert-danger" role="alert">
-                    Email oder Benutzername wird bereits verwendet!
-                    </div>');
-            }
-        }
-        else {
-            echo '<div class="alert alert-warning" role="alert">
-        Fülle alle Felder aus!
-        </div>';
-        }
-    }
-}
-login();
-?>

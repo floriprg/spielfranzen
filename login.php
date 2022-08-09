@@ -44,7 +44,9 @@ if (isset($_POST['submit']) && !empty($_POST['submit'])) {
         exit(1);
     }
     else {
-        echo "Invalid Details";
+        echo '<div class="alert alert-danger" role="alert">
+            Benutzername oder Passwort sind falsch!
+            </div>';
     }
 }
 
@@ -84,25 +86,24 @@ function newtoken($id)
         Anmelden
     </h1>
     <ul class="nav nav-tabs justify-content-center">
-        <li class="nav-item">
+        <li class="nav-item aktive">
             <button class="nav-link "
-                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='index.php?to=' + params.to;">Spielen</button>
+                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='index.php?to=' + params.to + '&s=' + params.s">Spielen</button>
         </li>
         <li class="nav-item">
-            <button class="nav-link active"
-                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='login.php?to=' + params.to;">Anmelden</button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link"
-                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='register.php?to=' + params.to;">Registrieren</button>
+            <button class="nav-link active">Anmelden</button>
         </li>
         <li class="nav-item">
             <button class="nav-link"
-                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='rangliste.php?to=' + params.to;">Rangliste</button>
+                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='register.php?to=' + params.to + '&s=' + params.s">Registrieren</button>
         </li>
         <li class="nav-item">
             <button class="nav-link"
-                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='game.php?to=' + params.to;">Mein
+                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='rangliste.php?to=' + params.to + '&s=' + params.s">Rangliste</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link"
+                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='game.php?to=' + params.to + '&s=' + params.s">Mein
                 Spiel</button>
         </li>
     </ul>
