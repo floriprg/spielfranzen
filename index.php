@@ -24,7 +24,7 @@ function spielerstellen()
             echo "Sie dürfen keine HTML Tags eingeben!";
         }
         else {
-            sql("insert into spiele(name, fertig, erlaubte, s1, s2, s3)values('" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}');");
+            sql("insert into spiele(name, fertig, erlaubte, s1, s2, s3, kartenausgeteilt)values('" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', false);");
         }
     }
 }
@@ -93,7 +93,7 @@ function getSpiele()
     </h1>
     <ul class="nav nav-tabs justify-content-center">
         <li class="nav-item">
-            <button class="nav-link aktive">Spielen</button>
+            <button class="nav-link active">Spielen</button>
         </li>
         <li class="nav-item">
             <button class="nav-link "

@@ -71,8 +71,8 @@ login();
             <button class="nav-link "
                 onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='login.php?to=' + params.to + '&s=' + params.s">Anmelden</button>
         </li>
-        <li class="nav-item active">
-            <button class="nav-link"
+        <li class="nav-item ">
+            <button class="nav-link active"
                 onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='register.php?to=' + params.to + '&s=' + params.s">Registrieren</button>
         </li>
         <li class="nav-item ">

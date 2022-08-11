@@ -5,7 +5,7 @@ function game() {
 
     let s = params.s;
     let to = params.to;
-    if (!s || !to) {
+    if (!s || !to || to == "" || to == "null" || s == "" || s == "null") {
         window.location = "index.php";
     }
     let karten = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33];
@@ -20,40 +20,46 @@ function game() {
         return zufallskarten;
     }
 
-    function sql(sql) {
+    function sql(sql, type) {
         $.ajax({
             method: "POST",
             url: "sql.php",
             data: {
-                sql: sql
+                sql: sql,
+                type: type
             }
         })
             .done(function (response) {
-                //alert(response);
+                if (type == "sel") {
+                    return response;
+                }
             });
     }
+
+    /*
     let s1 = {
-        name: "name",
+        name: "offen",
         punkte: 0,
         karten: neuekarten(),
-        s: 0
+        s: s
     };
     let s2 = {
-        name: "name",
+        name: "offen",
         punkte: 0,
         karten: neuekarten(),
-        s: 0
+        s: s
     };
     let s3 = {
-        name: "name",
+        name: "offen",
         punkte: 0,
         karten: neuekarten(),
-        s: 0
+        s: s
     };
-    sql("update spiele set s1 ='" + JSON.stringify(s1) + "' where id = '" + s + "';");
-    sql("update spiele set s2 ='" + JSON.stringify(s2) + "' where id = '" + s + "';");
-    sql("update spiele set s3 ='" + JSON.stringify(s3) + "' where id = '" + s + "';");
-
+    console.log(s1);
+    sql("update spiele set s1 ='" + JSON.stringify(s1) + "' where id = '" + s + "';", "ins");
+    sql("update spiele set s2 ='" + JSON.stringify(s2) + "' where id = '" + s + "';", "ins");
+    sql("update spiele set s3 ='" + JSON.stringify(s3) + "' where id = '" + s + "';", "ins");
+    */
 }
 
 game();

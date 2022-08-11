@@ -16,7 +16,7 @@
     <h1 class="text-center">
         <?php
 require "config.php";
-if (isset($_GET['s'])) {
+if (isset($_GET['s']) && !($_GET['s'] == "" && !($_GET['s'] == "null"))) {
   $data = sql("select name from spiele where id = " . $_GET['s'] . "");
   while ($row = pg_fetch_row($data)) {
     echo "$row[0]";
@@ -55,32 +55,61 @@ if (isset($_GET['s'])) {
 
 </html>
 <?php
-$nameofgame = "Name des Spiels";
 include 'vendor/autoload.php';
 //require "config.php";
-$data1 = sql("select s1, s2, s3, name from spiele where id = " . $_GET['s'] . ";");
+$data1 = sql("select s1, s2, s3 from spiele where id = " . $_GET['s'] . ";");
+
+function neuekarten()
+{
+  $karten = array("1 laub.jpg", "1 sche.jpg", "1 eich.jpg", "1 herz.jpg", "2 laub.jpg", "2 sche.jpg", "2 eich.jpg", "2 herz.jpg", "3 laub.jpg", "3 sche.jpg", "3 eich.jpg", "3 herz.jpg", "4 laub.jpg", "4 sche.jpg", "4 eich.jpg", "4 herz.jpg", "5 eich.jpg", "5 herz.jpg", "5 laub.jpg", "5 sche.jpg", "7 eich.jpg", "7 herz.jpg", "7 laub.jpg", "7 sche.jpg", "8 eich.jpg", "8 herz.jpg", "8 laub.jpg", "8 sche.jpg", "9 eich.jpg", "9 herz.jpg", "9 laub.jpg", "9 sche.jpg", "weli.jpg");
+  $zufallskarten = [];
+  for ($i = 0; $i < 33; $i++) {
+    $zahl = rand(0, (count($karten) - 1));
+    $zufallskarten[] = $karten[$zahl];
+    array_splice($karten, $zahl, 1);
+  }
+  return $zufallskarten;
+}
+
 while ($row = pg_fetch_row($data1)) {
   $data = gettokendata();
   $name = $data->name;
   $s1 = json_decode($row[0], false);
   $s2 = json_decode($row[1], false);
   $s3 = json_decode($row[2], false);
-  $nameofgame = $row[3];
 }
 
-if ($s1->name == "offen") {
+$s1->punkte = 0;
+$s2->punkte = 0;
+$s3->punkte = 0;
+$data = sql("select kartenausgeteilt from spiele where id =" . $_GET['s'] . ";");
+while ($row = pg_fetch_row($data)) {
+  if ($row[0] == "f") {
+    sql("update spiele set kartenausgeteilt = true where id = " . $_GET['s'] . ";");
+    echo "false";
+    $zufallskarten = neuekarten();
+    $s1->karten = array_splice($zufallskarten, 0, 10);
+    $s2->karten = array_splice($zufallskarten, 0, 10);
+    $s3->karten = array_splice($zufallskarten, 0, 10);
+    $talon = $zufallskarten;
+  }
+}
+
+
+if ($s1->name == "offen" || $s1->name == $name) {
   $s1->name = $name;
-  sql("insert into spiele (s1) values ('" . json_encode($s1) . "');");
+  echo json_encode($s1);
+  sql("update spiele set s1 = '" . json_encode($s1) . "' where id = " . $_GET['s'] . ";");
   kartenausteilen();
 }
-else if ($s2->name == "offen") {
+else if ($s2->name == "offen" || $s2->name == $name) {
   $s2->name = $name;
-  sql("insert into spiele (s2) values ('" . json_encode($s2) . "');");
+  sql("update spiele set s2 = '" . json_encode($s2) . "' where id = " . $_GET['s'] . ";");
   kartenausteilen();
 }
-else if ($s3->name == "offen") {
+else if ($s3->name == "offen" || $s2->name == $name) {
   $s3->name = $name;
-  sql("insert into spiele (s3) values ('" . json_encode($s3) . "');");
+  sql("update spiele set s3 = '" . json_encode($s3) . "' where id = " . $_GET['s'] . ";");
   kartenausteilen();
 }
 else {
