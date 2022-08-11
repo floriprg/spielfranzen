@@ -93,24 +93,19 @@ function getSpiele()
     </h1>
     <ul class="nav nav-tabs justify-content-center">
         <li class="nav-item">
-            <button class="nav-link active">Spielen</button>
+            <a class="nav-link active" href="index.php">Anmelden</a>
         </li>
         <li class="nav-item">
-            <button class="nav-link "
-                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='login.php?to=' + params.to + '&s=' + params.s">Anmelden</button>
+            <a class="nav-link" href="login.php">Anmelden</a>
         </li>
         <li class="nav-item">
-            <button class="nav-link"
-                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='register.php?to=' + params.to + '&s=' + params.s">Registrieren</button>
+            <a class="nav-link" href="register.php">Registrieren</a>
         </li>
         <li class="nav-item">
-            <button class="nav-link"
-                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='rangliste.php?to=' + params.to + '&s=' + params.s">Rangliste</button>
+            <a class="nav-link" href="rangliste.php">Rangliste</a>
         </li>
         <li class="nav-item">
-            <button class="nav-link"
-                onclick=" const params = new Proxy(new URLSearchParams(window.location.search), {get: (searchParams, prop) => searchParams.get(prop),});window.location ='game.php?to=' + params.to + '&s=' + params.s">Mein
-                Spiel</button>
+            <a class="nav-link" href="game.php">Mein Spiel</a>
         </li>
     </ul>
     <br>
