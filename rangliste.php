@@ -17,7 +17,7 @@
     <ul class="nav nav-tabs justify-content-center">
         <ul class="nav nav-tabs justify-content-center">
             <li class="nav-item">
-                <a class="nav-link" href="index.php">Anmelden</a>
+                <a class="nav-link" href="index.php">Spielen</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="login.php">Anmelden</a>

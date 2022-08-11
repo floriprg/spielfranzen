@@ -2,49 +2,56 @@
 
 include 'vendor/autoload.php';
 require "config.php";
-function login()
+function register()
 {
     if (isset($_POST['submit'])) {
         $to = $_GET['to'];
-        header("location: register.php?to=" . $to . "");
-        if (!empty($_POST['username']) && !empty($_POST['email']) && !empty($_POST['pwd'])) {
+        header("location: register.php");
+        if (!empty($_POST['username']) && !empty($_POST['email']) && !empty($_POST['pwd']) && !empty($_POST['pwd2'])) {
             if ($_POST['pwd'] != $_POST['pwd2']) {
                 echo '<div class="alert alert-danger" role="alert">
                 Passwörter stimmen nicht überein!
                 </div>';
+                return false;
+            }
+            if (trim(!empty($_POST["email"]))) {
+                echo '<div class="alert alert-danger" role="alert">
+                leer
+                </div>';
+                return false;
             }
             $now = time();
             $sql2 = "select * from users where username ='" . $_POST['username'] . "' OR email='" . sha512(pg_escape_string($_POST['email'])) . "'";
             $data = sql($sql2);
             $login_check = pg_num_rows($data);
-            if ($login_check == 0) {
-                $sql = "insert into users(username,email,pwd)values('" . $_POST['username'] . "','" . sha512(pg_escape_string($_POST['email'])) . "','" . sha512($_POST['pwd']) . "')";
-                $ret = sql($sql);
-                if ($ret) {
-                    echo '<div class="alert alert-success" role="alert">
-                    Erfolgreich registriert!
-                    </div>';
-                }
-                else {
-                    echo '<div class="alert alert-danger" role="alert">
-                    Etwas ist schiefgelaufen!
-                    </div>';
-                }
-            }
-            else {
+            if ($login_check != 0) {
                 echo('<div class="alert alert-danger" role="alert">
                     Email oder Benutzername wird bereits verwendet!
                     </div>');
+                return false;
+            }
+            $sql = "insert into users(username,email,pwd)values('" . $_POST['username'] . "','" . sha512(pg_escape_string($_POST['email'])) . "','" . sha512($_POST['pwd']) . "')";
+            $ret = sql($sql);
+            if ($ret) {
+                echo '<div class="alert alert-success" role="alert">
+                    Erfolgreich registriert!
+                    </div>';
+            }
+            else {
+                echo '<div class="alert alert-danger" role="alert">
+                    Etwas ist schiefgelaufen!
+                    </div>';
             }
         }
         else {
             echo '<div class="alert alert-warning" role="alert">
-        Fülle alle Felder aus!
-        </div>';
+            Fülle alle Felder aus!
+            </div>';
         }
     }
 }
-login();
+
+register();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -65,7 +72,7 @@ login();
     <ul class="nav nav-tabs justify-content-center">
         <ul class="nav nav-tabs justify-content-center">
             <li class="nav-item">
-                <a class="nav-link" href="index.php">Anmelden</a>
+                <a class="nav-link" href="index.php">Spielen</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="login.php">Anmelden</a>
@@ -90,7 +97,7 @@ login();
                             <div class="row justify-content-center">
                                 <div class="col-md-10 col-lg-6 col-xl-5 order-2 order-lg-1">
 
-                                    <p class="text-center h1 fw-bold mb-5 mx-1 mx-md-4 mt-4">Sign up</p>
+                                    <p class="text-center h1 fw-bold mb-5 mx-1 mx-md-4 mt-4">Registrieren</p>
 
                                     <form method="post" autocomplete="nope" class="mx-1 mx-md-4">
 
