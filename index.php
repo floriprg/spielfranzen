@@ -84,16 +84,17 @@ function getSpiele()
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9511027260579899"
         crossorigin="anonymous"></script>
     <style src="style.css"></style>
+    <link rel="stylesheet" type="text/css"
+        href="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.css" />
 </head>
 
 <body>
-
     <h1 class="text-center">
         Spiel Franzen
     </h1>
     <ul class="nav nav-tabs justify-content-center">
         <li class="nav-item">
-            <a class="nav-link active" href="index.php">Anmelden</a>
+            <a class="nav-link active" href="index.php">Spielen</a>
         </li>
         <li class="nav-item">
             <a class="nav-link" href="login.php">Anmelden</a>
@@ -151,6 +152,28 @@ getSpiele();
         integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous">
     </script>
     <script src="index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.js" data-cfasync="false"></script>
+    <script>
+    window.cookieconsent.initialise({
+        "palette": {
+            "popup": {
+                "background": "#216942",
+                "text": "#b2d192"
+            },
+            "button": {
+                "background": "#afed71"
+            }
+        },
+        "theme": "edgeless",
+        "position": "bottom-right",
+        "content": {
+            "message": "Diese Webseite verwendet Cookies, um Ihnen ein angenehmeres Surfen zu ermöglichen.",
+            "dismiss": "Notwendige Cookies Akzeptieren",
+            "link": "Mehr herausfinden",
+            "href": "https://www.cookiesandyou.com/"
+        }
+    });
+    </script>
 </body>
 
 </html>
