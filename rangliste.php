@@ -23,10 +23,10 @@
                 <a class="nav-link" href="login.php">Anmelden</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link active" href="register.php">Registrieren</a>
+                <a class="nav-link " href="register.php">Registrieren</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="rangliste.php">Rangliste</a>
+                <a class="nav-link active" href="rangliste.php">Rangliste</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="game.php">Mein Spiel</a>

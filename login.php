@@ -24,8 +24,8 @@ if (isset($_POST['submit']) && !empty($_POST['submit'])) {
     if ($login_check > 0) {
         //mit jwt
         $payload = [
-            'iss' => "localhost",
-            'aud' => 'localhost',
+            'iss' => "spiel-franzen.herokuapp.com",
+            'aud' => 'www.spiel-franzen.herokuapp.com',
             'exp' => time() + 1000, //10 mint
             'data' => [
                 'id' => $id,
@@ -35,7 +35,16 @@ if (isset($_POST['submit']) && !empty($_POST['submit'])) {
         ];
         $secret_key = "Hochsteller";
         $jwt = JWT::encode($payload, $secret_key, 'HS256');
-        setcookie("to", $jwt, 0, "", "", true, true);
+        $random_number = bin2hex(openssl_random_pseudo_bytes(10));
+        $jti = hash('sha256', serialize($jwt) . $random_number);
+
+        setcookie("to", $jwt, [
+            'expires' => 0,
+            'secure' => true,
+            'httponly' => true,
+            'samesite' => 'Strict',
+        ]);
+        
         echo("<script>window.location = 'index.php'</script>");
         exit(1);
     }
