@@ -1,18 +1,18 @@
 <?php
 include 'vendor/autoload.php';
 require "config.php";
-if (!tokenoverproofe()) {
+if (!isset($_COOKIE["to"])) {
     echo '<div class="alert alert-warning" role="alert">
         Du bist nicht angemeldet! <a href="login.php">Melde dich an</a>  oder <a href="register.php">registriere dich </a> um ein Spiel zu erstellen oder an einem Spiel teilzunehmen!
         </div>';
 }
 function spielerstellen()
 {
-    if (!tokenoverproofe()) {
+    if (!isset($_COOKIE["to"])) {
         return;
     }
     $to = $_GET['to'];
-    header("location: index.php?to=" . $to . "");
+    header("location: index.php");
     if ($_POST['name'] == "") {
         echo '<div class="alert alert-warning" role="alert">
                 Gib einen Namen ein!
@@ -31,7 +31,7 @@ function spielerstellen()
 
 function getSpiele()
 {
-    if (!tokenoverproofe()) {
+    if (!isset($_COOKIE["to"])) {
         return;
     }
     echo '
@@ -55,7 +55,7 @@ function getSpiele()
                     Erlaubte:
                     $row[3]
                     <br>
-                    <button onclick='window.location = \"game.php?s=$row[0]&to=" . $_GET['to'] . "\"' class='btn btn-primary'>Teilnehmen</button>
+                    <button onclick='window.location = \"game.php?s=$row[0]\"' class='btn btn-primary'>Teilnehmen</button>
                 </div>
             </div>
         ";

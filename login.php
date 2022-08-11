@@ -35,12 +35,8 @@ if (isset($_POST['submit']) && !empty($_POST['submit'])) {
         ];
         $secret_key = "Hochsteller";
         $jwt = JWT::encode($payload, $secret_key, 'HS256');
-        echo json_encode([
-            'status' => 1,
-            'jwt' => $jwt,
-            'message' => 'Login Successfully',
-        ]);
-        echo("<script>window.location = 'index.php?to=$jwt'</script>");
+        setcookie("to", $jwt, 0, "", "", true, true);
+        echo("<script>window.location = 'index.php'</script>");
         exit(1);
     }
     else {

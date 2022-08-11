@@ -17,19 +17,17 @@ function sha512($string)
     }
     return $h;
 }
-function tokenoverproofe()
-{
-    if (isset($_GET['to']) && !($_GET['to'] == "") && !($_GET['to'] == "null")) {
-        return true;
-    } else {
-        return false;
-    }
-}
+
 function gettokendata(){
-    $jwt = $_GET['to'];
-    $key = "Hochsteller";
-    $user_data = JWT::decode($jwt, new Key($key, 'HS256'));
-    $data = $user_data->data;
-    return $data;
+    try{
+        $jwt = $_COOKIE['to'];
+        $key = "Hochsteller";
+        $user_data = JWT::decode($jwt, new Key($key, 'HS256'));
+        $data = $user_data->data;
+        return $data;
+    } 
+    catch(error_log){
+        return "error";
+    }
 }
 ?>

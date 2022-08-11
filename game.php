@@ -57,8 +57,7 @@ if (isset($_GET['s']) && !($_GET['s'] == "" && !($_GET['s'] == "null"))) {
 <?php
 include 'vendor/autoload.php';
 //require "config.php";
-$data1 = sql("select s1, s2, s3 from spiele where id = " . $_GET['s'] . ";");
-
+begin();
 function neuekarten()
 {
   $karten = array("1 laub.jpg", "1 sche.jpg", "1 eich.jpg", "1 herz.jpg", "2 laub.jpg", "2 sche.jpg", "2 eich.jpg", "2 herz.jpg", "3 laub.jpg", "3 sche.jpg", "3 eich.jpg", "3 herz.jpg", "4 laub.jpg", "4 sche.jpg", "4 eich.jpg", "4 herz.jpg", "5 eich.jpg", "5 herz.jpg", "5 laub.jpg", "5 sche.jpg", "7 eich.jpg", "7 herz.jpg", "7 laub.jpg", "7 sche.jpg", "8 eich.jpg", "8 herz.jpg", "8 laub.jpg", "8 sche.jpg", "9 eich.jpg", "9 herz.jpg", "9 laub.jpg", "9 sche.jpg", "weli.jpg");
@@ -70,54 +69,63 @@ function neuekarten()
   }
   return $zufallskarten;
 }
-
-while ($row = pg_fetch_row($data1)) {
-  $data = gettokendata();
-  $name = $data->name;
-  $s1 = json_decode($row[0], false);
-  $s2 = json_decode($row[1], false);
-  $s3 = json_decode($row[2], false);
-}
-
-$s1->punkte = 0;
-$s2->punkte = 0;
-$s3->punkte = 0;
-$data = sql("select kartenausgeteilt from spiele where id =" . $_GET['s'] . ";");
-while ($row = pg_fetch_row($data)) {
-  if ($row[0] == "f") {
-    sql("update spiele set kartenausgeteilt = true where id = " . $_GET['s'] . ";");
-    echo "false";
-    $zufallskarten = neuekarten();
-    $s1->karten = array_splice($zufallskarten, 0, 10);
-    $s2->karten = array_splice($zufallskarten, 0, 10);
-    $s3->karten = array_splice($zufallskarten, 0, 10);
-    $talon = $zufallskarten;
+function begin()
+{
+  $data1 = sql("select s1, s2, s3 from spiele where id = " . $_GET['s'] . ";");
+  while ($row = pg_fetch_row($data1)) {
+    $data = gettokendata();
+    $name = $data->name;
+    $s1 = json_decode($row[0], false);
+    $s2 = json_decode($row[1], false);
+    $s3 = json_decode($row[2], false);
   }
-}
-
-
-if ($s1->name == "offen" || $s1->name == $name) {
-  $s1->name = $name;
-  echo json_encode($s1);
-  sql("update spiele set s1 = '" . json_encode($s1) . "' where id = " . $_GET['s'] . ";");
-  kartenausteilen();
-}
-else if ($s2->name == "offen" || $s2->name == $name) {
-  $s2->name = $name;
-  sql("update spiele set s2 = '" . json_encode($s2) . "' where id = " . $_GET['s'] . ";");
-  kartenausteilen();
-}
-else if ($s3->name == "offen" || $s2->name == $name) {
-  $s3->name = $name;
-  sql("update spiele set s3 = '" . json_encode($s3) . "' where id = " . $_GET['s'] . ";");
-  kartenausteilen();
-}
-else {
-  echo '<div class="alert alert-warning" role="alert">
+  if ($s1->name == "offen") {
+    $s1->punkte = 0;
+    $s2->punkte = 0;
+    $s3->punkte = 0;
+    $data = sql("select kartenausgeteilt from spiele where id =" . $_GET['s'] . ";");
+    while ($row = pg_fetch_row($data)) {
+      if ($row[0] == "f") {
+        sql("update spiele set kartenausgeteilt = true where id = " . $_GET['s'] . ";");
+        $zufallskarten = neuekarten();
+        $s1->karten = array_splice($zufallskarten, 0, 10);
+        $s2->karten = array_splice($zufallskarten, 0, 10);
+        $s3->karten = array_splice($zufallskarten, 0, 10);
+        $talon = $zufallskarten;
+      }
+    }
+  }
+  if ($s1->name == "offen" || $s1->name == $name) {
+    if ($s1->name != $name) {
+      $s1->name = $name;
+      sql("update spiele set s1 = '" . json_encode($s1) . "' where id = " . $_GET['s'] . ";");
+      sql("update spiele set s2 = '" . json_encode($s2) . "' where id = " . $_GET['s'] . ";");
+      sql("update spiele set s3 = '" . json_encode($s3) . "' where id = " . $_GET['s'] . ";");
+      sql("update spiele set talon =  '{" . $talon[0] . ", " . $talon[1] . ", " . $talon[2] . "}' where id = " . $_GET['s'] . ";");
+    }
+    kartenausteilen($s1);
+  }
+  else if ($s2->name == "offen" || $s2->name == $name) {
+    if ($s2->name != $name) {
+      $s2->name = $name;
+      sql("update spiele set s2 = '" . json_encode($s2) . "' where id = " . $_GET['s'] . ";");
+    }
+    kartenausteilen($s2);
+  }
+  else if ($s3->name == "offen" || $s2->name == $name) {
+    if ($s3->name != $name) {
+      $s3->name = $name;
+      sql("update spiele set s3 = '" . json_encode($s3) . "' where id = " . $_GET['s'] . ";");
+    }
+    kartenausteilen($s3);
+  }
+  else {
+    echo '<div class="alert alert-warning" role="alert">
  Dieses Spiel ist leider schon besetzt
  </div>';
+  }
 }
-function kartenausteilen()
+function kartenausteilen($s)
 {
   echo '<div class="container">';
   echo '
@@ -158,101 +166,26 @@ function kartenausteilen()
     <th scope="col">Spieler 3</th>
   </tr>
   </thead>
-  <tbody>
-  <tr>
-    <th scope="row">1</th>
-    <td>100</td>
-    <td>-50</td>
-    <td>-50</td>
-  </tr>
-  <tr>
-    <th scope="row">2</th>
-    <td>0</td>
-    <td>0</td>
-    <td>0</td>
-  </tr>
-  <tr>
-    <th scope="row">3</th>
-    <td>100</td>
-    <td>-50</td>
-    <td>-50</td>
-  </tr>
-  <tr>
-    <th scope="row">4</th>
-    <td>0</td>
-    <td>0</td>
-    <td>0</td>
-  </tr>
-  <tr>
-    <th scope="row">5</th>
-    <td>100</td>
-    <td>-50</td>
-    <td>-50</td>
-  </tr>
-  <tr>
-    <th scope="row">6</th>
-    <td>0</td>
-    <td>0</td>
-    <td>0</td>
-  </tr>
-  <tr>
-    <th scope="row">7</th>
-    <td>100</td>
-    <td>-50</td>
-    <td>-50</td>
-  </tr>
-  <tr>
-    <th scope="row">9</th>
-    <td>0</td>
-    <td>0</td>
-    <td>0</td>
-  </tr>
-  <tr>
-    <th scope="row">10</th>
-    <td>100</td>
-    <td>-50</td>
-    <td>-50</td>
-  </tr>
-
+  <tbody>';
+  for ($i = 0; $i < 10; $i++) {
+    echo '<tr>
+            <th scope="row">1</th>
+          </tr>';
+  }
+  echo '
   </tbody>
   </table>
   </div>
-  </div>';
+  </div>
+  <div class="d-flex flex-row">';
+  for ($i = 0; $i < 10; $i++) {
+    echo '<div class="card m-0.5" style="width: 9vw;">
+    <img class="card-img-top img-fluid" src="karten/' . $s->karten[$i] . '" alt="Card image cap"> 
+    </div>';
+  }
   echo '
-  <div class="d-flex flex-row">
-  <div class="card m-0.5" style="width: 9vw;">
-  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap"> 
-  </div>
-  <div class="card m-0.5" style="width: 9vw;">
-  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap"> 
-  </div>
-  <div class="card m-0.5" style="width: 9vw;">
-  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
-  </div>
-  <div class="card m-0.5" style="width: 9vw;">
-  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
-  </div>
-  <div class="card m-0.5" style="width: 9vw;">
-  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
-  </div>
-  <div class="card m-0.5" style="width: 9vw;">
-  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap"> 
-  </div>
-  <div class="card m-0.5" style="width: 9vw;">
-  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap"> 
-  </div>
-  <div class="card m-0.5" style="width: 9vw;">
-  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
-  </div>
-  <div class="card m-0.5" style="width: 9vw;">
-  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
-  </div>
-  <div class="card m-0.5" style="width: 9vw;">
-  <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
   </div>
   </div>
-  ';
-  echo '</div>
   </div>
   ';
 }
