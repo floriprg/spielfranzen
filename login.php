@@ -5,8 +5,29 @@ use \Firebase\JWT\JWT;
 
 include 'vendor/autoload.php';
 require "config.php";
+passwortvergessen();
+
+function passwortvergessen(){
+    if (isset($_POST["pwdforget"])){
+        header("location: login.php");
+        $email = $_POST['pwdforgetemail'];
+        $data = sql("select email from users where email = '" . $email . "';");
+        $emailcheck = pg_num_rows($data);
+        if ($emailcheck == 1) {
+            $msg = "Gib ein neues Passwort ein!";
+            $headers = "From: flori.konto2@gmail.com";
+            mail($email, "Neues Passwort erstellen", $msg, $headers);
+            echo "<div class='alert-success'>Email erfolgreich geschickt!</div>";
+        }
+        else {
+            echo "<div class='alert-danger'>Kein Benutzer mit dieser Email gefunden!</div>";
+        }
+    }
+}
 function login(){
     if (isset($_POST['submit'])) {
+        header("location: index.php");
+
         //header("location: login.php");
         if (empty($_POST['pwd']) || empty($_POST['username'])){
             '<div class="alert alert-warning" role="alert">
@@ -105,7 +126,7 @@ function login(){
     <section class="">
         <?php login();?>
         <div class="container-fluid h-custom">
-            <div class="row d-flex justify-content-center align-items-center ">
+            <div class="row d-flex justify-content-center align-items-center h-100">
                 <div class="col-md-9 col-lg-6 col-xl-5">
                     <img src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-login-form/draw2.webp"
                         class="img-fluid" alt="Sample image">
@@ -128,7 +149,7 @@ function login(){
                         </div>
 
                         <div class="divider d-flex align-items-center my-4">
-                            <p class="text-center fw-bold mx-3 mb-0">oder</p>
+                            <p class="text-center fw-bold mx-3 mb-0">Or</p>
                         </div>
 
                         <!-- Email input -->
@@ -145,14 +166,14 @@ function login(){
                             <label class="form-label" for="form3Example4">Passwort</label>
                         </div>
 
-                        <div class="d-flex justify-content-between align-items-center">
-
+                        <div class="d-flex flex-column justify-content-between ">
+                            <input type="submit" name="submit" class="btn btn-primary" value="Anmelden">
+                            <br>
                             <p>
-                                <button class="btn btn-primary" type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#collapseExample" aria-expanded="false"
-                                    aria-controls="collapseExample">
+                                <a class="" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExample"
+                                    aria-expanded="false" aria-controls="collapseExample">
                                     Passwort vergessen?
-                                </button>
+                                </a>
                             </p>
 
                             <div class="collapse" id="collapseExample">
@@ -160,23 +181,19 @@ function login(){
                                     <form method="post" autocomplete="nope">
                                         <!-- Email input -->
                                         <div class="form-outline mb-4">
-                                            Email<input name="username" type="text" id="form3Example3"
-                                                class="form-control" placeholder="Gib deine Email ein" />
+                                            Email<input type="text" name="pwdforgetemail" class="form-control"
+                                                placeholder="Gib deine Email ein" />
                                         </div>
-                                        <input type="submit" name="submit" class="btn btn-primary"
+                                        <input type="submit" name="pwdforget" class="btn btn-primary"
                                             value="Zugangsdaten wiederherstellen">
                                     </form>
                                 </div>
                             </div>
-                            <input type="submit" name="submit" class="btn btn-primary" value="Anmelden">
-                            <p class="small fw-bold mt-2 pt-1 mb-0">Noch keinen Account?
-                                <a href="register.php" class="link-danger">Registrieren</a>
-                            </p>
+
                     </form>
                 </div>
             </div>
         </div>
-
     </section>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous">
