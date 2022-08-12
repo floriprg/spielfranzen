@@ -27,7 +27,7 @@ if (isset($_GET['s']) && !($_GET['s'] == "" && !($_GET['s'] == "null"))) {
     </h1>
     <ul class="nav nav-tabs justify-content-center">
         <li class="nav-item">
-            <a class="nav-link active" href="home.php">
+            <a class="nav-link" href="home.php">
                 Home
             </a>
         </li>
@@ -169,9 +169,9 @@ function kartenausteilen($s)
   </tr>
   </thead>
   <tbody>';
-  for ($i = 0; $i < 10; $i++) {
+  for ($i = 1; $i < 10; $i++) {
     echo '<tr>
-            <th scope="row">1</th>
+            <th scope="row">' . $i . '</th>
           </tr>';
   }
   echo '

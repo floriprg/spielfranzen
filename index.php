@@ -87,8 +87,43 @@ function getSpiele()
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9511027260579899"
         crossorigin="anonymous"></script>
     <style src="style.css"></style>
+    <script src="index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
     <link rel="stylesheet" type="text/css"
         href="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.css" />
+    <script>
+    let data = "";
+    let newdata = "";
+
+    function ajax3() {
+        $.ajax({
+                method: "POST",
+                url: "dbchange.php"
+
+            })
+            .done(async function(response) {
+                data = response;
+            });
+
+        setInterval(ajax4, 2000);
+    }
+
+    function ajax4() {
+        $.ajax({
+                method: "POST",
+                url: "dbchange.php"
+            })
+
+            .done(function(response) {
+                newdata = response;
+                if (!(newdata == data)) {
+                    window.location.reload();
+                }
+            });
+    }
+    ajax3();
+    </script>
 </head>
 
 <body class="">
@@ -133,21 +168,51 @@ if (isset($_POST['newgame'])) {
                     <input type="name" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp"
                         placeholder="Gib den Namen des Spiels ein" name="name">
                 </div>
-                Teilnehmen dürfen:
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="erlaubte" value="alle" id="flexRadioDefault1" />
-                    <label class="form-check-label" for="flexRadioDefault1">alle</label>
+                <div class="flex-row d-flex">
+                    <div>
+                        Teilnehmen dürfen:
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="erlaubte" value="alle"
+                                id="flexRadioDefault1" checked />
+                            <label class="form-check-label" for="flexRadioDefault1">alle</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="erlaubte" value="Registrierte"
+                                id="flexRadioDefault2" />
+                            <label class="form-check-label" for="flexRadioDefault2">Registrierte</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="erlaubte" value="nur mit Passwort"
+                                id="flexRadioDefault3" />
+                            <label class="form-check-label" for="flexRadioDefault3">nur mit Passwort</label>
+                        </div>
+                    </div>
+                    <span style="width: 10vw"></span>
+                    <div>
+                        Anzahl Spiele:
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="anzahl" value="3" id="flexRadioDefault1"
+                                checked />
+                            <label class="form-check-label" for="flexRadioDefault1">3</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="anzahl" value="3"
+                                id="flexRadioDefault2" />
+                            <label class="form-check-label" for="flexRadioDefault2">6</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="anzahl" value="9"
+                                id="flexRadioDefault3" />
+                            <label class="form-check-label" for="flexRadioDefault3">9</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="anzahl" value="12"
+                                id="flexRadioDefault4" />
+                            <label class="form-check-label" for="flexRadioDefault4">12</label>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="erlaubte" value="Registrierte"
-                        id="flexRadioDefault2" checked />
-                    <label class="form-check-label" for="flexRadioDefault2">Registrierte</label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="erlaubte" value="nur mit Passwort"
-                        id="flexRadioDefault3" checked />
-                    <label class="form-check-label" for="flexRadioDefault3">nur mit Passwort</label>
-                </div>
+
                 <input type="submit" name="newgame" class="btn btn-primary" value="Neues Spiel erstellen">
 
             </form>
@@ -161,7 +226,6 @@ getSpiele();
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous">
     </script>
-    <script src="index.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.js" data-cfasync="false"></script>
     <script>
     window.cookieconsent.initialise({
