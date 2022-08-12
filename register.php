@@ -5,22 +5,31 @@ require "config.php";
 function register()
 {
     if (isset($_POST['submit'])) {
-        $to = $_GET['to'];
-        header("location: register.php");
         if (!empty($_POST['username']) && !empty($_POST['email']) && !empty($_POST['pwd']) && !empty($_POST['pwd2'])) {
+            if (!isset($_POST['zustimmung'])) {
+                echo '<div class="alert alert-danger" role="alert">
+                    Sie müssen den Nutzungsbedingungen zustimmung um sich zu registrieren!
+                    </div>';
+                return false;
+            }
+            if ($_POST['pwd'] != strip_tags($_POST['pwd']) || $_POST['username'] != strip_tags($_POST['username']) || $_POST['pwd2'] != strip_tags($_POST['pwd2']) || $_POST['email'] != strip_tags($_POST['email'])) {
+                echo '<div class="alert alert-danger" role="alert">
+            Sie dürfen keine HTML Tags eingeben!
+            </div>';
+                return false;
+            }
             if ($_POST['pwd'] != $_POST['pwd2']) {
                 echo '<div class="alert alert-danger" role="alert">
                 Passwörter stimmen nicht überein!
                 </div>';
                 return false;
             }
-            if (trim(!empty($_POST["email"]))) {
+            if (!trim(!empty($_POST["email"]))) {
                 echo '<div class="alert alert-danger" role="alert">
                 leer
                 </div>';
                 return false;
             }
-            $now = time();
             $sql2 = "select * from users where username ='" . $_POST['username'] . "' OR email='" . sha512(pg_escape_string($_POST['email'])) . "'";
             $data = sql($sql2);
             $login_check = pg_num_rows($data);
@@ -51,7 +60,6 @@ function register()
     }
 }
 
-register();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -92,6 +100,7 @@ register();
         <div class="container">
             <div class="row d-flex justify-content-center align-items-center ">
                 <div class="col-lg-12 col-xl-11">
+                    <?php register(); ?>
                     <div class="card text-black" style="border-radius: 25px;">
                         <div class="card-body ">
                             <div class="row justify-content-center">
@@ -140,7 +149,7 @@ register();
 
                                         <div class="form-check d-flex justify-content-center mb-5">
                                             <input class="form-check-input me-2" type="checkbox" value=""
-                                                id="form2Example3c" />
+                                                name="zustimmung" />
                                             <label class="form-check-label" for="form2Example3">
                                                 Ich stimme den <a href="nutzungsbedingungen.php">Nutzungsbedingungen</a>
                                                 zu
