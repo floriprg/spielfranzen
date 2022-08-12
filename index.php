@@ -97,7 +97,7 @@ function getSpiele()
     </h1>
     <ul class="nav nav-tabs justify-content-center">
         <li class="nav-item">
-            <a class="nav-link active" href="home.php">
+            <a class="nav-link" href="home.php">
                 Home
             </a>
         </li>
