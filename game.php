@@ -116,6 +116,8 @@ function begin()
     if ($s3->name != $name) {
       $s3->name = $name;
       sql("update spiele set s3 = '" . json_encode($s3) . "' where id = " . $_GET['s'] . ";");
+      sql("update spiele set gestartet = true where id = " . $_GET['s'] . ";");
+
     }
     kartenausteilen($s3);
   }
