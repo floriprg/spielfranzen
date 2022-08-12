@@ -105,92 +105,85 @@ function login(){
         Anmelden
     </h1>
     <ul class="nav nav-tabs justify-content-center">
-        <ul class="nav nav-tabs justify-content-center">
-            <li class="nav-item">
-                <a class="nav-link" href="index.php">Spielen</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link active" href="login.php">Anmelden</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="register.php">Registrieren</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="rangliste.php">Rangliste</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="game.php">Mein Spiel</a>
-            </li>
-        </ul>
+        <li class="nav-item">
+            <a class="nav-link" href="index.php">Spielen</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link active" href="login.php">Anmelden</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="register.php">Registrieren</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="rangliste.php">Rangliste</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="game.php">Mein Spiel</a>
+        </li>
     </ul>
-    <section class="">
-        <?php login();?>
-        <div class="container-fluid h-custom">
-            <div class="row d-flex justify-content-center align-items-center h-100">
-                <div class="col-md-9 col-lg-6 col-xl-5">
-                    <img src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-login-form/draw2.webp"
-                        class="img-fluid" alt="Sample image">
-                </div>
-                <div class="col-md-8 col-lg-6 col-xl-4 offset-xl-1">
-                    <form method="post" autocomplete="nope">
-                        <div class="d-flex flex-row align-items-center justify-content-center justify-content-lg-start">
-                            <p class="lead fw-normal mb-0 me-3">Anmelden mit</p>
-                            <button type="button" class="btn btn-primary btn-floating mx-1">
-                                <i class="bi bi-facebook"></i>
-                            </button>
-
-                            <button type="button" class="btn btn-primary btn-floating mx-1">
-                                <i class="fab fa-twitter"></i>
-                            </button>
-
-                            <button type="button" class="btn btn-primary btn-floating mx-1">
-                                <i class="fab fa-linkedin-in"></i>
-                            </button>
-                        </div>
-
-                        <div class="divider d-flex align-items-center my-4">
-                            <p class="text-center fw-bold mx-3 mb-0">Or</p>
-                        </div>
-
-                        <!-- Email input -->
-                        <div class="form-outline mb-4">
-                            <input name="username" type="text" id="form3Example3" class="form-control form-control-lg"
-                                placeholder="Gib deinen Benutzernamen ein" />
-                            <label class="form-label" for="form3Example3">Benutzername</label>
-                        </div>
-
-                        <!-- Password input -->
-                        <div class="form-outline mb-3">
-                            <input name="pwd" type="password" id="form3Example4" class="form-control form-control-lg"
-                                placeholder="Enter password" />
-                            <label class="form-label" for="form3Example4">Passwort</label>
-                        </div>
-
-                        <div class="d-flex flex-column justify-content-between ">
-                            <input type="submit" name="submit" class="btn btn-primary" value="Anmelden">
-                            <br>
-                            <p>
-                                <a class="" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExample"
-                                    aria-expanded="false" aria-controls="collapseExample">
-                                    Passwort vergessen?
-                                </a>
-                            </p>
-
-                            <div class="collapse" id="collapseExample">
-                                <div class="card card-body">
-                                    <form method="post" autocomplete="nope">
-                                        <!-- Email input -->
-                                        <div class="form-outline mb-4">
-                                            Email<input type="text" name="pwdforgetemail" class="form-control"
-                                                placeholder="Gib deine Email ein" />
+    <section class="" style="background-color: white;">
+        <div class="container">
+            <div class="row d-flex justify-content-center align-items-center ">
+                <div class="col-lg-12 col-xl-11">
+                    <?php login(); ?>
+                    <br>
+                    <div class="card text-black" style="border-radius: 25px;">
+                        <div class="card-body ">
+                            <div class="row justify-content-center">
+                                <div class="col-md-10 col-lg-6 col-xl-5 order-2 order-lg-1">
+                                    <p class="text-center h1 fw-bold ">Anmelden</p>
+                                    <form method="post" autocomplete="nope" class="mx-1 mx-md-4">
+                                        <div class="d-flex flex-row align-items-center mb-4">
+                                            <i class="fas fa-user fa-lg me-3 fa-fw"></i>
+                                            <div class="form-outline flex-fill mb-0">
+                                                <input name="username" type="text" id="form3Example1c"
+                                                    class="form-control" />
+                                                <label class="form-label" for="form3Example1c">Benutzername</label>
+                                            </div>
                                         </div>
-                                        <input type="submit" name="pwdforget" class="btn btn-primary"
-                                            value="Zugangsdaten wiederherstellen">
+                                        <div class="d-flex flex-row align-items-center mb-4">
+                                            <i class="fas fa-lock fa-lg me-3 fa-fw"></i>
+                                            <div class="form-outline flex-fill mb-0">
+                                                <input name="pwd" type="password" id="form3Example4c"
+                                                    class="form-control" />
+                                                <label class="form-label" for="form3Example4c">Passwort</label>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex flex-column justify-content-between ">
+                                            <input type="submit" name="submit" class="btn btn-primary" value="Anmelden">
+                                            <br>
+                                            <p>
+                                                <a class="" type="button" data-bs-toggle="collapse"
+                                                    data-bs-target="#collapseExample" aria-expanded="false"
+                                                    aria-controls="collapseExample">
+                                                    Passwort vergessen?
+                                                </a>
+                                            </p>
+
+                                            <div class="collapse" id="collapseExample">
+                                                <div class="card card-body">
+                                                    <form method="post" autocomplete="nope">
+                                                        <!-- Email input -->
+                                                        <div class="form-outline mb-4">
+                                                            Email<input type="text" name="pwdforgetemail"
+                                                                class="form-control"
+                                                                placeholder="Gib deine Email ein" />
+                                                        </div>
+                                                        <input type="submit" name="pwdforget" class="btn btn-primary"
+                                                            value="Zugangsdaten wiederherstellen">
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </form>
                                 </div>
+                                <div class="col-md-10 col-lg-6 col-xl-7 d-flex align-items-center order-1 order-lg-2">
+                                    <img src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-registration/draw1.webp"
+                                        class="img-fluid" alt="Sample image">
+                                </div>
                             </div>
-
-                    </form>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

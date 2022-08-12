@@ -1,11 +1,15 @@
 <?php
 include 'vendor/autoload.php';
 require "config.php";
-if (!isset($_COOKIE["to"])) {
-    echo '<div class="alert alert-warning" role="alert">
+function nichtangemeldet()
+{
+    if (!isset($_COOKIE["to"])) {
+        echo '<div class="alert alert-warning" role="alert">
         Du bist nicht angemeldet! <a href="login.php">Melde dich an</a>  oder <a href="register.php">registriere dich </a> um ein Spiel zu erstellen oder an einem Spiel teilzunehmen!
         </div>';
+    }
 }
+
 function spielerstellen()
 {
     if (!isset($_COOKIE["to"])) {
@@ -87,9 +91,9 @@ function getSpiele()
         href="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.css" />
 </head>
 
-<body>
+<body class="">
     <h1 class="text-center">
-        Spiel Franzen
+        Spielen
     </h1>
     <ul class="nav nav-tabs justify-content-center">
         <li class="nav-item">
@@ -99,10 +103,10 @@ function getSpiele()
             <a class="nav-link" href="login.php">Anmelden</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="register.php">Registrieren</a>
+            <a class="nav-link " href="register.php">Registrieren</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="rangliste.php">Rangliste</a>
+            <a class="nav-link " href="rangliste.php">Rangliste</a>
         </li>
         <li class="nav-item">
             <a class="nav-link" href="game.php">Mein Spiel</a>
@@ -110,7 +114,9 @@ function getSpiele()
     </ul>
     <br>
     <div class="container">
+
         <?php
+nichtangemeldet();
 if (isset($_POST['newgame'])) {
     spielerstellen();
 }
