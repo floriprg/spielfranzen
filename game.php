@@ -27,6 +27,11 @@ if (isset($_GET['s']) && !($_GET['s'] == "" && !($_GET['s'] == "null"))) {
     </h1>
     <ul class="nav nav-tabs justify-content-center">
         <li class="nav-item">
+            <a class="nav-link active" href="home.php">
+                Home
+            </a>
+        </li>
+        <li class="nav-item">
             <a class="nav-link" href="index.php">Spielen</a>
         </li>
         <li class="nav-item">

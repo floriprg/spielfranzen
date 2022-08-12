@@ -14,18 +14,31 @@
     <h1 class="text-center">
         Spiel Franzen Home
     </h1>
+    <!-- <nav class="nav nav-pills  flex-sm-row">
+        <a class="flex-sm-fill text-sm-center nav-link active" href="home.php">Home</a>
+        <a class="flex-sm-fill text-sm-center nav-link" href="index.php">Spielen</a>
+        <a class="flex-sm-fill text-sm-center nav-link" href="login.php">Anmelden</a>
+        <a class="flex-sm-fill text-sm-center nav-link " href="register.php">Registrieren</a>
+        <a class="flex-sm-fill text-sm-center nav-link " href="rangliste.php">Rangliste</a>
+        <a class="flex-sm-fill text-sm-center nav-link " href="game.php">Mein Spiel</a>
+    </nav>
+-->
     <ul class="nav nav-tabs justify-content-center">
         <li class="nav-item">
-            <a class="nav-link active" href="index.php">Home</a>
+            <a class="nav-link active" href="home.php">
+                Home
+            </a>
         </li>
         <li class="nav-item">
             <a class="nav-link" href="index.php">Spielen</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="login.php">Anmelden</a>
+            <a class="nav-link" href="login.php">
+                Anmelden
+            </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="register.php">Registrieren</a>
+            <a class="nav-link " href="register.php">Registrieren</a>
         </li>
         <li class="nav-item">
             <a class="nav-link" href="rangliste.php">Rangliste</a>
