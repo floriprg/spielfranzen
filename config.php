@@ -23,8 +23,14 @@ function gettokendata(){
         $jwt = $_COOKIE['to'];
         $key = "Hochsteller";
         $user_data = JWT::decode($jwt, new Key($key, 'HS256'));
-        $data = $user_data->data;
-        return $data;
+        $exp = $user_data->exp;
+        if (time() < $exp){
+            $data = $user_data->data;
+            return $data;
+        }else {
+            return "timeout";
+        }
+        
     } 
     catch(error_log){
         return "error";

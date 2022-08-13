@@ -24,10 +24,10 @@ function spielerstellen()
     else {
         $string = $_POST['name'];
         if ($string != strip_tags($string)) {
-            echo "Sie dürfen keine HTML Tags eingeben!";
+            echo '<div class="alert alert-warning" role="alert">Sie dürfen keine HTML Tags eingeben!</div>';
         }
         else {
-            sql("insert into spiele(gestartet, name, fertig, erlaubte, s1, s2, s3, kartenausgeteilt)values(false, '" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', false);");
+            sql("insert into spiele(gestartet, name, fertig, erlaubte, s1, s2, s3, kartenausgeteilt, anzahl)values(false, '" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', false, '" . $_POST['anzahl'] . "');");
         }
     }
 }
@@ -45,7 +45,12 @@ function getSpiele()
         $s1 = json_decode($row[4], false);
         $s2 = json_decode($row[5], false);
         $s3 = json_decode($row[6], false);
-
+        $data2 = gettokendata();
+        if ($data2 == "timeout") {
+            echo '<div class="alert alert-warning" role="alert">Deine Session ist abgelaufen! <a href="login.php">Melde dich bitte erneut an!</a>';
+            return false;
+        }
+        $name = $data2->name;
         echo "
             <div class='card m-3' style='width: 18.25rem;'>
                 <div class='card-body'>
@@ -58,13 +63,16 @@ function getSpiele()
                     Erlaubte:
                     $row[3]
                     <br>
-                    <button onclick='window.location = \"game.php?s=$row[0]\"' class='btn btn-primary'>Teilnehmen</button>
+                    Anzahl Spiele:
+                    $row[12]
+                    <br>
+                    <a class='btn btn-primary' href='game.php?s=" . $row[0] . "'>" . (($name == $s1->name || $name == $s2->name || $name == $s3->name) ? 'Wieder teilnehmen' : 'Teilnehmen') . "</a>
                 </div>
             </div>
         ";
     }
     echo "
-    </div>";
+    </>";
     pg_close();
 }
 ?>
@@ -149,13 +157,25 @@ function getSpiele()
             <a class="nav-link " href="rangliste.php">Rangliste</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="game.php">Mein Spiel</a>
+            <a class="nav-link <?php active() ?>" href="game.php">Mein Spiel</a>
         </li>
     </ul>
     <br>
     <div class="container">
 
         <?php
+function active()
+{
+    $data = gettokendata();
+    if ($data == "timeout") {
+        return false;
+    }
+    //////s2 und s3 auch
+    $d = sql("select id from spiele where s1->>'name'='" . $data->name . "' or s2->>'name'='" . $data->name . "' or s1->>'name'='" . $data->name . "'" );
+    if (!(pg_num_rows($d) > 0)) {
+        echo "disabled";
+    }
+}
 nichtangemeldet();
 if (isset($_POST['newgame'])) {
     spielerstellen();
