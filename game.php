@@ -72,6 +72,9 @@ function neuekarten()
 function begin()
 {
   $data = gettokendata();
+  if (!$data) {
+    return false;
+  }
   $d = sql("select id from spiele where s1->>'name'='" . $data->name . "' or s2->>'name'='" . $data->name . "' or s3->>'name'='" . $data->name . "'");
   while ($row = pg_fetch_row($d)) {
     $id = $row[0];
@@ -88,6 +91,13 @@ function begin()
     }
   }
   else {
+    $idvalid = sql("select id from spiele where id = " . $_GET['s'] . "");
+    if (!(pg_num_rows($idvalid) > 0)) {
+      echo "<div class ='alert-danger alert'>
+          Spiel nicht vorhanden!
+          </div>";
+      return false;
+    }
     if ((pg_num_rows($d) > 0) && ($id != $_GET['s'])) {
       echo '<div class="alert alert-danger" role="alert">
             Du nimmst bereits an einem Spiel teil! Klicke <a href="game.php?s=' . $id . '">hier</a> um zu diesem Spiel zu gelangen

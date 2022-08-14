@@ -1,3 +1,5 @@
 .env
 probe.php
 probleme.txt
+.vscode
+sql_befehle

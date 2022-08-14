@@ -37,15 +37,21 @@ function getSpiele()
     if (!isset($_COOKIE["to"])) {
         return;
     }
+    $data2 = gettokendata();
+    if (!$data2) {
+        echo '<div class="alert alert-warning" role="alert">Deine Session ist abgelaufen! <a href="login.php">Melde dich bitte erneut an!</a>';
+        return false;
+    }
     echo '
     <div class="d-flex flex-wrap">';
     $data = sql("select * from spiele where fertig = false;");
+
     while ($row = pg_fetch_row($data)) {
         //card item
         $s1 = json_decode($row[4], false);
         $s2 = json_decode($row[5], false);
         $s3 = json_decode($row[6], false);
-        $data2 = gettokendata();
+        
         $name = $data2->name;
         echo "
             <div class='card m-3' style='width: 18.25rem;'>

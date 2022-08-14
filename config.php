@@ -53,7 +53,7 @@ function gettokendata(){
         return $data;       
     } catch (Exception $e) {
         if ($e->getMessage() == "Expired token") {
-            echo '<div class="alert alert-warning" role="alert">Deine Session ist abgelaufen! <a href="login.php">Melde dich bitte erneut an!</a>';
+            return false;
         }
         else {
 
