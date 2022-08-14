@@ -1,0 +1,10 @@
+{
+	"s": {
+		"scope": "pgsql",
+		"prefix": "log",
+		"body": [
+			"select * from $1;",
+		],
+		"description": "select * from spiele"
+	}
+}

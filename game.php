@@ -72,17 +72,14 @@ function neuekarten()
 function begin()
 {
   $data = gettokendata();
-  if ($data == "timeout") {
-    echo '<div class="alert alert-warning" role="alert">Deine Session ist abgelaufen! <a href="login.php">Melde dich bitte erneut an!</a>';
-    return false;
-  }
-  $d = sql("select id from spiele where s1->>'name'='" . $data->name . "' or s2->>'name'='" . $data->name . "' or s3>>'name'='" . $data->name . "'");
+  $d = sql("select id from spiele where s1->>'name'='" . $data->name . "' or s2->>'name'='" . $data->name . "' or s3->>'name'='" . $data->name . "'");
   while ($row = pg_fetch_row($d)) {
     $id = $row[0];
   }
   if ((!isset($_GET['s']))) {
     if ((pg_num_rows($d) > 0)) {
       echo "<script>window.location = 'game.php?s=" . $id . "'</script>";
+
     }
     else {
       '<div class="alert alert-danger" role="alert">

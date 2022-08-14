@@ -100,9 +100,7 @@ function register()
         <li class="nav-item">
             <a class="nav-link" href="rangliste.php">Rangliste</a>
         </li>
-        <li class="nav-item">
-            <a class="nav-link" href="game.php">Mein Spiel</a>
-        </li>
+        <?php active() ?>
     </ul>
 
     </ul>

@@ -101,10 +101,12 @@ function login(){
 </head>
 
 <body>
+    <audio src="jetztdran.mp3"></audio>
     <h1 class="text-center">
         Anmelden
     </h1>
     <ul class="nav nav-tabs justify-content-center">
+
         <li class="nav-item">
             <a class="nav-link " href="home.php">
                 Home
@@ -122,9 +124,7 @@ function login(){
         <li class="nav-item">
             <a class="nav-link" href="rangliste.php">Rangliste</a>
         </li>
-        <li class="nav-item">
-            <a class="nav-link" href="game.php">Mein Spiel</a>
-        </li>
+        <?php active() ?>
     </ul>
     <section class="" style="background-color: white;">
         <div class="container">

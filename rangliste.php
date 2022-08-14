@@ -32,9 +32,7 @@
         <li class="nav-item">
             <a class="nav-link active" href="rangliste.php">Rangliste</a>
         </li>
-        <li class="nav-item">
-            <a class="nav-link" href="game.php">Mein Spiel</a>
-        </li>
+        <?php ; active() ?>
     </ul>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous">

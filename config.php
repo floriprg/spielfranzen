@@ -17,23 +17,56 @@ function sha512($string)
     }
     return $h;
 }
-
-function gettokendata(){
+function active()
+{
+    if (!isset($_COOKIE['to'])) {
+        return false;
+    }
+    $data = gettokendata();
+    if ($data == "timeout" || !$data) {
+        return false;
+    }
+    //////s2 und s3 auch
     try{
-        $jwt = $_COOKIE['to'];
-        $key = "Hochsteller";
-        $user_data = JWT::decode($jwt, new Key($key, 'HS256'));
-        $exp = $user_data->exp;
-        if (time() < $exp){
-            $data = $user_data->data;
-            return $data;
-        }else {
-            return "timeout";
+       $d = sql("select id from spiele where s1->>'name'='" . $data->name . "' or s2->>'name'='" . $data->name . "' or s3->>'name'='" . $data->name . "'");
+        if ((pg_num_rows($d) > 0)) {
+            echo '
+        <li class="nav-item">
+            <a class="nav-link " href="game.php">Mein Spiel</a>
+        </li>';
         }
-        
     } 
     catch(error_log){
         return "error";
+    }
+    
+}
+function gettokendata(){
+    try{
+        if (!isset($_COOKIE['to'])){
+            return false;
+        }
+        $jwt = $_COOKIE['to'];
+        $key = "Hochsteller";
+        $user_data = JWT::decode($jwt, new Key($key, 'HS256'));
+        $data = $user_data->data;
+        return $data;       
+    } catch (Exception $e) {
+        if ($e->getMessage() == "Expired token") {
+            echo '<div class="alert alert-warning" role="alert">Deine Session ist abgelaufen! <a href="login.php">Melde dich bitte erneut an!</a>';
+        }
+        else {
+
+            // set response code
+            http_response_code(401);
+
+            // show error message
+            echo json_encode(array(
+                "message" => "Access denied.",
+                "error" => $e->getMessage()
+            ));
+            die();
+        }
     }
 }
 ?>

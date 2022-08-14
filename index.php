@@ -46,10 +46,6 @@ function getSpiele()
         $s2 = json_decode($row[5], false);
         $s3 = json_decode($row[6], false);
         $data2 = gettokendata();
-        if ($data2 == "timeout") {
-            echo '<div class="alert alert-warning" role="alert">Deine Session ist abgelaufen! <a href="login.php">Melde dich bitte erneut an!</a>';
-            return false;
-        }
         $name = $data2->name;
         echo "
             <div class='card m-3' style='width: 18.25rem;'>
@@ -156,26 +152,12 @@ function getSpiele()
         <li class="nav-item">
             <a class="nav-link " href="rangliste.php">Rangliste</a>
         </li>
-        <li class="nav-item">
-            <a class="nav-link <?php active() ?>" href="game.php">Mein Spiel</a>
-        </li>
+        <?php active() ?>
     </ul>
     <br>
     <div class="container">
 
         <?php
-function active()
-{
-    $data = gettokendata();
-    if ($data == "timeout") {
-        return false;
-    }
-    //////s2 und s3 auch
-    $d = sql("select id from spiele where s1->>'name'='" . $data->name . "' or s2->>'name'='" . $data->name . "' or s1->>'name'='" . $data->name . "'" );
-    if (!(pg_num_rows($d) > 0)) {
-        echo "disabled";
-    }
-}
 nichtangemeldet();
 if (isset($_POST['newgame'])) {
     spielerstellen();
