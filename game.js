@@ -17,11 +17,11 @@ function game() {
             }
 
         })
-            .done(async function (response) {
+            .done(function (response) {
                 data = response;
             });
 
-        setInterval(ajax4, 4000);
+        setInterval(ajax4, 2000);
     }
 
     function ajax4() {
@@ -37,9 +37,6 @@ function game() {
                 newdata = response;
                 if ((newdata != data)) {
                     window.location.reload();
-                } else {
-                    console.log(data);
-                    console.log(newdata);
                 }
             });
     }

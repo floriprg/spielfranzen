@@ -8,7 +8,7 @@ function register()
         if (!empty($_POST['username']) && !empty($_POST['email']) && !empty($_POST['pwd']) && !empty($_POST['pwd2'])) {
             if (!isset($_POST['zustimmung'])) {
                 echo '<div class="alert alert-danger" role="alert">
-                    Sie müssen den Nutzungsbedingungen zustimmung um sich zu registrieren!
+                    Sie müssen den Nutzungsbedingungen zustimmen um sich zu registrieren!
                     </div>';
                 return false;
             }

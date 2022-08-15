@@ -27,7 +27,7 @@ function spielerstellen()
             echo '<div class="alert alert-warning" role="alert">Sie dürfen keine HTML Tags eingeben!</div>';
         }
         else {
-            sql("insert into spiele(gestartet, name, fertig, erlaubte, s1, s2, s3, kartenausgeteilt, anzahl)values(false, '" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', false, '" . $_POST['anzahl'] . "');");
+            sql("insert into spiele(gestartet, name, fertig, erlaubte, s1, s2, s3, kartenausgeteilt, anzahl, jetztdran)values(false, '" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', false, '" . $_POST['anzahl'] . "', 's3');");
         }
     }
 }
@@ -66,7 +66,7 @@ function getSpiele()
                     $row[3]
                     <br>
                     Anzahl Spiele:
-                    $row[12]
+                    $row[11]
                     <br>
                     <a class='btn btn-primary' href='game.php?s=" . $row[0] . "'>" . (($name == $s1->name || $name == $s2->name || $name == $s3->name) ? 'Wieder teilnehmen' : 'Teilnehmen') . "</a>
                 </div>

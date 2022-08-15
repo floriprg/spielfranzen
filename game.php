@@ -75,6 +75,8 @@ function neuekarten()
   }
   return $zufallskarten;
 }
+
+
 function begin()
 {
   $data = gettokendata();
@@ -159,13 +161,14 @@ function begin()
     }
     kartenausteilen($s3, $s1->name, $s2->name, $s3->name);
 
-    frage("Möchtest du 4 bieten?", 4, "s1");
   }
   else {
     echo '<div class="alert alert-warning" role="alert">
  Dieses Spiel ist leider schon besetzt
  </div>';
   }
+
+  spielauswahl($name);
 }
 
 
@@ -302,14 +305,22 @@ function frage($frage, $art, $s)
 }
 function spielauswahl($name)
 {
-  $data = sql("select jetztdran from spiele where id =" . $_GET['s'] . ";");
+  $data = sql("select jetztdran, spielart from spiele where id =" . $_GET['s'] . ";");
   while ($row = pg_fetch_row($data)) {
+
     $jetztdran = $row[0];
+    $spielart = $row[1];
   }
-  sql("select " . $jetztdran . "->>name from spielewhere id =" . $_GET['s'] . ";");
-  while ($row = pg_fetch_row($data)) {
+  $data2 = sql("select " . $jetztdran . "->>'name' AS name from spiele where id =" . $_GET['s'] . ";");
+  while ($row = pg_fetch_row($data2)) {
     if ($row[0] == $name) {
-    //frage;
+      frage("Möchtest du " . $spielart . " bieten?", $spielart, $jetztdran);
+    }
+    else {
+      echo "hallo<br>";
+      echo "$name<br>";
+      echo "$row[0]<br>";
+      echo $jetztdran;
     }
   }
 // frage($frage, $art, $s);
