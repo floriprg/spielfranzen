@@ -4,19 +4,46 @@ function game() {
     });
 
     let s = params.s;
-    let to = params.to;
-    let karten = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33];
 
-    function neuekarten() {
-        let zufallskarten = [];
-        for (let i = 0; i < 10; i++) {
-            let zahl = Math.round(Math.random() * (karten.length - 1));
-            zufallskarten.push(karten[zahl]);
-            karten.splice(zahl, 1);
-        }
-        return zufallskarten;
+    let data = "";
+    let newdata = "";
+
+    function ajax3() {
+        $.ajax({
+            method: "POST",
+            url: "dbchange_game.php",
+            data: {
+                s: s
+            }
+
+        })
+            .done(async function (response) {
+                data = response;
+            });
+
+        setInterval(ajax4, 4000);
     }
 
+    function ajax4() {
+        $.ajax({
+            method: "POST",
+            url: "dbchange_game.php",
+            data: {
+                s: s
+            }
+        })
+
+            .done(function (response) {
+                newdata = response;
+                if ((newdata != data)) {
+                    window.location.reload();
+                } else {
+                    console.log(data);
+                    console.log(newdata);
+                }
+            });
+    }
+    ajax3();
     function sql(sql, type) {
         $.ajax({
             method: "POST",
