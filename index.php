@@ -204,7 +204,7 @@ if (isset($_POST['newgame'])) {
                             <label class="form-check-label" for="flexRadioDefault1">3</label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" name="anzahl" value="3"
+                            <input class="form-check-input" type="radio" name="anzahl" value="6"
                                 id="flexRadioDefault2" />
                             <label class="form-check-label" for="flexRadioDefault2">6</label>
                         </div>

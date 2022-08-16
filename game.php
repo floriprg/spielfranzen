@@ -169,12 +169,72 @@ function begin()
  Dieses Spiel ist leider schon besetzt
  </div>';
   }
-
-  spielauswahl($name);
+  $dl = sql("select array_upper(ausgeschieden, 1) from spiele where id = " . $_GET['s'] . ";");
+  while ($row = pg_fetch_row($dl)) {
+    $ausgeschieden = $row[0];
+  }
+  if ($ausgeschieden < 2) {
+    spielauswahl($name);
+  }
+  else {
+    game($name);
+  }
 }
 
 
-
+function game($name)
+{
+  $data_ausgeschieden = sql("select ausgeschieden[0], ausgeschieden[1] from spiele where id = " . $_GET['s'] . ";");
+  while ($row = pg_fetch_row($data_ausgeschieden)) {
+    $ausgeschieden1 = $row[0];
+    $ausgeschieden2 = $row[1];
+  }
+  if ($ausgeschieden1 == $name || $ausgeschieden2 == $name) {
+    return false;
+  }
+  $data_spielart = sql("select spielart from spiele where id = " . $_GET['s'] . ";");
+  while ($row = pg_fetch_row($data_spielart)) {
+    $spielart = $row[0];
+  }
+  sql("update spiele set spieler = '" . $name . "' where id = " . $_GET['s'] . ";");
+  echo '<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Was möchtest du spielen?</h5>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-footer">
+                    <form method="post"><div>';
+  for ($i = $spielart; $i < 13; $i++) {
+    echo '
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="spielart" value="' . $i . '" id="flexRadioDefault' . $i . '"
+                  checked />
+              <label class="form-check-label" for="flexRadioDefault' . $i . '">' . $i . '</label>
+            </div>
+        ';
+  }
+  echo '</div>
+  <input type="submit" name="submit" value ="OK">
+  </form>
+                </div>
+            </div>
+        </div>
+    </div>';
+  echo '<script type="text/javascript">
+      $(window).load(function() {
+          $("#exampleModal").modal("show");
+      });
+      </script>';
+  if (isset($_POST['submit'])) {
+    sql("update spiele set spielart =" . $_POST['spielart'] . "");
+  }
+  echo "<script src='index.js'></script>";
+}
 
 function kartenausteilen($s, $n1, $n2, $n3)
 {
@@ -186,21 +246,21 @@ function kartenausteilen($s, $n1, $n2, $n3)
   echo '<div class="container">';
   echo '
   <div class="d-flex flex-wrap justify-content-center">
-    <div class="card m-2" style="width: 6rem;">
+    <div id="ableg1" class="card m-2" style="width: 6rem;">
       <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
       <div class="card-body">
         <h5 class="card-title">' . $n1 . '</h5>
         <p>' . (($jetztdran == "s1") ? 'jetzt dran' : '') . '</p>
       </div>
     </div>
-    <div class="card m-2" style="width: 6rem;">
+    <div id="ableg2"  class="card m-2" style="width: 6rem;">
       <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
       <div class="card-body">
         <h5 class="card-title">' . $n2 . '</h5>
         <p>' . (($jetztdran == "s2") ? 'jetzt dran' : '') . '</p>
       </div>
     </div>
-    <div class="card m-2" style="width: 6rem;">
+    <div id="ableg3" class="card m-2" style="width: 6rem;">
       <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
       <div class="card-body">
         <h5 class="card-title">' . $n3 . '</h5>
@@ -248,7 +308,7 @@ function kartenausteilen($s, $n1, $n2, $n3)
   <div class="d-flex flex-row">';
 
   for ($i = 0; $i < 10; $i++) {
-    echo '<div class="card m-0.5" style="width: 9vw;">
+    echo '<div id="' . $i . '" class="card m-0.5" style="width: 9vw;">
     <img class="card-img-top img-fluid" src="karten/' . $s->karten[$i] . '" alt="Card image cap"> 
     </div>';
   }
@@ -263,6 +323,14 @@ function kartenausteilen($s, $n1, $n2, $n3)
 function spielauswahl($name)
 {
   $fragen = false;
+  $data_ausgeschieden = sql("select ausgeschieden from spiele");
+  while ($row = pg_fetch_row($data_ausgeschieden)) {
+    $ausgeschieden = $row[0];
+  }
+  if ($ausgeschieden[0] == $name || $ausgeschieden[1] == $name) {
+    return false;
+  }
+
 
   $data = sql("select jetztdran, spielart, gehebt from spiele where id =" . $_GET['s'] . ";");
   while ($row = pg_fetch_row($data)) {
@@ -305,7 +373,7 @@ function spielauswahl($name)
       }
       if (isset($_POST['nein'])) {
         echo "<script>window.location.reload();</script>";
-        sql("update spiele set gehebt = false where id =" . $_GET['s'] . ";update spiele set jetztdran = '" . $jetztdran . "' where id =" . $_GET['s'] . ";");
+        sql("update spiele set gehebt = false where id =" . $_GET['s'] . ";update spiele set jetztdran = '" . $jetztdran . "' where id =" . $_GET['s'] . "; update spiele set ausgeschieden = ausgeschieden || '{" . $name . "}';");
       }
     }
     else {
@@ -333,7 +401,8 @@ function spielauswahl($name)
         }
       }
       if (isset($_POST['nein'])) {
-        sql("update spiele set jetztdran = '" . $jetztdran . "' where id =" . $_GET['s'] . ";");
+        echo "<script>window.location.reload();</script>";
+        sql("update spiele set jetztdran = '" . $jetztdran . "' where id =" . $_GET['s'] . "; update spiele set ausgeschieden = ausgeschieden || '{" . $name . "}';");
       }
     }
     echo '
