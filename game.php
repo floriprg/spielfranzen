@@ -6,6 +6,8 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mein Spiel</title>
+    <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
@@ -57,13 +59,13 @@ if (isset($_GET['s']) && !($_GET['s'] == "" && !($_GET['s'] == "null"))) {
     </script>
     <script src="game.js">
     </script>
+    <?php begin(); ?>
 </body>
 
 </html>
 <?php
 include 'vendor/autoload.php';
 //require "config.php";
-begin();
 function neuekarten()
 {
   $karten = array("1 laub.jpg", "1 sche.jpg", "1 eich.jpg", "1 herz.jpg", "2 laub.jpg", "2 sche.jpg", "2 eich.jpg", "2 herz.jpg", "3 laub.jpg", "3 sche.jpg", "3 eich.jpg", "3 herz.jpg", "4 laub.jpg", "4 sche.jpg", "4 eich.jpg", "4 herz.jpg", "5 eich.jpg", "5 herz.jpg", "5 laub.jpg", "5 sche.jpg", "7 eich.jpg", "7 herz.jpg", "7 laub.jpg", "7 sche.jpg", "8 eich.jpg", "8 herz.jpg", "8 laub.jpg", "8 sche.jpg", "9 eich.jpg", "9 herz.jpg", "9 laub.jpg", "9 sche.jpg", "weli.jpg");
@@ -188,21 +190,21 @@ function kartenausteilen($s, $n1, $n2, $n3)
       <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
       <div class="card-body">
         <h5 class="card-title">' . $n1 . '</h5>
-        <p>' . (($jetztdran == 1) ? 'jetzt dran' : '') . '</p>
+        <p>' . (($jetztdran == "s1") ? 'jetzt dran' : '') . '</p>
       </div>
     </div>
     <div class="card m-2" style="width: 6rem;">
       <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
       <div class="card-body">
         <h5 class="card-title">' . $n2 . '</h5>
-        <p>' . (($jetztdran == 2) ? 'jetzt dran' : '') . '</p>
+        <p>' . (($jetztdran == "s2") ? 'jetzt dran' : '') . '</p>
       </div>
     </div>
     <div class="card m-2" style="width: 6rem;">
       <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
       <div class="card-body">
         <h5 class="card-title">' . $n3 . '</h5>
-        <p>' . (($jetztdran == 3) ? 'jetzt dran' : '') . '</p>
+        <p>' . (($jetztdran == "s3") ? 'jetzt dran' : '') . '</p>
       </div>
     </div>
 
@@ -257,18 +259,91 @@ function kartenausteilen($s, $n1, $n2, $n3)
   ';
 
 }
-function frage($frage, $art, $s)
-{
 
-  echo /*html*/'
+function spielauswahl($name)
+{
+  $fragen = false;
+
+  $data = sql("select jetztdran, spielart, gehebt from spiele where id =" . $_GET['s'] . ";");
+  while ($row = pg_fetch_row($data)) {
+    $jetztdran = $row[0];
+    $spielart = $row[1];
+    $gehebt = $row[2];
+  }
+  $data2 = sql("select " . $jetztdran . "->>'name' AS name from spiele where id =" . $_GET['s'] . ";");
+  while ($row = pg_fetch_row($data2)) {
+    if ($row[0] == $name) {
+      $fragen = true;
+    }
+    else {
+      $fragen = false;
+    }
+    echo "Name: $name<br>";
+    echo "jetztdran: $row[0]<br>";
+  }
+
+
+
+  if ($fragen) {
+    if (($spielart > 4) && ($gehebt == "f")) {
+      $bieten_heben = "heben";
+
+      switch ($jetztdran) {
+        case 's1':
+          $jetztdran = "s3";
+          break;
+        case 's2':
+          $jetztdran = "s1";
+          break;
+        case 's3':
+          $jetztdran = "s2";
+          break;
+      }
+      if (isset($_POST['ja'])) {
+        echo "<script>window.location.reload();</script>";
+        sql("update spiele set spielart = " . ($spielart + 1) . " where id =" . $_GET['s'] . "; update spiele set gehebt = true where id =" . $_GET['s'] . ";update spiele set jetztdran = '" . $jetztdran . "' where id =" . $_GET['s'] . ";");
+      }
+      if (isset($_POST['nein'])) {
+        echo "<script>window.location.reload();</script>";
+        sql("update spiele set gehebt = false where id =" . $_GET['s'] . ";update spiele set jetztdran = '" . $jetztdran . "' where id =" . $_GET['s'] . ";");
+      }
+    }
+    else {
+      $bieten_heben = "bieten";
+
+      switch ($jetztdran) {
+        case 's1':
+          $jetztdran = "s2";
+          break;
+        case 's2':
+          $jetztdran = "s3";
+          break;
+        case 's3':
+          $jetztdran = "s1";
+          break;
+      }
+      if (isset($_POST['ja'])) {
+        echo "<script>window.location.reload();</script>";
+        sql("update spiele set jetztdran = '" . $jetztdran . "' where id =" . $_GET['s'] . ";");
+        if ($spielart > 4) {
+          sql("update spiele set gehebt = false where id =" . $_GET['s'] . ";");
+        }
+        else {
+          sql("update spiele set spielart = " . ($spielart + 1) . " where id =" . $_GET['s'] . "");
+        }
+      }
+      if (isset($_POST['nein'])) {
+        sql("update spiele set jetztdran = '" . $jetztdran . "' where id =" . $_GET['s'] . ";");
+      }
+    }
+    echo '
     <!-- Modal -->
-    
     <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
         aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">' . $frage . /*html*/'</h5>
+                    <h5 class="modal-title" id="exampleModalLabel"> Möchtest du ' . $spielart . ' ' . $bieten_heben . '?</h5>
                     <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
@@ -282,47 +357,12 @@ function frage($frage, $art, $s)
             </div>
         </div>
     </div>';
-  if (isset($_POST['ja'])) {
-    sql("update spiele set spielart = " . $art . "");
-    echo "<script>$('#modal').modal('hide');</script>";
+    echo '<script type="text/javascript">
+      $(window).load(function() {
+          $("#exampleModal").modal("show");
+      });
+      </script>';
   }
-  if (isset($_POST['nein'])) {
-    echo "nein";
-  }
-  switch ($s) {
-    case 's1':
-      $jetzdran = "s2";
-      break;
-    case 's2':
-      $jetzdran = "s3";
-      break;
-    case 's3':
-      $jetzdran = "s1";
-      break;
-  }
-  sql("update spiele set jetztdran = '" . $jetzdran . "';");
 
-}
-function spielauswahl($name)
-{
-  $data = sql("select jetztdran, spielart from spiele where id =" . $_GET['s'] . ";");
-  while ($row = pg_fetch_row($data)) {
-
-    $jetztdran = $row[0];
-    $spielart = $row[1];
-  }
-  $data2 = sql("select " . $jetztdran . "->>'name' AS name from spiele where id =" . $_GET['s'] . ";");
-  while ($row = pg_fetch_row($data2)) {
-    if ($row[0] == $name) {
-      frage("Möchtest du " . $spielart . " bieten?", $spielart, $jetztdran);
-    }
-    else {
-      echo "hallo<br>";
-      echo "$name<br>";
-      echo "$row[0]<br>";
-      echo $jetztdran;
-    }
-  }
-// frage($frage, $art, $s);
 }
 ?>
