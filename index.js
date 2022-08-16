@@ -34,3 +34,25 @@ let doppelmord = {
     nummer: 12,
     punkte: 600
 }
+function sql(sql, type) {
+    $.ajax({
+        method: "POST",
+        url: "sql.php",
+        data: {
+            sql: sql,
+            type: type
+        }
+    })
+        .done(function (response) {
+            if (type == "sel") {
+                return response;
+            }
+        });
+}
+
+for (let i = 0; i < 10; i++) {
+    document.getElementById(i).addEventListener('click', function () {
+        sql("update table spiele set ablegkarten");
+    })
+}
+
