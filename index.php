@@ -97,7 +97,6 @@ function getSpiele()
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9511027260579899"
         crossorigin="anonymous"></script>
     <style src="style.css"></style>
-    <script src="index.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 
     <link rel="stylesheet" type="text/css"

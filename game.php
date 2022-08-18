@@ -118,7 +118,11 @@ function begin()
   $data1 = sql("select s1, s2, s3 from spiele where id = " . $_GET['s'] . ";");
   while ($row = pg_fetch_row($data1)) {
     $name = $data->name;
+    ////////////////////////////////
+    ///!!!!!!!!!!!!!!!!!!!!!!!!!!///
+    ///////////////////////////////
     $s1 = json_decode($row[0], false);
+
     $s2 = json_decode($row[1], false);
     $s3 = json_decode($row[2], false);
   }
@@ -231,9 +235,12 @@ function game($name)
       });
       </script>';
   if (isset($_POST['submit'])) {
-    sql("update spiele set spielart =" . $_POST['spielart'] . "");
+    sql("update spiele set spielart =" . $_POST['spielart'] . "; ");
   }
+
   echo "<script src='index.js'></script>";
+
+
 }
 
 function kartenausteilen($s, $n1, $n2, $n3)
@@ -243,25 +250,37 @@ function kartenausteilen($s, $n1, $n2, $n3)
     $jetztdran = $row[0];
   }
 
+  $data_karten = sql("select ablegkarten[1], ablegkarten[2], ablegkarten[3] from spiele where id = " . $_GET['s']);
+  try {
+
+    while ($row = pg_fetch_row($data_karten)) {
+      $a_karte1 = $row[0];
+      $a_karte2 = $row[1];
+      $a_karte3 = $row[2];
+    }
+  }
+  catch (\Throwable $th) {
+  //
+  }
   echo '<div class="container">';
   echo '
   <div class="d-flex flex-wrap justify-content-center">
-    <div id="ableg1" class="card m-2" style="width: 6rem;">
-      <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
+    <div class="card m-2" style="width: 6rem;">
+      <img id="ableg1"  class="card-img-top img-fluid" src="' . ((!$a_karte1) ? 'karten/deckblatt.jpg' : $a_karte1) . '" alt="Karte 1">
       <div class="card-body">
         <h5 class="card-title">' . $n1 . '</h5>
         <p>' . (($jetztdran == "s1") ? 'jetzt dran' : '') . '</p>
       </div>
     </div>
-    <div id="ableg2"  class="card m-2" style="width: 6rem;">
-      <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
+    <div  class="card m-2" style="width: 6rem;">
+      <img  id="ableg2"  class="card-img-top img-fluid" src="' . ((!$a_karte2) ? 'karten/deckblatt.jpg' : $a_karte2) . '" alt="Karte 2">
       <div class="card-body">
         <h5 class="card-title">' . $n2 . '</h5>
         <p>' . (($jetztdran == "s2") ? 'jetzt dran' : '') . '</p>
       </div>
     </div>
-    <div id="ableg3" class="card m-2" style="width: 6rem;">
-      <img class="card-img-top img-fluid" src="karten/deckblatt.jpg" alt="Card image cap">
+    <div  class="card m-2" style="width: 6rem;">
+      <img id="ableg3" class="card-img-top img-fluid" src="' . ((!$a_karte3) ? 'karten/deckblatt.jpg' : $a_karte3) . '" alt="Karte 3">
       <div class="card-body">
         <h5 class="card-title">' . $n3 . '</h5>
         <p>' . (($jetztdran == "s3") ? 'jetzt dran' : '') . '</p>
@@ -307,9 +326,11 @@ function kartenausteilen($s, $n1, $n2, $n3)
   </div>
   <div class="d-flex flex-row">';
 
-  for ($i = 0; $i < 10; $i++) {
-    echo '<div id="' . $i . '" class="card m-0.5" style="width: 9vw;">
-    <img class="card-img-top img-fluid" src="karten/' . $s->karten[$i] . '" alt="Card image cap"> 
+  for ($i = 0; $i < 9; $i++) {
+    echo json_encode($s->karten);
+    echo $s->karten[0];
+    echo '<div class="card m-0.5" style="width: 9vw;">
+    <img  id="' . $i . '" class="card-img-top img-fluid" src="karten/' . (!(isset($s->karten[$i])) ? 'deckblatt.jpg' : $s->karten[$i]) . '" alt="Card image cap"> 
     </div>';
   }
   echo '
@@ -327,9 +348,10 @@ function spielauswahl($name)
   while ($row = pg_fetch_row($data_ausgeschieden)) {
     $ausgeschieden = $row[0];
   }
-  if ($ausgeschieden[0] == $name || $ausgeschieden[1] == $name) {
-    return false;
-  }
+  if (isset($ausgeschieden[0]))
+    if ($ausgeschieden[0] == $name || $ausgeschieden[1] == $name) {
+      return false;
+    }
 
 
   $data = sql("select jetztdran, spielart, gehebt from spiele where id =" . $_GET['s'] . ";");
