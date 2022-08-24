@@ -2,14 +2,14 @@
 function tosql()
 {
 
-    function del($spieler, $spielername)
+    function del($spieler, $spielername, $dran)
     {
         $todel = $_POST['to_del'];
         $todel = substr($todel, -10);
         $s = $_POST['s'];
         sql("update  spiele set ablegkarten = ablegkarten || '{" . $todel . "}' where id = " . $s);
         $spieler->karten = array_values(array_diff($spieler->karten, [$todel]));
-        sql("update spiele set " . $spielername . "= '" . json_encode($spieler) . "' where id = " . $s);
+        sql("update spiele set " . $spielername . "= '" . json_encode($spieler) . "', jetztdran= '" . $dran . "' where id = " . $s);
     }
     require "config.php";
     $type = $_POST['type'];
@@ -19,31 +19,51 @@ function tosql()
     }
     if ($type == "del") {
 
-        $data1 = sql("select s1, s2, s3 from spiele where id = " . $_POST['s'] . ";");
+        $data1 = sql("select s1, s2, s3, jetztdran from spiele where id = " . $_POST['s'] . ";");
         while ($row = pg_fetch_row($data1)) {
 
             $s1 = json_decode($row[0], false);
             $s2 = json_decode($row[1], false);
             $s3 = json_decode($row[2], false);
+            $jetztdran = $row[3];
         }
         $data_name = gettokendata();
         $name = $data_name->name;
         switch ($name) {
             case ($s1->name):
-                $spielername = 's1';
-                del($s1, $spielername);
+                if ($jetztdran == 's1') {
+                    $spielername = 's1';
+                    del($s1, $spielername, 's2');
+                }
+                else {
+                    echo "error1!";
+                    echo $jetztdran;
+                }
                 break;
             case ($s2->name):
-                $spieler = $s2;
-                $spielername = 's2';
-                del($s2, $spielername);
-
+                if ($jetztdran == 's2') {
+                    $spieler = $s2;
+                    $spielername = 's2';
+                    del($s2, $spielername, 's3');
+                }
+                else {
+                    echo "error2!";
+                    echo $jetztdran;
+                }
                 break;
             case ($s3->name):
-                $spieler = $s3;
-                $spielername = 's3';
-                del($s3, $spielername);
-
+                if ($jetztdran == 's3') {
+                    $spieler = $s3;
+                    $spielername = 's3';
+                    del($s3, $spielername, 's1');
+                }
+                else {
+                    echo "error3!";
+                    echo $jetztdran;
+                }
+                break;
+            default:
+                echo("error");
         }
 
     }

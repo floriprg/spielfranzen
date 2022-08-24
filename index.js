@@ -53,9 +53,17 @@ function game() {
     }
 
     for (let j = 0; j < 10; j++) {
-        document.getElementById(j).addEventListener('click', function () {
-            karteentfernen(document.getElementById(j).getAttribute('src'));
-        })
+        try {
+            document.getElementById(j).addEventListener('click', function () {
+                try {
+                    karteentfernen(document.getElementById(j).getAttribute('src'));
+                } catch (error) {
+
+                }
+            })
+        } catch (error) {
+
+        }
     }
     function karteentfernen(karte) {
         $.ajax({

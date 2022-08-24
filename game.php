@@ -188,17 +188,21 @@ function begin()
 
 function game($name)
 {
+  echo "<script src='index.js'></script>";
   $data_ausgeschieden = sql("select ausgeschieden[0], ausgeschieden[1] from spiele where id = " . $_GET['s'] . ";");
   while ($row = pg_fetch_row($data_ausgeschieden)) {
     $ausgeschieden1 = $row[0];
     $ausgeschieden2 = $row[1];
   }
   if ($ausgeschieden1 == $name || $ausgeschieden2 == $name) {
+    echo '<div class="alert alert-danger">Du bist ausgeschieden</div>';
     return false;
   }
-  $data_spielart = sql("select spielart from spiele where id = " . $_GET['s'] . ";");
+  $data_spielart = sql("select spielart, spielausgewählt from spiele where id = " . $_GET['s'] . ";");
   while ($row = pg_fetch_row($data_spielart)) {
     $spielart = $row[0];
+    $spielausgewählt = $row[1];
+    echo $spielausgewählt;
   }
   sql("update spiele set spieler = '" . $name . "' where id = " . $_GET['s'] . ";");
   echo '<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
@@ -229,18 +233,17 @@ function game($name)
             </div>
         </div>
     </div>';
-  echo '<script type="text/javascript">
+  if ($spielausgewählt == null) {
+    echo '<script type="text/javascript">
       $(window).load(function() {
           $("#exampleModal").modal("show");
       });
       </script>';
-  if (isset($_POST['submit'])) {
-    sql("update spiele set spielart =" . $_POST['spielart'] . "; ");
   }
 
-  echo "<script src='index.js'></script>";
-
-
+  if (isset($_POST['submit'])) {
+    sql("update spiele set spielart =" . $_POST['spielart'] . ", spielausgewählt = true; ");
+  }
 }
 
 function kartenausteilen($s, $n1, $n2, $n3)
