@@ -345,6 +345,7 @@ function kartenausteilen($s, $n1, $n2, $n3)
 function spielauswahl($name)
 {
   $fragen = false;
+
   $data_ausgeschieden = sql("select ausgeschieden from spiele");
   while ($row = pg_fetch_row($data_ausgeschieden)) {
     $ausgeschieden = $row[0];
@@ -392,11 +393,11 @@ function spielauswahl($name)
       }
       if (isset($_POST['ja'])) {
         echo "<script>window.location.reload();</script>";
-        sql("update spiele set spielart = " . ($spielart + 1) . " where id =" . $_GET['s'] . "; update spiele set gehebt = true where id =" . $_GET['s'] . ";update spiele set jetztdran = '" . $jetztdran . "' where id =" . $_GET['s'] . ";");
+        sql("update spiele set spielart = " . ($spielart + 1) . ", gehebt = true, jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
       }
       if (isset($_POST['nein'])) {
         echo "<script>window.location.reload();</script>";
-        sql("update spiele set gehebt = false where id =" . $_GET['s'] . ";update spiele set jetztdran = '" . $jetztdran . "' where id =" . $_GET['s'] . "; update spiele set ausgeschieden = ausgeschieden || '{" . $name . "}';");
+        sql("update spiele set gehebt = false, jetztdran = '" . $jetztdran . "', ausgeschieden = ausgeschieden || '{" . $name . "}'; where id =" . $_GET['s']);
       }
     }
     else {
@@ -414,18 +415,18 @@ function spielauswahl($name)
           break;
       }
       if (isset($_POST['ja'])) {
-        echo "<script>window.location.reload();</script>";
-        sql("update spiele set jetztdran = '" . $jetztdran . "' where id =" . $_GET['s'] . ";");
         if ($spielart > 4) {
-          sql("update spiele set gehebt = false where id =" . $_GET['s'] . ";");
+          echo "<script>window.location.reload();</script>";
+          sql("update spiele set gehebt = false, jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
         }
         else {
-          sql("update spiele set spielart = " . ($spielart + 1) . " where id =" . $_GET['s'] . "");
+          echo "<script>window.location.reload();</script>";
+          sql("update spiele set spielart = " . ($spielart + 1) . ", jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
         }
       }
       if (isset($_POST['nein'])) {
         echo "<script>window.location.reload();</script>";
-        sql("update spiele set jetztdran = '" . $jetztdran . "' where id =" . $_GET['s'] . "; update spiele set ausgeschieden = ausgeschieden || '{" . $name . "}';");
+        sql("update spiele set jetztdran = '" . $jetztdran . "', ausgeschieden = ausgeschieden || '{" . $name . "}' where id =" . $_GET['s']);
       }
     }
     echo '
