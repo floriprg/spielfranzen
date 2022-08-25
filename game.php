@@ -189,12 +189,12 @@ function begin()
 function game($name)
 {
   echo "<script src='index.js'></script>";
-  $data_ausgeschieden = sql("select ausgeschieden[0], ausgeschieden[1] from spiele where id = " . $_GET['s'] . ";");
+
+  $data_ausgeschieden = sql("select ausgeschieden from spiele where id = " . $_GET['s'] . ";");
   while ($row = pg_fetch_row($data_ausgeschieden)) {
-    $ausgeschieden1 = $row[0];
-    $ausgeschieden2 = $row[1];
+    $ausgeschieden = explode(",", trim($row[0], '{}'));
   }
-  if ($ausgeschieden1 == $name || $ausgeschieden2 == $name) {
+  if ($ausgeschieden[0] == $name || $ausgeschieden[1] == $name) {
     echo '<div class="alert alert-danger">Du bist ausgeschieden</div>';
     return false;
   }
@@ -202,10 +202,10 @@ function game($name)
   while ($row = pg_fetch_row($data_spielart)) {
     $spielart = $row[0];
     $spielausgewählt = $row[1];
-    echo $spielausgewählt;
   }
   sql("update spiele set spieler = '" . $name . "' where id = " . $_GET['s'] . ";");
-  echo '<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+  if ($spielausgewählt == null) {
+    echo '<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
         aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -217,24 +217,22 @@ function game($name)
                 </div>
                 <div class="modal-footer">
                     <form method="post"><div>';
-  for ($i = $spielart; $i < 13; $i++) {
-    echo '
+    for ($i = $spielart; $i < 13; $i++) {
+      echo '
             <div class="form-check">
               <input class="form-check-input" type="radio" name="spielart" value="' . $i . '" id="flexRadioDefault' . $i . '"
                   checked />
               <label class="form-check-label" for="flexRadioDefault' . $i . '">' . $i . '</label>
             </div>
         ';
-  }
-  echo '</div>
+    }
+    echo '</div>
   <input type="submit" name="submit" value ="OK">
   </form>
                 </div>
             </div>
         </div>
-    </div>';
-  if ($spielausgewählt == null) {
-    echo '<script type="text/javascript">
+    </div><script type="text/javascript">
       $(window).load(function() {
           $("#exampleModal").modal("show");
       });
@@ -242,7 +240,7 @@ function game($name)
   }
 
   if (isset($_POST['submit'])) {
-    sql("update spiele set spielart =" . $_POST['spielart'] . ", spielausgewählt = true; ");
+    sql("update spiele set spielart =" . $_POST['spielart'] . ", spielausgewählt = true where id = " . $_GET['s']);
   }
 }
 
@@ -345,17 +343,6 @@ function kartenausteilen($s, $n1, $n2, $n3)
 function spielauswahl($name)
 {
   $fragen = false;
-
-  $data_ausgeschieden = sql("select ausgeschieden from spiele");
-  while ($row = pg_fetch_row($data_ausgeschieden)) {
-    $ausgeschieden = $row[0];
-  }
-  if (isset($ausgeschieden[0]))
-    if ($ausgeschieden[0] == $name || $ausgeschieden[1] == $name) {
-      return false;
-    }
-
-
   $data = sql("select jetztdran, spielart, gehebt from spiele where id =" . $_GET['s'] . ";");
   while ($row = pg_fetch_row($data)) {
     $jetztdran = $row[0];
@@ -370,11 +357,31 @@ function spielauswahl($name)
     else {
       $fragen = false;
     }
-    echo "Name: $name<br>";
-    echo "jetztdran: $row[0]<br>";
   }
 
 
+
+  $data_ausgeschieden = sql("select ausgeschieden from spiele");
+  while ($row = pg_fetch_row($data_ausgeschieden)) {
+    $ausgeschieden = $row[0];
+  }
+  if (isset($ausgeschieden[0]))
+    if ($ausgeschieden[0] == $name || $ausgeschieden[1] == $name) {
+
+      switch ($jetztdran) {
+        case 's1':
+          $jetztdran = "s3";
+          break;
+        case 's2':
+          $jetztdran = "s1";
+          break;
+        case 's3':
+          $jetztdran = "s2";
+          break;
+      }
+      sql("update spiele set jetztdran  = '" . $jetztdran . "'");
+      return false;
+    }
 
   if ($fragen) {
     if (($spielart > 4) && ($gehebt == "f")) {
