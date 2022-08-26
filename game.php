@@ -361,7 +361,7 @@ function spielauswahl($name)
 
 
 
-  $data_ausgeschieden = sql("select ausgeschieden from spiele");
+  $data_ausgeschieden = sql("select ausgeschieden from spiele where id = " . $_GET['s']);
   while ($row = pg_fetch_row($data_ausgeschieden)) {
     $ausgeschieden = $row[0];
   }
@@ -379,7 +379,7 @@ function spielauswahl($name)
           $jetztdran = "s2";
           break;
       }
-      sql("update spiele set jetztdran  = '" . $jetztdran . "'");
+      sql("update spiele set jetztdran  = '" . $jetztdran . "'  where id = " . $_GET['s']);
       return false;
     }
 
