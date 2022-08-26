@@ -102,7 +102,7 @@ function begin()
     }
     return false;
   }
-  $idvalid = sql("select id from spiele where id = " . $_GET['s'] . "");
+  $idvalid = sql("select id from spiele where id = " . $_GET['s']);
   if (!(pg_num_rows($idvalid) > 0)) {
     echo "<div class ='alert-danger alert'>
           Spiel nicht vorhanden!
@@ -115,7 +115,7 @@ function begin()
             </div>';
     return false;
   }
-  $data1 = sql("select s1, s2, s3 from spiele where id = " . $_GET['s'] . ";");
+  $data1 = sql("select s1, s2, s3 from spiele where id = " . $_GET['s']);
   while ($row = pg_fetch_row($data1)) {
     $name = $data->name;
     ////////////////////////////////
