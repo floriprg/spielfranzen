@@ -130,10 +130,10 @@ function begin()
     $s1->punkte = 0;
     $s2->punkte = 0;
     $s3->punkte = 0;
-    $data = sql("select kartenausgeteilt from spiele where id =" . $_GET['s'] . ";");
+    $data = sql("select kartenausgeteilt from spiele where id =" . $_GET['s']);
     while ($row = pg_fetch_row($data)) {
       if ($row[0] == "f") {
-        sql("update spiele set kartenausgeteilt = true where id = " . $_GET['s'] . ";");
+        sql("update spiele set kartenausgeteilt = true where id = " . $_GET['s']);
         $zufallskarten = neuekarten();
         $s1->karten = array_splice($zufallskarten, 0, 10);
         $s2->karten = array_splice($zufallskarten, 0, 10);
