@@ -1,6 +1,6 @@
 @echo off
 cd C:\Dev\spiel-franzen
-OUTPUT=$(ls -1)
+set OUTPUT=$(ls -1)
 echo "${OUTPUT}"
 git add .
 git commit -am "a52"
