@@ -190,11 +190,24 @@ function game($name)
 {
   echo "<script src='index.js'></script>";
 
-  $data_ausgeschieden = sql("select ausgeschieden from spiele where id = " . $_GET['s'] . ";");
+  $data_ausgeschieden = sql("select ausgeschieden, jetztdran from spiele where id = " . $_GET['s'] . ";");
   while ($row = pg_fetch_row($data_ausgeschieden)) {
     $ausgeschieden = explode(",", trim($row[0], '{}'));
+    $jetztdran = $row[1];
   }
   if ($ausgeschieden[0] == $name || $ausgeschieden[1] == $name) {
+    switch ($jetztdran) {
+      case 's1':
+        $jetztdran = "s2";
+        break;
+      case 's2':
+        $jetztdran = "s3";
+        break;
+      case 's3':
+        $jetztdran = "s1";
+        break;
+    }
+    sql("update spiele set jetztdran  = '" . $jetztdran . "'  where id = " . $_GET['s']);
     echo '<div class="alert alert-danger">Du bist ausgeschieden</div>';
     return false;
   }
@@ -365,23 +378,9 @@ function spielauswahl($name)
   while ($row = pg_fetch_row($data_ausgeschieden)) {
     $ausgeschieden = $row[0];
   }
-  if (isset($ausgeschieden[0]))
-    if ($ausgeschieden[0] == $name || $ausgeschieden[1] == $name) {
-
-      switch ($jetztdran) {
-        case 's1':
-          $jetztdran = "s3";
-          break;
-        case 's2':
-          $jetztdran = "s1";
-          break;
-        case 's3':
-          $jetztdran = "s2";
-          break;
-      }
-      sql("update spiele set jetztdran  = '" . $jetztdran . "'  where id = " . $_GET['s']);
-      return false;
-    }
+  if (isset($ausgeschieden[0])) {
+    return false;
+  }
 
   if ($fragen) {
     if (($spielart > 4) && ($gehebt == "f")) {
