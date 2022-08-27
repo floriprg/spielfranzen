@@ -16,8 +16,14 @@ function passwortvergessen(){
         if ($emailcheck == 1) {
             $msg = "Gib ein neues Passwort ein!";
             $headers = "From: flori.konto2@gmail.com";
-            mail($email, "Neues Passwort erstellen", $msg, $headers);
-            echo "<div class='alert-success'>Email erfolgreich geschickt!</div>";
+            
+            $retval = mail($email, "Neues Passwort erstellen", $msg, $headers);
+            if ($retval == true) {
+                echo "<div class='alert-success'>Email erfolgreich geschickt!</div>";
+            }
+            else {
+                echo "<div class='alert-success'>Ein Problem ist aufgetreten!</div>";
+            }
         }
         else {
             echo "<div class='alert-danger'>Kein Benutzer mit dieser Email gefunden!</div>";
