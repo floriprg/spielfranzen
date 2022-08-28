@@ -173,41 +173,32 @@ function begin()
  Dieses Spiel ist leider schon besetzt
  </div>';
   }
-  $dl = sql("select array_upper(ausgeschieden, 1) from spiele where id = " . $_GET['s'] . ";");
+  $dl = sql("select array_upper(ausgeschieden, 1), spieler from spiele where id = " . $_GET['s'] . ";");
   while ($row = pg_fetch_row($dl)) {
     $ausgeschieden = $row[0];
+    $spieler = $row[1];
   }
   if ($ausgeschieden < 2) {
     spielauswahl($name);
   }
   else {
-    game($name);
+    if ($spieler == "") {
+      gameselect($name);
+    }
+    else {
+      game($name);
+    }
   }
 }
 
-
-function game($name)
+function gameselect($name)
 {
-  echo "<script src='index.js'></script>";
 
   $data_ausgeschieden = sql("select ausgeschieden, jetztdran from spiele where id = " . $_GET['s'] . ";");
   while ($row = pg_fetch_row($data_ausgeschieden)) {
     $ausgeschieden = explode(",", trim($row[0], '{}'));
-    $jetztdran = $row[1];
   }
   if ($ausgeschieden[0] == $name || $ausgeschieden[1] == $name) {
-    switch ($jetztdran) {
-      case 's1':
-        $jetztdran = "s2";
-        break;
-      case 's2':
-        $jetztdran = "s3";
-        break;
-      case 's3':
-        $jetztdran = "s1";
-        break;
-    }
-    sql("update spiele set jetztdran  = '" . $jetztdran . "'  where id = " . $_GET['s']);
     echo '<div class="alert alert-danger">Du bist ausgeschieden</div>';
     return false;
   }
@@ -255,6 +246,10 @@ function game($name)
   if (isset($_POST['submit'])) {
     sql("update spiele set spielart =" . $_POST['spielart'] . ", spielausgewählt = true where id = " . $_GET['s']);
   }
+}
+function game($name)
+{
+  echo "<script src='index.js'></script>";
 }
 
 function kartenausteilen($s, $n1, $n2, $n3)
@@ -376,9 +371,9 @@ function spielauswahl($name)
 
   $data_ausgeschieden = sql("select ausgeschieden from spiele where id = " . $_GET['s']);
   while ($row = pg_fetch_row($data_ausgeschieden)) {
-    $ausgeschieden = $row[0];
+    $ausgeschieden = explode(",", trim($row[0], '{}'));
   }
-  if (isset($ausgeschieden[0])) {
+  if (isset($ausgeschieden[0]) && isset($ausgeschieden[1])) {
     return false;
   }
 

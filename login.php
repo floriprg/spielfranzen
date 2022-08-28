@@ -15,7 +15,7 @@ function passwortvergessen(){
         $emailcheck = pg_num_rows($data);
         if ($emailcheck == 1) {
             $msg = "Gib ein neues Passwort ein!";
-            $headers = "From: flori.konto2@gmail.com";
+            $headers = "from:flori.konto2@gmail.com";
             
             $retval = mail($email, "Neues Passwort erstellen", $msg, $headers);
             if ($retval == true) {
