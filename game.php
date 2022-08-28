@@ -243,10 +243,15 @@ function gameselect($name)
     sql("update spiele set spielart =" . $_POST['spielart'] . ", spielausgewählt = true, spieler = '" . $name . "' where id = " . $_GET['s']);
   }
 }
+
+
+
 function game($name)
 {
   echo "<script src='index.js'></script>";
 }
+
+
 
 function kartenausteilen($s, $n1, $n2, $n3)
 {
