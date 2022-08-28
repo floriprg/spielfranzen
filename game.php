@@ -194,20 +194,16 @@ function begin()
 function gameselect($name)
 {
 
-  $data_ausgeschieden = sql("select ausgeschieden, jetztdran from spiele where id = " . $_GET['s'] . ";");
+  $data_ausgeschieden = sql("select ausgeschieden, spielart, spielausgewählt from spiele where id = " . $_GET['s'] . ";");
   while ($row = pg_fetch_row($data_ausgeschieden)) {
     $ausgeschieden = explode(",", trim($row[0], '{}'));
+    $spielart = $row[1];
+    $spielausgewählt = $row[2];
   }
   if ($ausgeschieden[0] == $name || $ausgeschieden[1] == $name) {
     echo '<div class="alert alert-danger">Du bist ausgeschieden</div>';
     return false;
   }
-  $data_spielart = sql("select spielart, spielausgewählt from spiele where id = " . $_GET['s'] . ";");
-  while ($row = pg_fetch_row($data_spielart)) {
-    $spielart = $row[0];
-    $spielausgewählt = $row[1];
-  }
-  sql("update spiele set spieler = '" . $name . "' where id = " . $_GET['s'] . ";");
   if ($spielausgewählt == null) {
     echo '<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
         aria-hidden="true">
@@ -244,7 +240,7 @@ function gameselect($name)
   }
 
   if (isset($_POST['submit'])) {
-    sql("update spiele set spielart =" . $_POST['spielart'] . ", spielausgewählt = true where id = " . $_GET['s']);
+    sql("update spiele set spielart =" . $_POST['spielart'] . ", spielausgewählt = true, spieler = '" . $name . "' where id = " . $_GET['s']);
   }
 }
 function game($name)
