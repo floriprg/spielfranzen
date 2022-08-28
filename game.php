@@ -370,15 +370,33 @@ function spielauswahl($name)
 
 
 
-  $data_ausgeschieden = sql("select ausgeschieden from spiele where id = " . $_GET['s']);
+  $data_ausgeschieden = sql("select ausgeschieden, jetztdran from spiele where id = " . $_GET['s']);
   while ($row = pg_fetch_row($data_ausgeschieden)) {
     $ausgeschieden = explode(",", trim($row[0], '{}'));
+
   }
   if (isset($ausgeschieden[0]) && isset($ausgeschieden[1])) {
     return false;
   }
 
-  if ($fragen) {
+  if ($fragen) { //wenn dieser Spieler dran ist
+    switch ($jetztdran) {
+      case 's1':
+        $jetztdran2 = "s2";
+        break;
+      case 's2':
+        $jetztdran2 = "s3";
+        break;
+      case 's3':
+        $jetztdran2 = "s1";
+        break;
+    }
+    if ($ausgeschieden[0] == $name) {
+      sql("update spiele set jetztdran = '" . $jetztdran2 . "'");
+      echo '<div class="alert alert-danger">Du bist ausgeschieden</div>';
+      return false;
+    }
+
     if (($spielart > 4) && ($gehebt == "f")) {
       $bieten_heben = "heben";
 
