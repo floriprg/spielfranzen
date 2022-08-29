@@ -7,9 +7,21 @@ function tosql()
         $todel = $_POST['to_del'];
         $todel = substr($todel, -10);
         $s = $_POST['s'];
-        sql("update  spiele set ablegkarten = ablegkarten || '{" . $todel . "}' where id = " . $s);
-        $spieler->karten = array_values(array_diff($spieler->karten, [$todel]));
-        sql("update spiele set " . $spielername . "= '" . json_encode($spieler) . "', jetztdran= '" . $dran . "' where id = " . $s);
+        $usercards = sql("select " . $spielername . "->>'karten' as karten, ablegkarten from spiele where id = " . $s);
+        while ($row = pg_fetch_row($usercards)) {
+            $user = $row[0];
+            $farbe = explode(",", trim($row[1], '{}'));
+        }
+        echo "alert $user, " . substr($farbe[0], -9, 4) . ",";
+        if ((strpos($user, substr($farbe[0], -9, 4)) == false) || (strpos($todel, substr($farbe[0], -9, -4)) !== false)) {
+            //sql("update  spiele set  where id = " . $s);
+            $spieler->karten = array_values(array_diff($spieler->karten, [$todel]));
+            sql("update spiele set ablegkarten = ablegkarten || '{" . $todel . "}', " . $spielername . "= '" . json_encode($spieler) . "', jetztdran= '" . $dran . "' where id = " . $s);
+        }
+        else {
+            echo "Du musst Farbe zugeben!";
+        }
+
     }
     require "config.php";
     $type = $_POST['type'];

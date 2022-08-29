@@ -81,7 +81,5 @@ function game() {
             });
 
     }
-
 }
-
 game();
