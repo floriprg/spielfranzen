@@ -175,7 +175,17 @@ function gameselect($name)
   }
 
   if (isset($_POST['submit'])) {
-    sql("update spiele set spielart =" . $_POST['spielart'] . ", spielausgewählt = true, spieler = '" . $name . "' where id = " . $_GET['s']);
+    switch ($_POST['spielart']) {
+      case '5':
+        $trumpf = "eich";
+      case '6':
+        $trumpf = "laub";
+      case '7':
+        $trumpf = "sche";
+      case '8':
+        $trumpf = "herz";
+    }
+    sql("update spiele set trumpf = " . $trumpf . ", spielart =" . $_POST['spielart'] . ", spielausgewählt = true, spieler = '" . $name . "' where id = " . $_GET['s']);
   }
 }
 

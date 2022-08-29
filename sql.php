@@ -1,25 +1,26 @@
 <?php
 function tosql()
 {
-
     function del($spieler, $spielername, $dran)
     {
         $todel = $_POST['to_del'];
         $todel = substr($todel, -10);
         $s = $_POST['s'];
-        $usercards = sql("select " . $spielername . "->>'karten' as karten, ablegkarten from spiele where id = " . $s);
+        $usercards = sql("select " . $spielername . "->>'karten' as karten, ablegkarten, trumpf from spiele where id = " . $s);
         while ($row = pg_fetch_row($usercards)) {
+
             $user = $row[0];
             $farbe = explode(",", trim($row[1], '{}'));
+            $trumpf = $row[2];
         }
         echo "alert $user, " . substr($farbe[0], -9, 4) . ",";
-        if ((strpos($user, substr($farbe[0], -9, 4)) == false) || (strpos($todel, substr($farbe[0], -9, -4)) !== false)) {
-            //sql("update  spiele set  where id = " . $s);
+        //wenn spieler weder farbe noch trumpf hat    |||||||||||||||||||||||||||||||||||||||||||||||||| wenn er farbe zugegeben hat||||||||||||||||||||||||||||||wenn er farbe nicht hat und trumpf zugibt
+        if (((strpos($user, substr($farbe[0], -9, 4)) == false) && (strpos($user, $trumpf) == false)) || (strpos($todel, substr($farbe[0], -9, -4)) !== false) || ((strpos($todel, $trumpf) !== false) && (strpos($user, substr($farbe[0], -9, 4)) == false))) {
             $spieler->karten = array_values(array_diff($spieler->karten, [$todel]));
             sql("update spiele set ablegkarten = ablegkarten || '{" . $todel . "}', " . $spielername . "= '" . json_encode($spieler) . "', jetztdran= '" . $dran . "' where id = " . $s);
         }
         else {
-            echo "Du musst Farbe zugeben!";
+            echo "Du musst Trumpf oder Farbe zugeben!";
         }
 
     }
