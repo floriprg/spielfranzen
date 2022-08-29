@@ -3,7 +3,7 @@ include 'vendor/autoload.php';
 //require "config.php";
 function neuekarten()
 {
-  $karten = array("1 laub.jpg", "1 sche.jpg", "1 eich.jpg", "1 herz.jpg", "2 laub.jpg", "2 sche.jpg", "2 eich.jpg", "2 herz.jpg", "3 laub.jpg", "3 sche.jpg", "3 eich.jpg", "3 herz.jpg", "4 laub.jpg", "4 sche.jpg", "4 eich.jpg", "4 herz.jpg", "5 eich.jpg", "5 herz.jpg", "5 laub.jpg", "5 sche.jpg", "7 eich.jpg", "7 herz.jpg", "7 laub.jpg", "7 sche.jpg", "8 eich.jpg", "8 herz.jpg", "8 laub.jpg", "8 sche.jpg", "9 eich.jpg", "9 herz.jpg", "9 laub.jpg", "9 sche.jpg", "6 sche.jpg");
+  $karten = array("1laub.jpg", "1sche.jpg", "1eich.jpg", "1herz.jpg", "2laub.jpg", "2sche.jpg", "2eich.jpg", "2herz.jpg", "3laub.jpg", "3sche.jpg", "3eich.jpg", "3herz.jpg", "4laub.jpg", "4sche.jpg", "4eich.jpg", "4herz.jpg", "5eich.jpg", "5herz.jpg", "5laub.jpg", "5sche.jpg", "7eich.jpg", "7herz.jpg", "7laub.jpg", "7sche.jpg", "8eich.jpg", "8herz.jpg", "8laub.jpg", "8sche.jpg", "9eich.jpg", "9herz.jpg", "9laub.jpg", "9sche.jpg", "6sche.jpg");
   $zufallskarten = [];
   for ($i = 0; $i < 33; $i++) {
     $zahl = rand(0, (count($karten) - 1));
