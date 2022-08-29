@@ -13,9 +13,9 @@ function tosql()
             $farbe = explode(",", trim($row[1], '{}'));
             $trumpf = $row[2];
         }
-        echo "alert $user, " . substr($farbe[0], -9, 4) . ",";
+        echo "alert $user, " . substr($farbe[0], -8, 4) . ",";
         //wenn spieler weder farbe noch trumpf hat    |||||||||||||||||||||||||||||||||||||||||||||||||| wenn er farbe zugegeben hat||||||||||||||||||||||||||||||wenn er farbe nicht hat und trumpf zugibt
-        if (((strpos($user, substr($farbe[0], -9, 4)) == false) && (strpos($user, $trumpf) == false)) || (strpos($todel, substr($farbe[0], -9, -4)) !== false) || ((strpos($todel, $trumpf) !== false) && (strpos($user, substr($farbe[0], -9, 4)) == false))) {
+        if (((strpos($user, substr($farbe[0], -8, 4)) == false) && (strpos($user, $trumpf) == false)) || (strpos($todel, substr($farbe[0], -8, -4)) !== false) || ((strpos($todel, $trumpf) !== false) && (strpos($user, substr($farbe[0], -8, 4)) == false))) {
             $spieler->karten = array_values(array_diff($spieler->karten, [$todel]));
             sql("update spiele set ablegkarten = ablegkarten || '{" . $todel . "}', " . $spielername . "= '" . json_encode($spieler) . "', jetztdran= '" . $dran . "' where id = " . $s);
         }
