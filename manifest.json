@@ -1,0 +1,18 @@
+{
+    "theme_color": "#f69435",
+    "background_color": "#f69435",
+    "display": "standalone",
+    "orientation": "portrait",
+    "start_url": "/index.php",
+    "name": "Spiel Franzen",
+    "description": "Spiel Franzen",
+    "short_name": "Spiel Franzen",
+    "icons": [
+        {
+            "src": "karten/weliicon.jpg",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}
