@@ -92,6 +92,7 @@ function getSpiele()
     <meta name="keywords" content="Spiel Franzen">
     <meta name="author" content="Florian Unterfrauner">
     <meta name="language" content="de">
+    <link rel="manifest" href="manifest.json" />
     <link rel="icon" type="image/jpg" href="karten/weliicon.jpg">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
@@ -99,7 +100,12 @@ function getSpiele()
         crossorigin="anonymous"></script>
     <style src="style.css"></style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-
+    <script type="module">
+    import 'https://cdn.jsdelivr.net/npm/@pwabuilder/pwaupdate';
+    const el = document.createElement('pwa-update');
+    document.body.appendChild(el);
+    </script>
+    <script src="pwabuilder-sw.js"></script>
     <link rel="stylesheet" type="text/css"
         href="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.css" />
     <script>
