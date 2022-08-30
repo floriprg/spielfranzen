@@ -14,25 +14,27 @@ function tosql()
             $trumpf = $row[2];
             $ablegkarten = explode(",", trim($row[1], '{/}'));
         }
+
         switch ($spielername) {
-            case 1:
+            case '1':
                 $arr = '{"' . $todel . '","' . $ablegkarten[1] . '", "' . $ablegkarten[2] . '"}';
-            case 2:
+                break;
+            case '2':
                 $arr = '{"' . $ablegkarten[0] . '","' . $todel . '", "' . $ablegkarten[2] . '"}';
-            case 3:
+                break;
+            case '3':
                 $arr = '{"' . $ablegkarten[0] . '","' . $ablegkarten[1] . '", "' . $todel . '"}';
+                break;
         }
         //wenn spieler weder farbe noch trumpf hat    |||||||||||||||||||||||||||||||||||||||||||||||||| wenn er farbe zugegeben hat||||||||||||||||||||||||||||||wenn er farbe nicht hat und trumpf zugibt
         if (((strpos($user, substr($farbe[0], -8, 4)) == false) && (strpos($user, $trumpf) == false)) || (strpos($todel, substr($farbe[0], -8, -4)) !== false) || ((strpos($todel, $trumpf) !== false) && (strpos($user, substr($farbe[0], -8, 4)) == false))) {
             $spieler->karten = array_values(array_diff($spieler->karten, [$todel]));
             $sqlstring = "update spiele set s" . $spielername . "= '" . json_encode($spieler) . "', jetztdran= '" . $dran . "', ablegkarten = '" . $arr . "' where id = " . $s;
-            echo $sqlstring;
             sql($sqlstring);
         }
         else {
-            echo "Du musst Trumpf oder Farbe zugeben!";
+            echo "err";
         }
-
     }
     require "config.php";
     $type = $_POST['type'];

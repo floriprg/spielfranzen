@@ -76,8 +76,9 @@ function game() {
             }
         })
             .done(function (response) {
-                alert(response);
-                // window.location.reload();
+                if (response == "err") {
+                    alert("Du musst Trumpf oder Farbe zugeben!");
+                }
             });
 
     }
