@@ -223,21 +223,21 @@ function kartenausteilen($s, $n1, $n2, $n3)
   echo '
   <div class="d-flex flex-wrap justify-content-center">
     <div class="card m-2" style="width: 6rem;">
-      <img id="ableg1"  class="card-img-top img-fluid" src="karten/' . ((!$a_karte1) ? 'deckblatt.jpg' : $a_karte1) . '" alt="Karte 1">
+      <img id="ableg1"  class="card-img-top img-fluid" src="karten/' . (($a_karte1 == "keine") ? 'deckblatt.jpg' : $a_karte1) . '" alt="Karte 1">
       <div class="card-body">
         <h5 class="card-title">' . $n1 . '</h5>
         <p>' . (($jetztdran == "s1") ? 'jetzt dran' : '') . '</p>
       </div>
     </div>
     <div  class="card m-2" style="width: 6rem;">
-      <img  id="ableg2"  class="card-img-top img-fluid" src="karten/' . ((!$a_karte2) ? 'deckblatt.jpg' : $a_karte2) . '" alt="Karte 2">
+      <img  id="ableg2"  class="card-img-top img-fluid" src="karten/' . (($a_karte2 == "keine") ? 'deckblatt.jpg' : $a_karte2) . '" alt="Karte 2">
       <div class="card-body">
         <h5 class="card-title">' . $n2 . '</h5>
         <p>' . (($jetztdran == "s2") ? 'jetzt dran' : '') . '</p>
       </div>
     </div>
     <div  class="card m-2" style="width: 6rem;">
-      <img id="ableg3" class="card-img-top img-fluid" src="karten/' . ((!$a_karte3) ? 'deckblatt.jpg' : $a_karte3) . '" alt="Karte 3">
+      <img id="ableg3" class="card-img-top img-fluid" src="karten/' . (($a_karte3 == "keine") ? 'deckblatt.jpg' : $a_karte3) . '" alt="Karte 3">
       <div class="card-body">
         <h5 class="card-title">' . $n3 . '</h5>
         <p>' . (($jetztdran == "s3") ? 'jetzt dran' : '') . '</p>

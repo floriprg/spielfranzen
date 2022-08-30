@@ -27,7 +27,7 @@ function spielerstellen()
             echo '<div class="alert alert-warning" role="alert">Sie dürfen keine HTML Tags eingeben!</div>';
         }
         else {
-            sql("insert into spiele(gestartet, name, fertig, erlaubte, s1, s2, s3, kartenausgeteilt, anzahl, jetztdran, spielart, gehebt)values(false, '" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', false, '" . $_POST['anzahl'] . "', 's3', 4, true);");
+            sql("insert into spiele(ablegkarten, gestartet, name, fertig, erlaubte, s1, s2, s3, kartenausgeteilt, anzahl, jetztdran, spielart, gehebt)values(ARRAY ['keine', 'keine', 'keine'], false, '" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', false, '" . $_POST['anzahl'] . "', 's3', 4, true);");
         }
     }
 }
@@ -90,7 +90,6 @@ function getSpiele()
     <meta name="description"
         content="Spiele Spiel Franzen online gegen echte Gegner! Nimm an einem Spiel teil oder beginne dein eigenes! Für 3 Spieler.">
     <meta name="keywords" content="Spiel Franzen">
-    <meta name="author" content="Florian Unterfrauner">
     <meta name="language" content="de">
     <link rel="manifest" href="manifest.json" />
     <link rel="icon" type="image/jpg" href="karten/weliicon.jpg">

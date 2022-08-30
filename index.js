@@ -77,7 +77,7 @@ function game() {
         })
             .done(function (response) {
                 alert(response);
-                //window.location.reload();
+                // window.location.reload();
             });
 
     }

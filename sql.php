@@ -16,24 +16,20 @@ function tosql()
         }
         switch ($spielername) {
             case 1:
-                $a1 = $todel;
-                $a2 = $ablegkarten[1];
-                $a3 = $ablegkarten[2];
+                $arr = '{"' . $todel . '","' . $ablegkarten[1] . '", "' . $ablegkarten[2] . '"}';
             case 2:
-                $a1 = $ablegkarten[0];
-                $a2 = $todel;
-                $a3 = $ablegkarten[2];
+                $arr = '{"' . $ablegkarten[0] . '","' . $todel . '", "' . $ablegkarten[2] . '"}';
             case 3:
-                $a1 = $ablegkarten[0];
-                $a2 = $ablegkarten[1];
-                $a3 = $todel;
-
+                $arr = '{"' . $ablegkarten[0] . '","' . $ablegkarten[1] . '", "' . $todel . '"}';
         }
         //wenn spieler weder farbe noch trumpf hat    |||||||||||||||||||||||||||||||||||||||||||||||||| wenn er farbe zugegeben hat||||||||||||||||||||||||||||||wenn er farbe nicht hat und trumpf zugibt
         if (((strpos($user, substr($farbe[0], -8, 4)) == false) && (strpos($user, $trumpf) == false)) || (strpos($todel, substr($farbe[0], -8, -4)) !== false) || ((strpos($todel, $trumpf) !== false) && (strpos($user, substr($farbe[0], -8, 4)) == false))) {
             $spieler->karten = array_values(array_diff($spieler->karten, [$todel]));
 
-            sql("update spiele set ablegkarten = ARRAY ['" . $a1 . "','" . $a2 . "', '" . $a3 . "'], s" . $spielername . "= '" . json_encode($spieler) . "', jetztdran= '" . $dran . "' where id = " . $s);
+            echo $spielername;
+            echo $arr;
+            echo $todel;
+            sql("update spiele set s" . $spielername . "= '" . json_encode($spieler) . "', jetztdran= '" . $dran . "', ablegkarten = '" . $arr . "' where id = " . $s);
         }
         else {
             echo "Du musst Trumpf oder Farbe zugeben!";
@@ -92,7 +88,7 @@ function tosql()
                 }
                 break;
             default:
-                echo("error");
+                echo ("error");
         }
 
     }
