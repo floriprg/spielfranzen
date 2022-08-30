@@ -4,20 +4,36 @@ function tosql()
     function del($spieler, $spielername, $dran)
     {
         $todel = $_POST['to_del'];
-        $todel = substr($todel, -10);
+        $todel = substr($todel, -9);
         $s = $_POST['s'];
-        $usercards = sql("select " . $spielername . "->>'karten' as karten, ablegkarten, trumpf from spiele where id = " . $s);
+        $usercards = sql("select s" . $spielername . "->>'karten' as karten, ablegkarten, trumpf from spiele where id = " . $s);
         while ($row = pg_fetch_row($usercards)) {
 
             $user = $row[0];
             $farbe = explode(",", trim($row[1], '{}'));
             $trumpf = $row[2];
+            $ablegkarten = explode(",", trim($row[1], '{/}'));
         }
-        echo "alert $user, " . substr($farbe[0], -8, 4) . ",";
+        switch ($spielername) {
+            case 1:
+                $a1 = $todel;
+                $a2 = $ablegkarten[1];
+                $a3 = $ablegkarten[2];
+            case 2:
+                $a1 = $ablegkarten[0];
+                $a2 = $todel;
+                $a3 = $ablegkarten[2];
+            case 3:
+                $a1 = $ablegkarten[0];
+                $a2 = $ablegkarten[1];
+                $a3 = $todel;
+
+        }
         //wenn spieler weder farbe noch trumpf hat    |||||||||||||||||||||||||||||||||||||||||||||||||| wenn er farbe zugegeben hat||||||||||||||||||||||||||||||wenn er farbe nicht hat und trumpf zugibt
         if (((strpos($user, substr($farbe[0], -8, 4)) == false) && (strpos($user, $trumpf) == false)) || (strpos($todel, substr($farbe[0], -8, -4)) !== false) || ((strpos($todel, $trumpf) !== false) && (strpos($user, substr($farbe[0], -8, 4)) == false))) {
             $spieler->karten = array_values(array_diff($spieler->karten, [$todel]));
-            sql("update spiele set ablegkarten = ablegkarten || '{" . $todel . "}', " . $spielername . "= '" . json_encode($spieler) . "', jetztdran= '" . $dran . "' where id = " . $s);
+
+            sql("update spiele set ablegkarten = ARRAY ['" . $a1 . "','" . $a2 . "', '" . $a3 . "'], s" . $spielername . "= '" . json_encode($spieler) . "', jetztdran= '" . $dran . "' where id = " . $s);
         }
         else {
             echo "Du musst Trumpf oder Farbe zugeben!";
@@ -45,7 +61,7 @@ function tosql()
         switch ($name) {
             case ($s1->name):
                 if ($jetztdran == 's1') {
-                    $spielername = 's1';
+                    $spielername = 1;
                     del($s1, $spielername, 's2');
                 }
                 else {
@@ -56,7 +72,7 @@ function tosql()
             case ($s2->name):
                 if ($jetztdran == 's2') {
                     $spieler = $s2;
-                    $spielername = 's2';
+                    $spielername = 2;
                     del($s2, $spielername, 's3');
                 }
                 else {
@@ -67,7 +83,7 @@ function tosql()
             case ($s3->name):
                 if ($jetztdran == 's3') {
                     $spieler = $s3;
-                    $spielername = 's3';
+                    $spielername = 3;
                     del($s3, $spielername, 's1');
                 }
                 else {
