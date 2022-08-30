@@ -58,11 +58,11 @@ function game() {
                 try {
                     karteentfernen(document.getElementById(j).getAttribute('src'));
                 } catch (error) {
-
+                    new Error(error);
                 }
             })
         } catch (error) {
-
+            new Error(error);
         }
     }
     function karteentfernen(karte) {

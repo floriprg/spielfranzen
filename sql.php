@@ -25,11 +25,9 @@ function tosql()
         //wenn spieler weder farbe noch trumpf hat    |||||||||||||||||||||||||||||||||||||||||||||||||| wenn er farbe zugegeben hat||||||||||||||||||||||||||||||wenn er farbe nicht hat und trumpf zugibt
         if (((strpos($user, substr($farbe[0], -8, 4)) == false) && (strpos($user, $trumpf) == false)) || (strpos($todel, substr($farbe[0], -8, -4)) !== false) || ((strpos($todel, $trumpf) !== false) && (strpos($user, substr($farbe[0], -8, 4)) == false))) {
             $spieler->karten = array_values(array_diff($spieler->karten, [$todel]));
-
-            echo $spielername;
-            echo $arr;
-            echo $todel;
-            sql("update spiele set s" . $spielername . "= '" . json_encode($spieler) . "', jetztdran= '" . $dran . "', ablegkarten = '" . $arr . "' where id = " . $s);
+            $sqlstring = "update spiele set s" . $spielername . "= '" . json_encode($spieler) . "', jetztdran= '" . $dran . "', ablegkarten = '" . $arr . "' where id = " . $s;
+            echo $sqlstring;
+            sql($sqlstring);
         }
         else {
             echo "Du musst Trumpf oder Farbe zugeben!";
