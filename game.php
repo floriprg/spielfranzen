@@ -168,10 +168,10 @@ function gameselect($name)
             </div>
         </div>
     </div><script type="text/javascript">
-      $(window).load(function() {
-          $("#exampleModal").modal("show");
+      $(window).load(function () {
+        $("#exampleModal").modal("show");
       });
-      </script>';
+    </script>';
   }
 
   if (isset($_POST['submit'])) {
@@ -418,10 +418,10 @@ function spielauswahl($name)
         </div>
     </div>';
     echo '<script type="text/javascript">
-      $(window).load(function() {
-          $("#exampleModal").modal("show");
+      $(window).load(function () {
+        $("#exampleModal").modal("show");
       });
-      </script>';
+    </script>';
   }
 
 }
@@ -435,6 +435,7 @@ function spielauswahl($name)
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mein Spiel</title>
     <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+    <link rel="icon" type="image/jpg" href="karten/weliicon.jpg">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
@@ -454,7 +455,8 @@ if (isset($_GET['s']) && !($_GET['s'] == "" && !($_GET['s'] == "null"))) {
   }
 }
 
-?> </h1>
+?>
+    </h1>
     <ul id="nav" class="nav nav-tabs justify-content-center">
         <li class="nav-item">
             <a class="nav-link " href="home.php">
