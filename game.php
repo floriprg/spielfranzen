@@ -80,25 +80,25 @@ function begin()
   if ($s1->name == "offen" || $s1->name == $name) {
     if ($s1->name != $name) {
       $s1->name = $name;
-      sql("update spiele set s1 = '" . json_encode($s1) . "' where id = " . $_GET['s'] . ";");
-      sql("update spiele set s2 = '" . json_encode($s2) . "' where id = " . $_GET['s'] . ";");
-      sql("update spiele set s3 = '" . json_encode($s3) . "' where id = " . $_GET['s'] . ";");
-      sql("update spiele set talon =  '{" . $talon[0] . ", " . $talon[1] . ", " . $talon[2] . "}' where id = " . $_GET['s'] . ";");
+      sql("update spiele set s1 = '" . json_encode($s1) . "' where id = " . $_GET['s']);
+      sql("update spiele set s2 = '" . json_encode($s2) . "' where id = " . $_GET['s']);
+      sql("update spiele set s3 = '" . json_encode($s3) . "' where id = " . $_GET['s']);
+      sql("update spiele set talon =  '{" . $talon[0] . ", " . $talon[1] . ", " . $talon[2] . "}' where id = " . $_GET['s']);
     }
     kartenausteilen($s1, $s1->name, $s2->name, $s3->name);
   }
   else if ($s2->name == "offen" || $s2->name == $name) {
     if ($s2->name != $name) {
       $s2->name = $name;
-      sql("update spiele set s2 = '" . json_encode($s2) . "' where id = " . $_GET['s'] . ";");
+      sql("update spiele set s2 = '" . json_encode($s2) . "' where id = " . $_GET['s']);
     }
     kartenausteilen($s2, $s1->name, $s2->name, $s3->name);
   }
   else if ($s3->name == "offen" || $s3->name == $name) {
     if ($s3->name != $name) {
       $s3->name = $name;
-      sql("update spiele set s3 = '" . json_encode($s3) . "' where id = " . $_GET['s'] . ";");
-      sql("update spiele set gestartet = true where id = " . $_GET['s'] . ";");
+      sql("update spiele set s3 = '" . json_encode($s3) . "' where id = " . $_GET['s']);
+      sql("update spiele set gestartet = true where id = " . $_GET['s']);
     }
     kartenausteilen($s3, $s1->name, $s2->name, $s3->name);
 
@@ -108,7 +108,7 @@ function begin()
  Dieses Spiel ist leider schon besetzt
  </div>';
   }
-  $dl = sql("select array_upper(ausgeschieden, 1), spieler from spiele where id = " . $_GET['s'] . ";");
+  $dl = sql("select array_upper(ausgeschieden, 1), spieler from spiele where id = " . $_GET['s']);
   while ($row = pg_fetch_row($dl)) {
     $ausgeschieden = $row[0];
     $spieler = $row[1];
