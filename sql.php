@@ -63,6 +63,22 @@ function tosql()
 }
 
 
+function punkte_dieses_stiches($spieler)
+{
+    $data = sql("select " . $spieler . ", ablegkarten[1], ablegkarten[2], ablegkarten[3] from spiele where id =" . $_GET['s']);
+    while ($row = pg_fetch_row($data)) {
+        $s = $row[1];
+        $a1 = substr($row[1], -9, 1);
+        $a2 = substr($row[2], -9, 1);
+        $a3 = substr($row[3], -9, 1);
+    }
+    $punkte = $s->punkte;
+    $stiche = $s->stiche;
+    $punkte = $punkte + $a1 + $a2 + $a3;
+    $stiche++;
+    sql("update spiele set " . $spieler . "->>'punkte' = " . $punkte . ", " . $spieler . "->>");
+}
+
 function del($spieler, $spielername, $dran) //löscht karte und fügt sie zu ablegkarten hinzu
 
 {
@@ -80,13 +96,11 @@ function del($spieler, $spielername, $dran) //löscht karte und fügt sie zu abl
     }
     $erster = false;
     switch ($spielername) {
-
-        /////////////////////////////////////////////////////////////////////////
-        //////Macht keinen SINN!!!
         case '1':
             if (($ablegkarten[0] != "keine") && ($ablegkarten[1] != "keine") && ($ablegkarten[2] != "keine")) { //wenn alle besetzt sind
                 $arr = '{"' . $todel . '","keine", "keine"}';
                 $erster = true;
+                break;
             }
             else {
                 $arr = '{"' . $todel . '","' . $ablegkarten[1] . '", "' . $ablegkarten[2] . '"}';
@@ -100,6 +114,7 @@ function del($spieler, $spielername, $dran) //löscht karte und fügt sie zu abl
             if (($ablegkarten[0] != "keine") && ($ablegkarten[1] != "keine") && ($ablegkarten[2] != "keine")) { //wenn alle besetzt sind
                 $arr = '{"keine","' . $todel . '", "keine"}';
                 $erster = true;
+                break;
             }
             else {
                 $arr = '{"' . $ablegkarten[0] . '","' . $todel . '", "' . $ablegkarten[2] . '"}';
@@ -113,12 +128,14 @@ function del($spieler, $spielername, $dran) //löscht karte und fügt sie zu abl
             if (($ablegkarten[0] != "keine") && ($ablegkarten[1] != "keine") && ($ablegkarten[2] != "keine")) { //wenn alle besetzt sind
                 $arr = '{"keine","keine", "' . $todel . '"}';
                 $erster = true;
+                break;
             }
             else {
                 $arr = '{"' . $ablegkarten[0] . '","' . $ablegkarten[1] . '", "' . $todel . '"}';
                 if ((($ablegkarten[0] != "keine")) && (($ablegkarten[1] != "keine"))) {
                     $spielrunde++;
                     $jetztdran = stichmacher($ablegkarten[0], $ablegkarten[1], $todel, $trumpf);
+
                 }
                 break;
             }
@@ -133,6 +150,8 @@ function del($spieler, $spielername, $dran) //löscht karte und fügt sie zu abl
         echo "err";
     }
 }
+
+
 
 function stichmacher($a1, $a2, $a3, $trumpf)
 {

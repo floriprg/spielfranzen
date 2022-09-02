@@ -66,22 +66,25 @@ function game() {
         }
     }
     function karteentfernen(karte) {
-        $.ajax({
-            method: "POST",
-            url: "sql.php",
-            data: {
-                to_del: karte,
-                s: s,
-                type: "del"
-            }
-        })
-            .done(function (response) {
-                if (response == "err") {
-                    alert("Du musst Trumpf oder Farbe zugeben!");
+        try {
+            $.ajax({
+                method: "POST",
+                url: "sql.php",
+                data: {
+                    to_del: karte,
+                    s: s,
+                    type: "del"
                 }
-                alert(response);
-            });
-
+            })
+                .done(function (response) {
+                    if (response == "err") {
+                        alert("Du musst Trumpf oder Farbe zugeben!");
+                    }
+                    alert(response);
+                });
+        } catch (error) {
+            new Error(error);
+        }
     }
 }
 game();
