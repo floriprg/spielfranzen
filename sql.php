@@ -65,17 +65,17 @@ function tosql()
 
 function punkte_dieses_stiches($spieler)
 {
-    $data = sql("select " . $spieler . ", ablegkarten[1], ablegkarten[2], ablegkarten[3] from spiele where id =" . $_GET['s']);
+    $data = sql("select " . $spieler . ", ablegkarten[1], ablegkarten[2], ablegkarten[3] from spiele where id =" . $_POST['s']);
     while ($row = pg_fetch_row($data)) {
         $s = json_decode($row[0]);
-        $a1 = substr($row[1], -9, 1);
-        $a2 = substr($row[2], -9, 1);
-        $a3 = substr($row[3], -9, 1);
+        $a1 = intval(substr($row[1], -9, 1));
+        $a2 = intval(substr($row[2], -9, 1));
+        $a3 = intval(substr($row[3], -9, 1));
     }
 
-    $s->punkte = $s->punkte + $a1 + $a2 + $a3;
-    $s->stiche++;
-    sql("update spiele set " . $spieler . " = " . json_encode($s) . " where id = " . $_GET['s']);
+    $s->punkte = intval($s->punkte) + $a1 + $a2 + $a3;
+    $s->stiche = intval($s->stiche) + 1;
+    sql("update spiele set " . $spieler . " = " . json_encode($s) . " where id = " . $_POST['s']);
 }
 
 function del($spieler, $spielername, $dran) //löscht karte und fügt sie zu ablegkarten hinzu

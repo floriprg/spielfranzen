@@ -145,7 +145,7 @@ function gameselect($name)
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">Was möchtest du spielen?</h5>
+                    <h2 class="modal-title" id="exampleModalLabel">Was möchtest du spielen?</h2>
                     <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
@@ -404,7 +404,7 @@ function spielauswahl($name)
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel"> Möchtest du ' . $spielart . ' ' . $bieten_heben . '?</h5>
+                    <h2 class="modal-title" id="exampleModalLabel"> Möchtest du ' . $spielart . ' ' . $bieten_heben . '?</h2>
                     <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
@@ -436,7 +436,10 @@ function spielauswahl($name)
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mein Spiel</title>
     <link rel="icon" type="image/jpg" href="karten/weliicon.jpg">
-
+    <meta name="description"
+        content="Spiele Spiel Franzen online gegen echte Gegner! Nimm an einem Spiel teil oder beginne dein eigenes! Für 3 Spieler.">
+    <meta name="keywords" content="Spiel Franzen">
+    <meta name="language" content="de">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
@@ -489,7 +492,6 @@ if (isset($_GET['s']) && !($_GET['s'] == "" && !($_GET['s'] == "null"))) {
 
     <script src="game.js">
     </script>
-    <script src="nav.js"></script>
     <?php begin(); ?>
 </body>
 
