@@ -202,9 +202,10 @@ function game($name)
 
 function kartenausteilen($s, $n1, $n2, $n3)
 {
-  $data = sql("select jetztdran from spiele where id =" . $_GET['s'] . ";");
+  $data = sql("select jetztdran, spielrunde from spiele where id =" . $_GET['s'] . ";");
   while ($row = pg_fetch_row($data)) {
     $jetztdran = $row[0];
+    $spielrunde = $row[1];
   }
 
   $data_karten = sql("select ablegkarten[1], ablegkarten[2], ablegkarten[3] from spiele where id = " . $_GET['s']);

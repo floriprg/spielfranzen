@@ -27,7 +27,7 @@ function spielerstellen()
             echo '<div class="alert alert-warning" role="alert">Sie dürfen keine HTML Tags eingeben!</div>';
         }
         else {
-            sql("insert into spiele(spielrunde, ablegkarten, gestartet, name, fertig, erlaubte, s1, s2, s3, kartenausgeteilt, anzahl, jetztdran, spielart, gehebt)values(1, ARRAY ['keine', 'keine', 'keine'], false, '" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', false, '" . $_POST['anzahl'] . "', 's3', 4, true);");
+            sql("insert into spiele(spielrunde, ablegkarten, gestartet, name, fertig, erlaubte, s1, s2, s3, kartenausgeteilt, anzahl, jetztdran, spielart, gehebt)values(0, ARRAY ['keine', 'keine', 'keine'], false, '" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', false, '" . $_POST['anzahl'] . "', 's3', 4, true);");
         }
     }
 }
