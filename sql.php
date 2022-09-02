@@ -72,9 +72,19 @@ function punkte_dieses_stiches($spieler)
         $a2 = intval(substr($row[2], -9, 1));
         $a3 = intval(substr($row[3], -9, 1));
     }
-
-    $s->punkte = intval($s->punkte) + $a1 + $a2 + $a3;
-    $s->stiche = intval($s->stiche) + 1;
+    if (isset($s->punkte)) {
+        $s->punkte = intval($s->punkte) + $a1 + $a2 + $a3;
+    }
+    else {
+        //TODO punkte sind anders
+        $s->punkte = $a1 + $a2 + $a3;
+    }
+    if (isset($s->stiche)) {
+        $s->stiche = intval($s->stiche) + 1;
+    }
+    else {
+        $s->stiche = $a1 + $a2 + $a3;
+    }
     sql("update spiele set " . $spieler . " = " . json_encode($s) . " where id = " . $_POST['s']);
 }
 
@@ -106,7 +116,7 @@ function del($spieler, $spielername, $dran) //löscht karte und fügt sie zu abl
                 if ((($ablegkarten[1] != "keine")) && (($ablegkarten[2] != "keine"))) {
                     $spielrunde++;
                     $jetztdran = stichmacher($todel, $ablegkarten[1], $ablegkarten[2], $trumpf);
-                    punkte_dieses_stiches($jetztdran);
+                    punkte_dieses_stiches($dran);
                 }
                 break;
             }
@@ -121,7 +131,7 @@ function del($spieler, $spielername, $dran) //löscht karte und fügt sie zu abl
                 if ((($ablegkarten[0] != "keine")) && (($ablegkarten[2] != "keine"))) {
                     $spielrunde++;
                     $jetztdran = stichmacher($ablegkarten[0], $todel, $ablegkarten[2], $trumpf);
-                    punkte_dieses_stiches($jetztdran);
+                    punkte_dieses_stiches($dran);
                 }
                 break;
             }
@@ -136,7 +146,7 @@ function del($spieler, $spielername, $dran) //löscht karte und fügt sie zu abl
                 if ((($ablegkarten[0] != "keine")) && (($ablegkarten[1] != "keine"))) {
                     $spielrunde++;
                     $jetztdran = stichmacher($ablegkarten[0], $ablegkarten[1], $todel, $trumpf);
-                    punkte_dieses_stiches($jetztdran);
+                    punkte_dieses_stiches($dran);
                 }
                 break;
             }
