@@ -187,6 +187,7 @@ function gameselect($name)
       default:
         $trumpf = null;
     }
+    echo "<script>window.location.reload();</script>";
     sql("update spiele set trumpf = '" . $trumpf . "', spielart =" . $_POST['spielart'] . ", spielausgewählt = true, spieler = '" . $name . "' where id = " . $_GET['s']);
   }
 }
@@ -365,7 +366,7 @@ function spielauswahl($name)
       }
       if (isset($_POST['nein'])) {
         echo "<script>window.location.reload();</script>";
-        sql("update spiele set gehebt = false, jetztdran = '" . $jetztdran . "', ausgeschieden = ausgeschieden || '{" . $name . "}'; where id =" . $_GET['s']);
+        sql("update spiele set gehebt = false, jetztdran = '" . $jetztdran . "', ausgeschieden = ausgeschieden || '{" . $name . "}' where id =" . $_GET['s']);
       }
     }
     else {
@@ -419,9 +420,10 @@ function spielauswahl($name)
         </div>
     </div>';
     echo '<script type="text/javascript">
-      $(window).load(function () {
+      $(window).on("load", function () {
         $("#exampleModal").modal("show");
       });
+
     </script>';
   }
 
@@ -440,6 +442,7 @@ function spielauswahl($name)
         content="Spiele Spiel Franzen online gegen echte Gegner! Nimm an einem Spiel teil oder beginne dein eigenes! Für 3 Spieler.">
     <meta name="keywords" content="Spiel Franzen">
     <meta name="language" content="de">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
