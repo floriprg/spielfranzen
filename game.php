@@ -168,7 +168,7 @@ function gameselect($name)
             </div>
         </div>
     </div><script type="text/javascript">
-      $(window).load(function () {
+      $(window).on("load", function () {
         $("#exampleModal").modal("show");
       });
     </script>';
@@ -189,10 +189,54 @@ function gameselect($name)
     }
     echo "<script>window.location.reload();</script>";
     sql("update spiele set trumpf = '" . $trumpf . "', spielart =" . $_POST['spielart'] . ", spielausgewählt = true, spieler = '" . $name . "' where id = " . $_GET['s']);
+  //talonzeigen();
   }
 }
 
-
+function talonzeigen()
+{
+  //checkbox mit bildern
+  //zuerst talonkarten auswählen danach eigene karten auswählen
+  $data = sql("select talon from spiele where id =" . $_GET['s']);
+  while ($row = pg_fetch_row($data)) {
+    $talon = $row[0];
+  }
+  echo '<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="exampleModalLabel">Wähle die Talonkarten aus die du möchtest</h2>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-footer">
+                
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="" id="">
+                    <label class="form-check-label" for="">
+                        <img src="image source" class="img-fluid" alt="image desc">
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" value="" id="">
+                      <label class="form-check-label" for="">
+                        <img src="image source" class="img-fluid" alt="image desc">
+                      </label>
+                    </div>
+                  </div>
+                </div>
+            </div
+        </div>
+        </div>
+        <script type="text/javascript">
+          $(window).on("load", function () {
+            $("#exampleModal").modal("show");
+          });
+        </script>';
+}
 
 function game($name)
 {
@@ -389,12 +433,12 @@ function spielauswahl($name)
           sql("update spiele set gehebt = false, jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
         }
         else {
-          echo "<script>window.location.reload();</script>";
+          echo "<script>window.location.              ;</script>";
           sql("update spiele set spielart = " . ($spielart + 1) . ", jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
         }
       }
       if (isset($_POST['nein'])) {
-        echo "<script>window.location.reload();</script>";
+        echo "<script>window.location.rd();</script>";
         sql("update spiele set jetztdran = '" . $jetztdran . "', ausgeschieden = ausgeschieden || '{" . $name . "}' where id =" . $_GET['s']);
       }
     }
