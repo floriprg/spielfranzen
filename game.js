@@ -56,31 +56,6 @@ function game() {
                 }
             });
     }
-
-    /*
-    let s1 = {
-        name: "offen",
-        punkte: 0,
-        karten: neuekarten(),
-        s: s
-    };
-    let s2 = {
-        name: "offen",
-        punkte: 0,
-        karten: neuekarten(),
-        s: s
-    };
-    let s3 = {
-        name: "offen",
-        punkte: 0,
-        karten: neuekarten(),
-        s: s
-    };
-    console.log(s1);
-    sql("update spiele set s1 ='" + JSON.stringify(s1) + "' where id = '" + s + "';", "ins");
-    sql("update spiele set s2 ='" + JSON.stringify(s2) + "' where id = '" + s + "';", "ins");
-    sql("update spiele set s3 ='" + JSON.stringify(s3) + "' where id = '" + s + "';", "ins");
-    */
 }
 
 game();
