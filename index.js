@@ -79,6 +79,7 @@ function game() {
                 if (response == "err") {
                     alert("Du musst Trumpf oder Farbe zugeben!");
                 }
+                alert(response);
             });
 
     }
