@@ -82,27 +82,41 @@ function del($spieler, $spielername, $dran) //löscht karte und fügt sie zu abl
         /////////////////////////////////////////////////////////////////////////
         //////Macht keinen SINN!!!
         case '1':
-
-            $arr = '{"' . $todel . '","' . $ablegkarten[1] . '", "' . $ablegkarten[2] . '"}';
-            if ((($ablegkarten[1] != "keine") && ($ablegkarten[1] != "null")) && (($ablegkarten[2] != "keine") && ($ablegkarten[2] != "null"))) {
-                $spielrunde++;
-                stichmacher($todel, $ablegkarten[1], $ablegkarten[2], $trumpf);
+            if (($ablegkarten[0] != "keine") && ($ablegkarten[1] != "keine") && ($ablegkarten[2] != "keine")) { //wenn alle besetzt sind
+                $arr = '{"' . $todel . '","keine", "keine"}';
             }
-            break;
+            else {
+                $arr = '{"' . $todel . '","' . $ablegkarten[1] . '", "' . $ablegkarten[2] . '"}';
+                if ((($ablegkarten[1] != "keine")) && (($ablegkarten[2] != "keine"))) {
+                    $spielrunde++;
+                    stichmacher($todel, $ablegkarten[1], $ablegkarten[2], $trumpf);
+                }
+                break;
+            }
         case '2':
-            $arr = '{"' . $ablegkarten[0] . '","' . $todel . '", "' . $ablegkarten[2] . '"}';
-            if ((($ablegkarten[0] != "keine") && ($ablegkarten[0] != "null")) && (($ablegkarten[2] != "keine") && ($ablegkarten[2] != "null"))) {
-                $spielrunde++;
-                stichmacher($ablegkarten[0], $todel, $ablegkarten[2], $trumpf);
+            if (($ablegkarten[0] != "keine") && ($ablegkarten[1] != "keine") && ($ablegkarten[2] != "keine")) { //wenn alle besetzt sind
+                $arr = '{"keine","' . $todel . '", "keine"}';
             }
-            break;
+            else {
+                $arr = '{"' . $ablegkarten[0] . '","' . $todel . '", "' . $ablegkarten[2] . '"}';
+                if ((($ablegkarten[0] != "keine")) && (($ablegkarten[2] != "keine"))) {
+                    $spielrunde++;
+                    stichmacher($ablegkarten[0], $todel, $ablegkarten[2], $trumpf);
+                }
+                break;
+            }
         case '3':
-            $arr = '{"' . $ablegkarten[0] . '","' . $ablegkarten[1] . '", "' . $todel . '"}';
-            if ((($ablegkarten[0] != "keine") && ($ablegkarten[0] != "null")) && (($ablegkarten[1] != "keine") && ($ablegkarten[1] != "null"))) {
-                $spielrunde++;
-                stichmacher($ablegkarten[0], $ablegkarten[1], $todel, $trumpf);
+            if (($ablegkarten[0] != "keine") && ($ablegkarten[1] != "keine") && ($ablegkarten[2] != "keine")) { //wenn alle besetzt sind
+                $arr = '{"keine","keine", "' . $todel . '"}';
             }
-            break;
+            else {
+                $arr = '{"' . $ablegkarten[0] . '","' . $ablegkarten[1] . '", "' . $todel . '"}';
+                if ((($ablegkarten[0] != "keine")) && (($ablegkarten[1] != "keine"))) {
+                    $spielrunde++;
+                    stichmacher($ablegkarten[0], $ablegkarten[1], $todel, $trumpf);
+                }
+                break;
+            }
     }
     //wenn spieler weder farbe noch trumpf hat    |||||||||||||||||||||||||||||||||||||||||||||||||| wenn er farbe zugegeben hat||||||||||||||||||||||||||||||wenn er farbe nicht hat und trumpf zugibt
     if (((strpos($user, substr($farbe[0], -8, 4)) == false) && (strpos($user, $trumpf) == false)) || (strpos($todel, substr($farbe[0], -8, -4)) !== false) || ((strpos($todel, $trumpf) !== false) && (strpos($user, substr($farbe[0], -8, 4)) == false))) {
