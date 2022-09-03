@@ -198,32 +198,37 @@ function talonzeigen()
 {
   //checkbox mit bildern
   //zuerst talonkarten auswählen danach eigene karten auswählen
-  $data = sql("select talon[1],talon[2],talon[3] from spiele where id =" . $_GET['s']);
+  $data = sql("select talon[1],talon[2],talon[3], jetztdran from spiele where id =" . $_GET['s']);
   while ($row = pg_fetch_row($data)) {
     $t1 = $row[0];
     $t2 = $row[1];
     $t3 = $row[2];
+    $jetztdran = $row[3];
   }
-  echo '<div class="modal fade" id="exampleModal2" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 class="modal-title" id="exampleModalLabel">Wähle die Talonkarten aus die du möchtest</h2>
+  $data2 = sql("select " . $jetztdran . " from spiele where id =" . $_GET['s']);
+  while ($row = pg_fetch_row($data2)) {
+    $s = json_decode($row[0]);
+  }
+  echo '<div class="modal fade " id="exampleModal2" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content ">
+                <div class="modal-header ">
                     <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                  <form method="post">
-                    <div class="modal-footer">
+                  <form method="post" class="">
+                    <h5 class="modal-title" id="exampleModalLabel">Wähle die Talonkarten aus die du möchtest</h5>
+                    <div class="modal-footer ">
                       <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="" id="">
+                        <input class="form-check-input talon" type="checkbox" value="" id="" name="talon">
                         <label class="form-check-label" for="">
                             <img src="karten/' . $t1 . '" class="img-fluid" alt="image desc">
                         </label>
                       </div>
                       <div class="form-check">
                         <div class="form-check">
-                          <input class="form-check-input" type="checkbox" value="" id="">
+                          <input class="form-check-input talon" type="checkbox" value="" id="" name="talon">
                           <label class="form-check-label" for="">
                             <img src="karten/' . $t2 . '" class="img-fluid" alt="image desc">
                           </label>
@@ -231,12 +236,28 @@ function talonzeigen()
                       </div>
                       <div class="form-check">
                         <div class="form-check">
-                          <input class="form-check-input" type="checkbox" value="" id="">
+                          <input class="form-check-input talon" type="checkbox" value="" id="" name="talon">
                           <label class="form-check-label" for="">
                             <img src="karten/' . $t3 . '" class="img-fluid" alt="image desc">
                           </label>
                         </div>
                       </div>
+                      <h5 class="modal-title" id="exampleModalLabel">Wähle die Karten aus die du nicht brauchst</h5>
+                      <br>';
+  for ($i = 0; $i < 10; $i++) {
+    echo '
+                      <div class="form-check">
+                        <div class="form-check">
+                          <input class="form-check-input deinekarten" type="checkbox" value="" id="" name="deinekarten">
+                          <label class="form-check-label" for="">
+                            <img src="karten/' . $s->karten[$i] . '" class="img-fluid" alt="image desc">
+                          </label>
+                        </div>
+                      </div>
+                      ';
+  }
+
+  echo '
                     </div>
                     <input type="submit" name="submit" value="OK">
                 </form>
@@ -244,6 +265,12 @@ function talonzeigen()
         </div>
         </div>
         <script type="text/javascript">
+          $("input.deinekarten").on("change", function (evt) {
+            var limit = $("input[name=\"talon\"]:checked").length;
+            if ($("input[name=\"deinekarten\"]:checked").length > limit) {
+              this.checked = false;
+            }
+          });
           $(window).on("load", function () {
             $("#exampleModal2").modal("show");
           });
