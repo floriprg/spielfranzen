@@ -124,6 +124,8 @@ function begin()
       game($name);
     }
   }
+  talonzeigen();
+
 }
 
 function gameselect($name)
@@ -192,17 +194,17 @@ function gameselect($name)
   //talonzeigen();
   }
 }
-
 function talonzeigen()
 {
   //checkbox mit bildern
   //zuerst talonkarten auswählen danach eigene karten auswählen
-  $data = sql("select talon from spiele where id =" . $_GET['s']);
+  $data = sql("select talon[1],talon[2],talon[3] from spiele where id =" . $_GET['s']);
   while ($row = pg_fetch_row($data)) {
-    $talon = $row[0];
+    $t1 = $row[0];
+    $t2 = $row[1];
+    $t3 = $row[2];
   }
-  echo '<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
-        aria-hidden="true">
+  echo '<div class="modal fade" id="exampleModal2" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -211,29 +213,39 @@ function talonzeigen()
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <div class="modal-footer">
-                
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" value="" id="">
-                    <label class="form-check-label" for="">
-                        <img src="image source" class="img-fluid" alt="image desc">
-                    </label>
-                  </div>
-                  <div class="form-check">
-                    <div class="form-check">
-                      <input class="form-check-input" type="checkbox" value="" id="">
-                      <label class="form-check-label" for="">
-                        <img src="image source" class="img-fluid" alt="image desc">
-                      </label>
+                  <form method="post">
+                    <div class="modal-footer">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" id="">
+                        <label class="form-check-label" for="">
+                            <img src="karten/' . $t1 . '" class="img-fluid" alt="image desc">
+                        </label>
+                      </div>
+                      <div class="form-check">
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" value="" id="">
+                          <label class="form-check-label" for="">
+                            <img src="karten/' . $t2 . '" class="img-fluid" alt="image desc">
+                          </label>
+                        </div>
+                      </div>
+                      <div class="form-check">
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" value="" id="">
+                          <label class="form-check-label" for="">
+                            <img src="karten/' . $t3 . '" class="img-fluid" alt="image desc">
+                          </label>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-            </div
+                    <input type="submit" name="submit" value="OK">
+                </form>
+            </div>
         </div>
         </div>
         <script type="text/javascript">
           $(window).on("load", function () {
-            $("#exampleModal").modal("show");
+            $("#exampleModal2").modal("show");
           });
         </script>';
 }
