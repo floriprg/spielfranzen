@@ -242,8 +242,10 @@ function talonzeigen()
                           </label>
                         </div>
                       </div>
-                      <h5 class="modal-title" id="exampleModalLabel">Wähle die Karten aus die du nicht brauchst</h5>
-                      <br>';
+                    </div>
+                    <h5 class="modal-title" id="exampleModalLabel">Wähle die Karten aus die du nicht brauchst</h5>
+                    <div class="modal-footer ">
+                      ';
   for ($i = 0; $i < 10; $i++) {
     echo '
                       <div class="form-check">
