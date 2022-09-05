@@ -191,7 +191,7 @@ function gameselect($name)
     }
     echo "<script>window.location.reload();</script>";
     sql("update spiele set trumpf = '" . $trumpf . "', spielart =" . $_POST['spielart'] . ", spielausgewählt = true, spieler = '" . $name . "' where id = " . $_GET['s']);
-  //talonzeigen();
+    talonzeigen();
   }
 }
 function talonzeigen()
@@ -221,14 +221,14 @@ function talonzeigen()
                     <h5 class="modal-title" id="exampleModalLabel">Wähle die Talonkarten aus die du möchtest</h5>
                     <div class="modal-footer ">
                       <div class="form-check">
-                        <input class="form-check-input talon" type="checkbox" value="" id="" name="talon">
+                        <input class="form-check-input talon" type="checkbox" value="' . $t1 . '" id="" name="talon0">
                         <label class="form-check-label" for="">
                             <img src="karten/' . $t1 . '" class="img-fluid" alt="image desc">
                         </label>
                       </div>
                       <div class="form-check">
                         <div class="form-check">
-                          <input class="form-check-input talon" type="checkbox" value="" id="" name="talon">
+                          <input class="form-check-input talon" type="checkbox" value="' . $t2 . '" id="" name="talon1">
                           <label class="form-check-label" for="">
                             <img src="karten/' . $t2 . '" class="img-fluid" alt="image desc">
                           </label>
@@ -236,7 +236,7 @@ function talonzeigen()
                       </div>
                       <div class="form-check">
                         <div class="form-check">
-                          <input class="form-check-input talon" type="checkbox" value="" id="" name="talon">
+                          <input class="form-check-input talon" type="checkbox" value="' . $t3 . '" id="" name="talon2">
                           <label class="form-check-label" for="">
                             <img src="karten/' . $t3 . '" class="img-fluid" alt="image desc">
                           </label>
@@ -252,7 +252,7 @@ function talonzeigen()
                         <div class="form-check">
                           <input class="form-check-input deinekarten" type="checkbox" value="" id="" name="deinekarten">
                           <label class="form-check-label" for="">
-                            <img src="karten/' . $s->karten[$i] . '" class="img-fluid" alt="image desc">
+                            <img name="k' . $i . '" src="karten/' . $s->karten[$i] . '" class="img-fluid" alt="image desc" value="' . [$i] . '">
                           </label>
                         </div>
                       </div>
@@ -261,7 +261,7 @@ function talonzeigen()
 
   echo '
                     </div>
-                    <input type="submit" name="submit" value="OK">
+                    <input type="submit" name="talonausgewählt" value="OK">
                 </form>
             </div>
         </div>
@@ -277,6 +277,31 @@ function talonzeigen()
             $("#exampleModal2").modal("show");
           });
         </script>';
+  if (isset($_POST['talonausgewählt'])) {
+    $kartenausgewählt = [];
+    $talonkartenausgewählt = [];
+    for ($i = 0; $i < 10; $i++) {
+      if (isset($_POST['k' + $i])) {
+        $kartenausgewählt[] = $_POST['k' + $i];
+      }
+      if (isset($_POST['talon' + $i])) {
+        $talonkartenausgewählt[] = $_POST['talon' + $i];
+      }
+    }
+  }
+  switch (count($kartenausgewählt)) {
+    case 1:
+      $s->karten[$kartenausgewählt[0]] = $talonkartenausgewählt[0];
+    case 2:
+      $s->karten[$kartenausgewählt[0]] = $talonkartenausgewählt[0];
+      $s->karten[$kartenausgewählt[1]] = $talonkartenausgewählt[1];
+    case 3:
+      $s->karten[$kartenausgewählt[0]] = $talonkartenausgewählt[0];
+      $s->karten[$kartenausgewählt[1]] = $talonkartenausgewählt[1];
+      $s->karten[$kartenausgewählt[2]] = $talonkartenausgewählt[2];
+  }
+  sql("update spiele set " . $jetztdran . "= " . $s . "where id = " . $_GET['s']);
+
 }
 
 function game($name)
