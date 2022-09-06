@@ -118,7 +118,7 @@ function del($spieler, $spielername, $dran) //löscht karte und fügt sie zu abl
                 if ((($ablegkarten[1] != "keine")) && (($ablegkarten[2] != "keine"))) {
                     $spielrunde++;
                     $jetztdran = stichmacher($todel, $ablegkarten[1], $ablegkarten[2], $trumpf);
-                    punkte_dieses_stiches($dran);
+                //punkte_dieses_stiches($dran);
                 }
                 $erster = false;
                 break;
@@ -135,7 +135,7 @@ function del($spieler, $spielername, $dran) //löscht karte und fügt sie zu abl
                 if ((($ablegkarten[0] != "keine")) && (($ablegkarten[2] != "keine"))) {
                     $spielrunde++;
                     $jetztdran = stichmacher($ablegkarten[0], $todel, $ablegkarten[2], $trumpf);
-                    punkte_dieses_stiches($dran);
+                //punkte_dieses_stiches($dran);
 
                 }
                 $erster = false;
@@ -153,7 +153,7 @@ function del($spieler, $spielername, $dran) //löscht karte und fügt sie zu abl
                 if ((($ablegkarten[0] != "keine")) && (($ablegkarten[1] != "keine"))) {
                     $spielrunde++;
                     $jetztdran = stichmacher($ablegkarten[0], $ablegkarten[1], $todel, $trumpf);
-                    punkte_dieses_stiches($dran);
+                //punkte_dieses_stiches($dran);
                 }
                 $erster = false;
                 break;
