@@ -178,18 +178,22 @@ function gameselect($name)
     switch ($_POST['spielart']) {
       case '5':
         $trumpf = "eich";
+        break;
       case '6':
         $trumpf = "laub";
+        break;
       case '7':
         $trumpf = "sche";
+        break;
       case '8':
         $trumpf = "herz";
+        break;
       default:
         $trumpf = null;
     }
+    talonzeigen();
     echo "<script>window.location.reload();</script>";
     sql("update spiele set trumpf = '" . $trumpf . "', spielart =" . $_POST['spielart'] . ", spielausgewählt = true, spieler = '" . $name . "' where id = " . $_GET['s']);
-    talonzeigen();
   }
 }
 function talonzeigen()
@@ -507,12 +511,12 @@ function spielauswahl($name)
           sql("update spiele set gehebt = false, jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
         }
         else {
-          echo "<script>window.location.              ;</script>";
+          echo "<script>window.location.reload();</script>";
           sql("update spiele set spielart = " . ($spielart + 1) . ", jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
         }
       }
       if (isset($_POST['nein'])) {
-        echo "<script>window.location.rd();</script>";
+        echo "<script>window.location.reload();</script>";
         sql("update spiele set jetztdran = '" . $jetztdran . "', ausgeschieden = ausgeschieden || '{" . $name . "}' where id =" . $_GET['s']);
       }
     }

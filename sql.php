@@ -110,7 +110,7 @@ function del($spieler, $spielername, $dran) //löscht karte und fügt sie zu abl
             if (($ablegkarten[0] != "keine") && ($ablegkarten[1] != "keine") && ($ablegkarten[2] != "keine")) { //wenn alle besetzt sind
                 $arr = '{"' . $todel . '","keine", "keine"}';
                 $erster = true;
-                sql("update spiele set spielstarterderrunde =" . 0);
+                sql("update spiele set spielstarterderrunde = 0 where id = " . $s);
                 break;
             }
             else {
@@ -127,7 +127,7 @@ function del($spieler, $spielername, $dran) //löscht karte und fügt sie zu abl
             if (($ablegkarten[0] != "keine") && ($ablegkarten[1] != "keine") && ($ablegkarten[2] != "keine")) { //wenn alle besetzt sind
                 $arr = '{"keine","' . $todel . '", "keine"}';
                 $erster = true;
-                sql("update spiele set spielstarterderrunde =" . 1);
+                sql("update spiele set spielstarterderrunde = 1 where id = " . $s);
                 break;
             }
             else {
@@ -145,7 +145,7 @@ function del($spieler, $spielername, $dran) //löscht karte und fügt sie zu abl
             if (($ablegkarten[0] != "keine") && ($ablegkarten[1] != "keine") && ($ablegkarten[2] != "keine")) { //wenn alle besetzt sind
                 $arr = '{"keine","keine", "' . $todel . '"}';
                 $erster = true;
-                sql("update spiele set spielstarterderrunde =" . 2);
+                sql("update spiele set spielstarterderrunde = 2 where id = " . $s);
                 break;
             }
             else {
@@ -174,6 +174,7 @@ function del($spieler, $spielername, $dran) //löscht karte und fügt sie zu abl
 
 function stichmacher($a1, $a2, $a3, $trumpf)
 {
+    $toreturn = "";
     $trumpfkarten = [];
     if (substr($a1, -8, 4) == $trumpf) {
         $trumpfkartenspieler[] = $a1;
@@ -187,14 +188,17 @@ function stichmacher($a1, $a2, $a3, $trumpf)
         $trumpfkartenspieler[] = $a3;
         $trumpfkarten[] = substr($a3, -9, 1);
     }
-    if (($trumpf == "") || (count($trumpfkarten) == 1)) { //wenn es keinen Trumpf gibt (Bei mord oder Bettl) oder keiner Trumpf gelegt hat
+    if (($trumpf == "") || (count($trumpfkarten) == 0)) { //wenn es keinen Trumpf gibt (Bei mord oder Bettl) oder keiner Trumpf gelegt hat
         switch (max(substr($a1, -9, 1), substr($a2, -9, 1), substr($a3, -9, 1))) {
             case substr($a1, -9, 1):
-                return 's1';
+                $toreturn = "s1";
+                break;
             case substr($a2, -9, 1):
-                return 's2';
+                $toreturn = "s1";
+                break;
             case substr($a3, -9, 1):
-                return 's3';
+                $toreturn = "s3";
+                break;
         }
     }
     else {
@@ -210,15 +214,17 @@ function stichmacher($a1, $a2, $a3, $trumpf)
         }
         switch ($rundengewinner) {
             case $a1:
-                return 's1';
+                $toreturn = "s1";
+                break;
             case $a2:
-                return 's2';
+                $toreturn = "s2";
+                break;
             case $a3:
-                return 's3';
+                $toreturn = "s3";
+                break;
         }
     }
-
-
+    return $toreturn;
 }
 
 tosql();
