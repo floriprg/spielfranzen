@@ -124,8 +124,6 @@ function begin()
       game($name);
     }
   }
-  talonzeigen();
-
 }
 
 function gameselect($name)
@@ -250,9 +248,9 @@ function talonzeigen()
     echo '
                       <div class="form-check">
                         <div class="form-check">
-                          <input class="form-check-input deinekarten" type="checkbox" value="" id="" name="deinekarten">
+                          <input name="k' . $i . '" class="form-check-input deinekarten" type="checkbox" value="" id="" name="deinekarten">
                           <label class="form-check-label" for="">
-                            <img name="k' . $i . '" src="karten/' . $s->karten[$i] . '" class="img-fluid" alt="image desc" value="' . [$i] . '">
+                            <img  src="karten/' . $s->karten[$i] . '" class="img-fluid" alt="image desc">
                           </label>
                         </div>
                       </div>
@@ -268,7 +266,7 @@ function talonzeigen()
         </div>
         <script type="text/javascript">
           $("input.deinekarten").on("change", function (evt) {
-            var limit = $("input[name=\"talon\"]:checked").length;
+            var limit = $("input[name=\"talon0\"]:checked").length + $("input[name=\"talon1\"]:checked").length + $("input[name=\"talon2\"]:checked").length;
             if ($("input[name=\"deinekarten\"]:checked").length > limit) {
               this.checked = false;
             }
@@ -281,27 +279,37 @@ function talonzeigen()
     $kartenausgewählt = [];
     $talonkartenausgewählt = [];
     for ($i = 0; $i < 10; $i++) {
-      if (isset($_POST['k' + $i])) {
-        $kartenausgewählt[] = $_POST['k' + $i];
+      if (isset($_POST['k' . $i])) {
+        $kartenausgewählt[] = $i;
       }
-      if (isset($_POST['talon' + $i])) {
-        $talonkartenausgewählt[] = $_POST['talon' + $i];
+      if (isset($_POST['talon' . $i])) {
+        $talonkartenausgewählt[] = $_POST['talon' . $i];
       }
     }
-  }
-  switch (count($kartenausgewählt)) {
-    case 1:
-      $s->karten[$kartenausgewählt[0]] = $talonkartenausgewählt[0];
-    case 2:
-      $s->karten[$kartenausgewählt[0]] = $talonkartenausgewählt[0];
-      $s->karten[$kartenausgewählt[1]] = $talonkartenausgewählt[1];
-    case 3:
-      $s->karten[$kartenausgewählt[0]] = $talonkartenausgewählt[0];
-      $s->karten[$kartenausgewählt[1]] = $talonkartenausgewählt[1];
-      $s->karten[$kartenausgewählt[2]] = $talonkartenausgewählt[2];
-  }
-  sql("update spiele set " . $jetztdran . "= " . $s . "where id = " . $_GET['s']);
 
+    switch (count($kartenausgewählt)) {
+      case 1:
+        $s->karten[$kartenausgewählt[0]] = $talonkartenausgewählt[0];
+        break;
+      case 2:
+        $s->karten[$kartenausgewählt[0]] = $talonkartenausgewählt[0];
+        $s->karten[$kartenausgewählt[1]] = $talonkartenausgewählt[1];
+        break;
+      case 3:
+        $s->karten[$kartenausgewählt[0]] = $talonkartenausgewählt[0];
+        $s->karten[$kartenausgewählt[1]] = $talonkartenausgewählt[1];
+        $s->karten[$kartenausgewählt[2]] = $talonkartenausgewählt[2];
+        break;
+    }
+    $sqlstr = "update spiele set " . $jetztdran . " = '" . json_encode($s) . "' where id = " . $_GET['s'];
+    echo $sqlstr;
+    echo '<br>';
+    echo json_encode($kartenausgewählt);
+    echo '<br>';
+    echo json_encode($s);
+    sql($sqlstr);
+
+  }
 }
 
 function game($name)
