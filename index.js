@@ -41,16 +41,6 @@ function game() {
         punkte: 600
     }
 
-    function sql(sql, type) {
-        $.ajax({
-            method: "POST",
-            url: "sql.php",
-            data: {
-                sql: sql,
-                type: type
-            }
-        })
-    }
 
     for (let j = 0; j < 10; j++) {
         try {

@@ -41,21 +41,5 @@ function game() {
             });
     }
     ajax3();
-    function sql(sql, type) {
-        $.ajax({
-            method: "POST",
-            url: "sql.php",
-            data: {
-                sql: sql,
-                type: type
-            }
-        })
-            .done(function (response) {
-                if (type == "sel") {
-                    return response;
-                }
-            });
-    }
 }
-
 game();
