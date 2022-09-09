@@ -16,6 +16,7 @@ function neuekarten()
 
 function begin()
 {
+
   $data = gettokendata();
   if (!$data) {
     echo '<div class="alert alert-danger"> Deine Session ist abgelaufen! <a href="login.php">Melde dich bitte erneut an!</a></div>';
@@ -118,7 +119,7 @@ function begin()
   }
   else {
     if ($spieler == "") {
-      gameselect($name);
+      gameselect($name, $s1, $s2, $s3);
     }
     else {
       game($name);
@@ -126,7 +127,7 @@ function begin()
   }
 }
 
-function gameselect($name)
+function gameselect($name, $s1, $s2, $s3)
 {
 
   $data_ausgeschieden = sql("select ausgeschieden, spielart, spielausgewählt from spiele where id = " . $_GET['s'] . ";");
@@ -191,13 +192,25 @@ function gameselect($name)
       default:
         $trumpf = null;
     }
-    talonzeigen();
+    switch ($name) {
+      case ($s1->name):
+        $spielstarterderrunde = 0;
+        break;
+      case ($s2->name):
+        $spielstarterderrunde = 1;
+        break;
+      case ($s3->name):
+        $spielstarterderrunde = 2;
+        break;
+    }
     echo "<script>window.location.reload();</script>";
-    sql("update spiele set trumpf = '" . $trumpf . "', spielart =" . $_POST['spielart'] . ", spielausgewählt = true, spieler = '" . $name . "' where id = " . $_GET['s']);
+    sql("update spiele set trumpf = '" . $trumpf . "', spielart =" . $_POST['spielart'] . ", spielstarterderrunde = " . $spielstarterderrunde . " spielausgewählt = true, spieler = '" . $name . "' where id = " . $_GET['s']);
+    talonzeigen();
   }
 }
 function talonzeigen()
 {
+
   //checkbox mit bildern
   //zuerst talonkarten auswählen danach eigene karten auswählen
   $data = sql("select talon[1],talon[2],talon[3], jetztdran from spiele where id =" . $_GET['s']);
@@ -290,21 +303,22 @@ function talonzeigen()
         $talonkartenausgewählt[] = $_POST['talon' . $i];
       }
     }
-
+    $karten = explode(',', $s->karten);
     switch (count($kartenausgewählt)) {
       case 1:
-        $s->karten[$kartenausgewählt[0]] = $talonkartenausgewählt[0];
+        $karten[$kartenausgewählt[0]] = $talonkartenausgewählt[0];
         break;
       case 2:
-        $s->karten[$kartenausgewählt[0]] = $talonkartenausgewählt[0];
-        $s->karten[$kartenausgewählt[1]] = $talonkartenausgewählt[1];
+        $karten[$kartenausgewählt[0]] = $talonkartenausgewählt[0];
+        $karten[$kartenausgewählt[1]] = $talonkartenausgewählt[1];
         break;
       case 3:
-        $s->karten[$kartenausgewählt[0]] = $talonkartenausgewählt[0];
-        $s->karten[$kartenausgewählt[1]] = $talonkartenausgewählt[1];
-        $s->karten[$kartenausgewählt[2]] = $talonkartenausgewählt[2];
+        $karten[$kartenausgewählt[0]] = $talonkartenausgewählt[0];
+        $karten[$kartenausgewählt[1]] = $talonkartenausgewählt[1];
+        $karten[$kartenausgewählt[2]] = $talonkartenausgewählt[2];
         break;
     }
+    $s->karten = $karten;
     $sqlstr = "update spiele set " . $jetztdran . " = '" . json_encode($s) . "' where id = " . $_GET['s'];
     echo $sqlstr;
     echo '<br>';

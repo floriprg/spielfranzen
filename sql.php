@@ -206,10 +206,13 @@ function stichmacher($a1, $a2, $a3, $trumpf)
         switch (max($trumpfkarten)) {
             case substr($trumpfkartenspieler[0], -9, 1):
                 $rundengewinner = $trumpfkartenspieler[0];
+                break;
             case substr($trumpfkartenspieler[1], -9, 1):
                 $rundengewinner = $trumpfkartenspieler[1];
+                break;
             case substr($trumpfkartenspieler[2], -9, 1):
                 $rundengewinner = $trumpfkartenspieler[2];
+                break;
         }
         switch ($rundengewinner) {
             case $a1:
@@ -225,6 +228,56 @@ function stichmacher($a1, $a2, $a3, $trumpf)
     }
     return $toreturn;
 }
+
+
+function fertig()
+{
+    $data = sql("select spielart, spieler, s1, s2, s3 from spiele where id =" . $_POST['s']);
+    while ($row = pg_fetch_row($data)) {
+        $spielart = $row[0];
+        $spieler = $row[1];
+        $s1 = $row[2];
+        $s2 = $row[3];
+        $s3 = $row[4];
+
+    }
+    $gegner = [];
+    $spielmacher = [];
+    switch ($spieler) {
+        case 's1':
+            $spielmacher[] = $s1;
+            $gegner = [$s2, $s3];
+            break;
+        case 's2':
+            $spielmacher[] = $s2;
+            $gegner = [$s1, $s3];
+            break;
+        case 's3':
+            $spielmacher[] = $s3;
+            $gegner = [$s2, $s1];
+            break;
+    }
+    switch ($spielart) {
+        case 5 || 6 || 7 || 8: //bei trumpfspielen
+            if (((intval($gegner[0]->punkte) + (intval($gegner[1]->punkte))) > 66)) {
+                return true;
+            }
+            if (intval($spielmacher[0]->punkte > 66)) {
+                return true;
+            }
+            break;
+        case 9 || 11:
+            if ((intval($spielmacher[0]->stiche)) > 0) {
+                return true;
+            }
+        case 10 || 12:
+            if (((intval($gegner[0]->stiche)) > 0) || ((intval($gegner[1]->stiche))) > 0) {
+                return true;
+            }
+    }
+    return false;
+}
+
 
 tosql();
 ?>
