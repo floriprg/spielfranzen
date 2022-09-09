@@ -339,7 +339,7 @@ function game($name)
 
 function kartenausteilen($s, $n1, $n2, $n3)
 {
-  $data = sql("select jetztdran, spielrunde from spiele where id =" . $_GET['s'] . ";");
+  $data = sql("select jetztdran, spielrunde from spiele where id =" . $_GET['s']);
   while ($row = pg_fetch_row($data)) {
     $jetztdran = $row[0];
     $spielrunde = $row[1];
@@ -359,29 +359,31 @@ function kartenausteilen($s, $n1, $n2, $n3)
   }
   echo '<div class="container">';
   echo '
-  <div class="d-flex flex-wrap justify-content-center">
-    <div class="card m-2" style="width: 6rem;">
+  <div class="d-flex flex-column justify-content-center">
+    <div class = "d-flex flex-wrap justify-content-center">
+    <div class = "d-flex flex-row justify-content-center">
+    <div  class="card m-2" style="width: 30vw; max-width: 120px">
       <img id="ableg1"  class="card-img-top img-fluid" src="karten/' . (($a_karte1 == "keine") ? 'deckblatt.jpg' : $a_karte1) . '" alt="Karte 1">
       <div class="card-body">
         <h5 class="card-title">' . $n1 . '</h5>
         <p>' . (($jetztdran == "s1") ? 'jetzt dran' : '') . '</p>
       </div>
     </div>
-    <div  class="card m-2" style="width: 6rem;">
+    <div  class="card m-2" style="width: 30vw; max-width: 120px">
       <img  id="ableg2"  class="card-img-top img-fluid" src="karten/' . (($a_karte2 == "keine") ? 'deckblatt.jpg' : $a_karte2) . '" alt="Karte 2">
       <div class="card-body">
         <h5 class="card-title">' . $n2 . '</h5>
         <p>' . (($jetztdran == "s2") ? 'jetzt dran' : '') . '</p>
       </div>
     </div>
-    <div  class="card m-2" style="width: 6rem;">
+    <div  class="card m-2" style="width: 30vw; max-width: 120px">
       <img id="ableg3" class="card-img-top img-fluid" src="karten/' . (($a_karte3 == "keine") ? 'deckblatt.jpg' : $a_karte3) . '" alt="Karte 3">
       <div class="card-body">
         <h5 class="card-title">' . $n3 . '</h5>
         <p>' . (($jetztdran == "s3") ? 'jetzt dran' : '') . '</p>
       </div>
     </div>
-
+    </div>
   <p>
   <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExample"
     aria-expanded="false" aria-controls="collapseExample">
@@ -394,9 +396,9 @@ function kartenausteilen($s, $n1, $n2, $n3)
   <thead>
   <tr>
     <th scope="col">Punkte</th>
-    <th scope="col">Spieler 1</th>
-    <th scope="col">Spieler 2</th>
-    <th scope="col">Spieler 3</th>
+    <th scope="col">' . $n1 . '</th>
+    <th scope="col">' . $n2 . '</th>
+    <th scope="col">' . $n3 . '</th>
   </tr>
   </thead>
   <tbody>';
@@ -417,6 +419,7 @@ function kartenausteilen($s, $n1, $n2, $n3)
   <tr><th>Spielart</th><th>' . $spielart . '</th></tr>
   </tbody>
   </table>
+  </div>
   </div>
   </div>
   <div class="d-flex flex-row">';
