@@ -175,7 +175,7 @@ function gameselect($name, $s1, $s2, $s3)
     </script>';
   }
 
-  if (isset($_POST['submit'])) {
+  if (isset($_POST['submit']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
     switch ($_POST['spielart']) {
       case '5':
         $trumpf = "eich";
@@ -203,8 +203,8 @@ function gameselect($name, $s1, $s2, $s3)
         $spielstarterderrunde = 2;
         break;
     }
-    echo "<script>window.location.reload();</script>";
-    sql("update spiele set trumpf = '" . $trumpf . "', spielart =" . $_POST['spielart'] . ", spielstarterderrunde = " . $spielstarterderrunde . " spielausgewählt = true, spieler = '" . $name . "' where id = " . $_GET['s']);
+
+    sql("update spiele set trumpf = '" . $trumpf . "', spielart =" . $_POST['spielart'] . ", spielstarterderrunde = " . $spielstarterderrunde . ", spielausgewählt = true, spieler = '" . $name . "' where id = " . $_GET['s']);
     talonzeigen();
   }
 }
@@ -214,6 +214,7 @@ function talonzeigen()
   //checkbox mit bildern
   //zuerst talonkarten auswählen danach eigene karten auswählen
   $data = sql("select talon[1],talon[2],talon[3], jetztdran from spiele where id =" . $_GET['s']);
+  //header("Location: game.php");
   while ($row = pg_fetch_row($data)) {
     $t1 = $row[0];
     $t2 = $row[1];
@@ -347,7 +348,6 @@ function kartenausteilen($s, $n1, $n2, $n3)
 
   $data_karten = sql("select ablegkarten[1], ablegkarten[2], ablegkarten[3] from spiele where id = " . $_GET['s']);
   try {
-
     while ($row = pg_fetch_row($data_karten)) {
       $a_karte1 = $row[0];
       $a_karte2 = $row[1];

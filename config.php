@@ -7,11 +7,31 @@ header('Access-Control-Allow-Method:POST');
 define("JWT_ALGO", "HS512");
 function sql($sql)
 {
-    // $DBH = new PDO("host=ec2-34-242-84-130.eu-west-1.compute.amazonaws.com port=5432 dbname=d2stjk7j24ibr user=ziekgdhkxuqkta password=c7029fdf0002ed1705c9fbf741c8a9dcf6fc3d4ca04f4c1957d7d7b3a1277543");
-    // $STH = $DBH->prepare($sql);
-    // $STH->execute();
     return pg_query(pg_connect("host=ec2-34-242-84-130.eu-west-1.compute.amazonaws.com port=5432 dbname=d2stjk7j24ibr user=ziekgdhkxuqkta password=c7029fdf0002ed1705c9fbf741c8a9dcf6fc3d4ca04f4c1957d7d7b3a1277543"), $sql);
 }
+
+function sec_sql($sql){
+    try {
+        $dsn = "host=ec2-34-242-84-130.eu-west-1.compute.amazonaws.com; port=5432; dbname=d2stjk7j24ibr;";
+        // make a database connection
+        $user = "ziekgdhkxuqkta";
+        $password = "c7029fdf0002ed1705c9fbf741c8a9dcf6fc3d4ca04f4c1957d7d7b3a1277543";
+        $pdo = new PDO($dsn, $user, $password, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+        if ($pdo) {
+            echo "Connected to the database successfully!";
+        }
+        $stmt = $pdo->prepare($sql);
+        return $stmt->execute();
+    } catch (PDOException $e) {
+        die($e->getMessage());
+    } finally {
+        if ($pdo) {
+            $pdo = null;
+        }
+    }
+}
+
+
 function sha512($string)
 {
     $h = $string;

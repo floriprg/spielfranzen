@@ -32,8 +32,6 @@ function passwortvergessen(){
 }
 function login(){
     if (isset($_POST['submit'])) {
-
-        //header("location: login.php");
         if (empty($_POST['pwd']) || empty($_POST['username'])){
             '<div class="alert alert-warning" role="alert">
            Fülle alle Felder aus
@@ -47,7 +45,7 @@ function login(){
             return false;
         }
         $hashpassword = sha512($_POST['pwd']);
-        $username = pg_escape_string($_POST['username']);
+        $username = pg_escape_string(($_POST['username']));
         $sql = "select id, username, email from users where username = '" . $username . "' and pwd ='" . $hashpassword . "'";
         $data = sql($sql);
         $login_check = pg_num_rows($data);
