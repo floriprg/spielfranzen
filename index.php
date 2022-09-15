@@ -142,6 +142,11 @@ function getSpiele()
 </head>
 
 <body class="">
+    <script>
+    if (window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.href);
+    }
+    </script>
     <h1 class="text-center">
         Spielen
     </h1>

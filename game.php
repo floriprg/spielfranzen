@@ -29,7 +29,6 @@ function begin()
   if ((!isset($_GET['s']))) {
     if ((pg_num_rows($d) > 0)) {
       echo "<script>window.location = 'game.php?s=" . $id . "'</script>";
-
     }
     else {
       echo '<div class="alert alert-danger" role="alert">
@@ -355,7 +354,7 @@ function kartenausteilen($s, $n1, $n2, $n3)
     }
   }
   catch (\Throwable $th) {
-  //
+    new error($th);
   }
   echo '<div class="container">';
   echo '
@@ -499,12 +498,10 @@ function spielauswahl($name)
           $jetztdran = "s2";
           break;
       }
-      if (isset($_POST['ja'])) {
-        echo "<script>window.location.reload();</script>";
+      if (isset($_POST['ja']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
         sql("update spiele set spielart = " . ($spielart + 1) . ", gehebt = true, jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
       }
-      if (isset($_POST['nein'])) {
-        echo "<script>window.location.reload();</script>";
+      if (isset($_POST['nein']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
         sql("update spiele set gehebt = false, jetztdran = '" . $jetztdran . "', ausgeschieden = ausgeschieden || '{" . $name . "}' where id =" . $_GET['s']);
       }
     }
@@ -523,17 +520,14 @@ function spielauswahl($name)
           break;
       }
       if (isset($_POST['ja'])) {
-        if ($spielart > 4) {
-          echo "<script>window.location.reload();</script>";
+        if (($spielart > 4) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
           sql("update spiele set gehebt = false, jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
         }
         else {
-          echo "<script>window.location.reload();</script>";
           sql("update spiele set spielart = " . ($spielart + 1) . ", jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
         }
       }
-      if (isset($_POST['nein'])) {
-        echo "<script>window.location.reload();</script>";
+      if (isset($_POST['nein']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
         sql("update spiele set jetztdran = '" . $jetztdran . "', ausgeschieden = ausgeschieden || '{" . $name . "}' where id =" . $_GET['s']);
       }
     }
@@ -589,6 +583,9 @@ function spielauswahl($name)
 
 <body>
     <script>
+    if (window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.href);
+    }
     </script>
     <h1 class="text-center">
         <?php

@@ -12,6 +12,11 @@
 </head>
 
 <body class="m-3 border-2">
+    <script>
+    if (window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.href);
+    }
+    </script>
     <div id="wbars_all">
         <div class="iub_container iub_base_container">
             <div id="wbars">

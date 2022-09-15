@@ -12,6 +12,11 @@
 </head>
 
 <body>
+    <script>
+    if (window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.href);
+    }
+    </script>
     <h1 class="text-center">
         Rangliste
     </h1>

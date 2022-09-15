@@ -8,8 +8,7 @@ require "config.php";
 passwortvergessen();
 
 function passwortvergessen(){
-    if (isset($_POST["pwdforget"])){
-        header("location: login.php");
+    if (isset($_POST["pwdforget"])&& ($_SERVER['REQUEST_METHOD'] == 'POST')){
         $email = $_POST['pwdforgetemail'];
         $data = sql("select email from users where email = '" . $email . "';");
         $emailcheck = pg_num_rows($data);
@@ -31,7 +30,7 @@ function passwortvergessen(){
     }
 }
 function login(){
-    if (isset($_POST['submit'])) {
+    if (isset($_POST['submit']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
         if (empty($_POST['pwd']) || empty($_POST['username'])){
             '<div class="alert alert-warning" role="alert">
            Fülle alle Felder aus
@@ -105,6 +104,11 @@ function login(){
 </head>
 
 <body>
+    <script>
+    if (window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.href);
+    }
+    </script>
     <h1 class="text-center">
         Anmelden
     </h1>

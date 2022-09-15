@@ -4,7 +4,7 @@ include 'vendor/autoload.php';
 require "config.php";
 function register()
 {
-    if (isset($_POST['submit'])) {
+    if (isset($_POST['submit']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
         if (!empty($_POST['username']) && !empty($_POST['email']) && !empty($_POST['pwd']) && !empty($_POST['pwd2'])) {
             if (!isset($_POST['zustimmung'])) {
                 echo '<div class="alert alert-danger" role="alert">
@@ -78,6 +78,11 @@ function register()
 </head>
 
 <body>
+    <script>
+    if (window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.href);
+    }
+    </script>
     <h1 class="text-center">
         Registrieren
     </h1>
