@@ -78,7 +78,7 @@ function login(){
                 'httponly' => true,
                 'samesite' => 'Strict',
             ]);
-            echo("<script>window.location = 'index.php'</script>");
+            header("Location:index.php");
             exit(1);
         }
         else {

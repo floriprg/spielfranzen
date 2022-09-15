@@ -15,7 +15,6 @@ function spielerstellen()
     if (!isset($_COOKIE["to"])) {
         return;
     }
-    header("location: index.php");
     if ($_POST['name'] == "") {
         echo '<div class="alert alert-warning" role="alert">
                 Gib einen Namen ein!
