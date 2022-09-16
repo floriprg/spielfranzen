@@ -4,6 +4,7 @@ include 'vendor/autoload.php';
 require "config.php";
 function register()
 {
+    $production = true; //wenn es fertig ist auf auf false setzen!
     if (isset($_POST['submit']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
         if (!empty($_POST['username']) && !empty($_POST['email']) && !empty($_POST['pwd']) && !empty($_POST['pwd2'])) {
             if (!isset($_POST['zustimmung'])) {
@@ -16,6 +17,12 @@ function register()
                 echo '<div class="alert alert-danger" role="alert">
             Sie dürfen keine HTML Tags eingeben!
             </div>';
+                return false;
+            }
+            if(!(preg_match('/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/', $_POST['pwd'])) && !$production){
+                echo '<div class="alert alert-danger" role="alert">
+                    Du must mindestens 1 Buchstaben und 1 Zahl eingeben! Das Passwort muss 6 Zeichen lang sein!
+                </div>';
                 return false;
             }
             if ($_POST['pwd'] != $_POST['pwd2']) {
@@ -73,8 +80,6 @@ function register()
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css">
-
-
 </head>
 
 <body>

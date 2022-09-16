@@ -15,18 +15,37 @@ function spielerstellen()
     if (!isset($_COOKIE["to"])) {
         return;
     }
-    if ($_POST['name'] == "") {
-        echo '<div class="alert alert-warning" role="alert">
-                Gib einen Namen ein!
+    if(($_POST['erlaubte']) == "nur mit Passwort"){
+        // echo '<label for="exampleInputEmail1">Passwort für das Spiel</label>
+        // <input type="name" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp"
+        //     placeholder="Erstelle ein Passwort für das Spiel" name="pwd_for_game">
+        // <input type="submit" value="OK" name="pwd_submit">    
+        // ';
+        
+        // if (isset($_POST['pwd_submit'])){
+            sql("insert into spiele(spielrunde, ablegkarten, gestartet, name, fertig, erlaubte, s1, s2, s3, kartenausgeteilt,
+                        anzahl, jetztdran, spielart, gehebt, spielpasswort)values(0, ARRAY ['keine', 'keine', 'keine'], false, '" . $_POST['name'] . "', false,
+                        '" . $_POST['erlaubte'] . "', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', false, '" .
+                        $_POST['anzahl'] . "', 's3', 4, true, '" . $_POST['spielpasswort'] . "');");
+        // }
+    }else {
+
+        if ($_POST['name'] == "") {
+            echo '<div class="alert alert-warning" role="alert">
+                    Gib einen Namen ein!
                 </div>';
-    }
-    else {
-        $string = $_POST['name'];
-        if ($string != strip_tags($string)) {
-            echo '<div class="alert alert-warning" role="alert">Sie dürfen keine HTML Tags eingeben!</div>';
         }
         else {
-            sql("insert into spiele(spielrunde, ablegkarten, gestartet, name, fertig, erlaubte, s1, s2, s3, kartenausgeteilt, anzahl, jetztdran, spielart, gehebt)values(0, ARRAY ['keine', 'keine', 'keine'], false, '" . $_POST['name'] . "', false, '" . $_POST['erlaubte'] . "', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', false, '" . $_POST['anzahl'] . "', 's3', 4, true);");
+            $string = $_POST['name'];
+            if ($string != strip_tags($string)) {
+                echo '<div class="alert alert-warning" role="alert">Sie dürfen keine HTML Tags eingeben!</div>';
+            }
+            else {
+                sql("insert into spiele(spielrunde, ablegkarten, gestartet, name, fertig, erlaubte, s1, s2, s3, kartenausgeteilt,
+                    anzahl, jetztdran, spielart, gehebt)values(0, ARRAY ['keine', 'keine', 'keine'], false, '" . $_POST['name'] . "', false,
+                    '" . $_POST['erlaubte'] . "', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', '{\"name\":\"offen\"}', false, '" .
+                    $_POST['anzahl'] . "', 's3', 4, true);");
+            }
         }
     }
 }
@@ -43,29 +62,30 @@ function getSpiele()
     }
     echo '
     <div class="d-flex flex-wrap">';
-    $data = sql("select * from spiele where fertig = false;");
+    $data = sql("select id, s1, s2, s3, erlaubte, anzahl, spielpasswort, name from spiele where fertig = false;");
 
     while ($row = pg_fetch_row($data)) {
         //card item
-        $s1 = json_decode($row[4], false);
-        $s2 = json_decode($row[5], false);
-        $s3 = json_decode($row[6], false);
+        $s1 = json_decode($row[1], false);
+        $s2 = json_decode($row[2], false);
+        $s3 = json_decode($row[3], false);
+        $spielpasswort = json_decode($row[4], false);
         
         $name = $data2->name;
         echo "
             <div class='card m-3' style='width: 18.25rem;'>
                 <div class='card-body'>
-                    <h5 class='card-title'>$row[1]</h5>
+                    <h5 class='card-title'>$row[7]</h5>
                     <ul>
                         <li class='" . (($s1->name == 'offen') ? 'text-success' : 'text-danger') . "'>$s1->name</li>
                         <li class='" . (($s2->name == 'offen') ? 'text-success' : 'text-danger') . "'>$s2->name</li>
                         <li class='" . (($s3->name == 'offen') ? 'text-success' : 'text-danger') . "'>$s3->name</li>
                     </ul>
                     Erlaubte:
-                    $row[3]
+                    $row[4]
                     <br>
                     Anzahl Spiele:
-                    $row[11]
+                    $row[5]
                     <br>
                     <a class='btn btn-primary' href='game.php?s=" . $row[0] . "'>" . (($name == $s1->name || $name == $s2->name || $name == $s3->name) ? 'Wieder teilnehmen' : 'Teilnehmen') . "</a>
                 </div>
@@ -145,6 +165,13 @@ function getSpiele()
     if (window.history.replaceState) {
         window.history.replaceState(null, null, window.location.href);
     }
+    $("input.erlaubte").on("change", function(evt) {
+        alert("hallo")
+        //if (this.checked == true) {
+        // $(".pwdspiel").append(
+        // '<input type="text" placeholder="Gib ein Passwort ein" name="spielpasswort">');
+        //}
+    });
     </script>
     <h1 class="text-center">
         Spielen
@@ -171,14 +198,13 @@ function getSpiele()
     </ul>
     <br>
     <div class="container">
-
-        <?php
-nichtangemeldet();
-if (isset($_POST['newgame'])) {
-    spielerstellen();
-}
-?>
         <div class="card card-body">
+            <?php
+            nichtangemeldet();
+            if (isset($_POST['newgame'])) {
+                spielerstellen();
+            }
+            ?>
             <form method="post" autocomplete="nope">
                 <div class="form-group">
                     <label for="exampleInputEmail1">Name des Spiels</label>
@@ -194,14 +220,11 @@ if (isset($_POST['newgame'])) {
                             <label class="form-check-label" for="flexRadioDefault1">alle</label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" name="erlaubte" value="Registrierte"
-                                id="flexRadioDefault2" />
-                            <label class="form-check-label" for="flexRadioDefault2">Registrierte</label>
-                        </div>
-                        <div class="form-check">
                             <input class="form-check-input" type="radio" name="erlaubte" value="nur mit Passwort"
                                 id="flexRadioDefault3" />
-                            <label class="form-check-label" for="flexRadioDefault3">nur mit Passwort</label>
+                            <label class="form-check-label pwdspiel" for="flexRadioDefault3">nur mit Passwort</label>
+                            <input class="form-control" type="text" placeholder="Gib ein Passwort ein"
+                                name="spielpasswort">
                         </div>
                     </div>
                     <span style="width: 10vw"></span>

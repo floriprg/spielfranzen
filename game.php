@@ -13,8 +13,37 @@ function neuekarten()
   return $zufallskarten;
 }
 
+function main()
+{
+  if (!(errors_at_begin())) {
+    return false;
+  }
+  // if (!(spielpasswort())) {
+  //   return false;
+  // }
+  platzZuweisung();
+}
 
-function begin()
+function spielpasswort()
+{
+  $d = sql("select spielpasswort from spiele where id = " . $_GET['s']);
+  while ($row = pg_fetch_row($d)) {
+    $spielpasswort = $row[0];
+  }
+  if ($spielpasswort) {
+    echo "<input class='form-control' type='password' name='pwd' placeholder='Gib das Passwort für das Spiel ein '>
+    <input type='submit' name='submit' placeholder = 'OK'>";
+    if (isset($_POST['submit'])) {
+      if ($spielpasswort == $_POST['pwd']) {
+        return true;
+      }
+      else {
+        return false;
+      }
+    }
+  }
+}
+function errors_at_begin()
 {
 
   $data = gettokendata();
@@ -50,8 +79,13 @@ function begin()
             </div>';
     return false;
   }
+  return true;
+}
+function platzZuweisung()
+{
   $data1 = sql("select s1, s2, s3 from spiele where id = " . $_GET['s']);
   while ($row = pg_fetch_row($data1)) {
+    $data = gettokendata();
     $name = $data->name;
     ////////////////////////////////
     ///!!!!!!!!!!!!!!!!!!!!!!!!!!///
@@ -125,7 +159,6 @@ function begin()
     }
   }
 }
-
 function gameselect($name, $s1, $s2, $s3)
 {
 
@@ -442,6 +475,7 @@ function spielauswahl($name)
   $data = sql("select jetztdran, spielart, gehebt from spiele where id =" . $_GET['s'] . ";");
   while ($row = pg_fetch_row($data)) {
     $jetztdran = $row[0];
+    $jetztdran2 = $row[0];
     $spielart = $row[1];
     $gehebt = $row[2];
   }
@@ -467,6 +501,7 @@ function spielauswahl($name)
   }
 
   if ($fragen) { //wenn dieser Spieler dran ist
+
     switch ($jetztdran) {
       case 's1':
         $jetztdran2 = "s2";
@@ -486,7 +521,7 @@ function spielauswahl($name)
 
     if (($spielart > 4) && ($gehebt == "f")) {
       $bieten_heben = "heben";
-
+      frage($spielart, $bieten_heben);
       switch ($jetztdran) {
         case 's1':
           $jetztdran = "s3";
@@ -499,15 +534,19 @@ function spielauswahl($name)
           break;
       }
       if (isset($_POST['ja']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
+        echo "<script>window.location.reload()</script>";
         sql("update spiele set spielart = " . ($spielart + 1) . ", gehebt = true, jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
+        return true;
       }
       if (isset($_POST['nein']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
+        echo "<script>window.location.reload()</script>";
         sql("update spiele set gehebt = false, jetztdran = '" . $jetztdran . "', ausgeschieden = ausgeschieden || '{" . $name . "}' where id =" . $_GET['s']);
+        return true;
       }
     }
     else {
       $bieten_heben = "bieten";
-
+      frage($spielart, $bieten_heben);
       switch ($jetztdran) {
         case 's1':
           $jetztdran = "s2";
@@ -519,47 +558,55 @@ function spielauswahl($name)
           $jetztdran = "s1";
           break;
       }
-      if (isset($_POST['ja'])) {
-        if (($spielart > 4) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
+      if (isset($_POST['ja']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
+        if (($spielart > 4)) {
+          echo "<script>window.location.reload()</script>";
           sql("update spiele set gehebt = false, jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
+          return true;
         }
         else {
+          echo "<script>window.location.reload()</script>";
           sql("update spiele set spielart = " . ($spielart + 1) . ", jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
         }
       }
       if (isset($_POST['nein']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
+        echo " <script>window.location.reload()</script>";
         sql("update spiele set jetztdran = '" . $jetztdran . "', ausgeschieden = ausgeschieden || '{" . $name . "}' where id =" . $_GET['s']);
+        return true;
       }
     }
-    echo '
-    <!-- Modal -->
-    <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 class="modal-title" id="exampleModalLabel"> Möchtest du ' . $spielart . ' ' . $bieten_heben . '?</h2>
-                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-footer">
-                    <form method="post">
-                      <input type="submit" value="ja" name="ja" class="btn btn-primary">
-                      <input type="submit" value="nein" name="nein" class="btn btn-primary">
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>';
-    echo '<script type="text/javascript">
-      $(window).on("load", function () {
-        $("#exampleModal").modal("show");
-      });
-
-    </script>';
   }
 
+}
+
+function frage($spielart, $bieten_heben)
+{
+  echo '
+    <!-- Modal -->
+    <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+      aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title" id="exampleModalLabel"> Möchtest du ' . $spielart . ' ' . $bieten_heben . '?</h2>
+            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-footer">
+            <form method="post">
+              <input type="submit" value="ja" name="ja" class="btn btn-primary">
+              <input type="submit" value="nein" name="nein" class="btn btn-primary">
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>';
+  echo '<script type="text/javascript">
+    $(window).on("load", function () {
+      $("#exampleModal").modal("show");
+    });
+  </script>';
 }
 ?>
 <!DOCTYPE html>
@@ -631,7 +678,7 @@ if (isset($_GET['s']) && !($_GET['s'] == "" && !($_GET['s'] == "null"))) {
 
     <script src="game.js">
     </script>
-    <?php begin(); ?>
+    <?php main(); ?>
 </body>
 
 </html>
