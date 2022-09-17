@@ -1,4 +1,46 @@
 <?php
+function karte_legen_hFun($jetztdran, $spieler, $s, $s2)
+{
+    if ($jetztdran == $s) {
+        $spielername = 1;
+        del($spieler, $spielername, $s2);
+    }
+    else {
+        echo "error: " . $s;
+        echo $jetztdran;
+    }
+}
+function karte_legen()
+{
+
+    $data1 = sql("select s1, s2, s3, jetztdran from spiele where id = " . $_POST['s'] . ";");
+    while ($row = pg_fetch_row($data1)) {
+        //s1, bzw s2, s3 sind spielerobjekte
+        $s1 = json_decode($row[0], false);
+        $s2 = json_decode($row[1], false);
+        $s3 = json_decode($row[2], false);
+        $jetztdran = $row[3];
+    }
+    $data_name = gettokendata(); //gibt token (gespeichert in Cockie) zurück
+    $name = $data_name->name;
+    switch ($name) {
+        //wenn der spieler s1 ist
+        case ($s1->name):
+            karte_legen_hFun($jetztdran, $s1, 's1', 's2');
+            break;
+        case ($s2->name):
+            //wenn der spieler s2 ist
+            karte_legen_hFun($jetztdran, $s1, 's2', 's3');
+            break;
+        case ($s3->name):
+            //wenn der spieler s3 ist
+            karte_legen_hFun($jetztdran, $s1, 's3', 's1');
+            break;
+        default:
+            echo ("error");
+    }
+
+}
 function tosql()
 {
     require "config.php";
@@ -8,57 +50,8 @@ function tosql()
         sql($sql);
     }
     if ($type == "del") {
-        //wenn gelöscht werden soll
-        $data1 = sql("select s1, s2, s3, jetztdran from spiele where id = " . $_POST['s'] . ";");
-        while ($row = pg_fetch_row($data1)) {
-            //s1, bzw s2, s3 sind spielerobjekte
-            $s1 = json_decode($row[0], false);
-            $s2 = json_decode($row[1], false);
-            $s3 = json_decode($row[2], false);
-            $jetztdran = $row[3];
-        }
-        $data_name = gettokendata(); //gibt token (gespeichert in Cockie) zurück
-        $name = $data_name->name;
-        switch ($name) {
-            //wenn der spieler s1 ist
-            case ($s1->name):
-                if ($jetztdran == 's1') {
-                    $spielername = 1;
-                    del($s1, $spielername, 's2');
-                }
-                else {
-                    echo "error1!";
-                    echo $jetztdran;
-                }
-                break;
-            case ($s2->name):
-                //wenn der spieler s2 ist
-                if ($jetztdran == 's2') {
-                    $spieler = $s2;
-                    $spielername = 2;
-                    del($s2, $spielername, 's3');
-                }
-                else {
-                    echo "error2!";
-                    echo $jetztdran;
-                }
-                break;
-            case ($s3->name):
-                //wenn der spieler s3 ist
-                if ($jetztdran == 's3') {
-                    $spieler = $s3;
-                    $spielername = 3;
-                    del($s3, $spielername, 's1');
-                }
-                else {
-                    echo "error3!";
-                    echo $jetztdran;
-                }
-                break;
-            default:
-                echo ("error");
-        }
-
+        //karte legen   
+        karte_legen();
     }
 }
 
@@ -69,7 +62,6 @@ function punkte_dieses_stiches($spieler)
     while ($row = pg_fetch_row($data)) {
         $s = json_decode($row[0]);
         $a1 = intval(substr($row[1], -9, 1));
-
         $a2 = intval(substr($row[2], -9, 1));
         $a3 = intval(substr($row[3], -9, 1));
     }
@@ -88,9 +80,35 @@ function punkte_dieses_stiches($spieler)
     }
 //sql("update spiele set " . $spieler . " = " . json_encode($s) . " where id = " . $_POST['s']);
 }
+function del_hFun($arr, $ablegkarten, $todel, $spielrunde, $user, $farbe, $spielstarterderrunde, $spieler, $spielername, $trumpf, $s, $spielstarter, $a1, $a2)
+{
+    $erster = false;
+    if ((($ablegkarten[0] != "keine") && ($ablegkarten[1] != "keine") && ($ablegkarten[2] != "keine")) || (($ablegkarten[0] == "keine") && ($ablegkarten[1] == "keine") && ($ablegkarten[2] == "keine"))) { //wenn alle besetzt sind
+        $erster = true;
+        sql("update spiele set spielstarterderrunde = " . $spielstarter . " where id = " . $s);
+    }
+    else {
+        if ((($ablegkarten[$a1] != "keine")) && (($ablegkarten[$a2] != "keine"))) {
+            $spielrunde++;
+            $jetztdran = stichmacher($todel, $ablegkarten[$a1], $ablegkarten[$a2], $trumpf);
+        //punkte_dieses_stiches($dran);
+        }
+        $erster = false;
+    }
+    //wenn spieler weder farbe noch trumpf hat |||||||||||||||||||||||||||||||||||||||||||||||||| wenn er farbe zugegeben hat||||||||||||||||||||||||||||||wenn er farbe nicht hat und trumpf zugibt
+    if ($erster == true || ((strpos($user, substr($farbe[$spielstarterderrunde], -8, 4)) == false) && (strpos($user, $trumpf) == false)) || (strpos($todel, substr($farbe[$spielstarterderrunde], -8, -4)) !== false) || ((strpos($todel, $trumpf) !== false) && (strpos($user, substr($farbe[$spielstarterderrunde], -8, 4)) == false))) {
+        echo $jetztdran;
+        $spieler->karten = array_values(array_diff($spieler->karten, [$todel]));
+        $sqlstring = "update spiele set s" . $spielername . "= '" . json_encode($spieler) . "', jetztdran= '" . $jetztdran . "',
+    spielrunde = " . $spielrunde . ", ablegkarten = '" . $arr . "' where id = " . $s;
 
+        sql($sqlstring);
+    }
+    else {
+        echo "err";
+    }
+}
 function del($spieler, $spielername, $dran) //löscht karte und fügt sie zu ablegkarten hinzu
-
 {
     $jetztdran = $dran;
     $todel = $_POST['to_del'];
@@ -105,67 +123,19 @@ function del($spieler, $spielername, $dran) //löscht karte und fügt sie zu abl
         $spielrunde = $row[3];
         $spielstarterderrunde = $row[4];
     }
-    $erster = false;
     switch ($spielername) {
         case '1':
-            if (($ablegkarten[0] != "keine") && ($ablegkarten[1] != "keine") && ($ablegkarten[2] != "keine")) { //wenn alle besetzt sind
-                $arr = '{"' . $todel . '","keine", "keine"}';
-                $erster = true;
-                sql("update spiele set spielstarterderrunde = 0 where id = " . $s);
-            }
-            else {
-                $arr = '{"' . $todel . '","' . $ablegkarten[1] . '", "' . $ablegkarten[2] . '"}';
-                if ((($ablegkarten[1] != "keine")) && (($ablegkarten[2] != "keine"))) {
-                    $spielrunde++;
-                    $jetztdran = stichmacher($todel, $ablegkarten[1], $ablegkarten[2], $trumpf);
-                //punkte_dieses_stiches($dran);
-                }
-                $erster = false;
-            }
+            $arr = '{"' . $todel . '","' . $ablegkarten[1] . '", "' . $ablegkarten[2] . '"}';
+            del_hFun($arr, $ablegkarten, $todel, $spielrunde, $user, $farbe, $spielstarterderrunde, $spieler, $spielername, $trumpf, $s, 0, 1, 2);
             break;
         case '2':
-            if (($ablegkarten[0] != "keine") && ($ablegkarten[1] != "keine") && ($ablegkarten[2] != "keine")) { //wenn alle besetzt sind
-                $arr = '{"keine","' . $todel . '", "keine"}';
-                $erster = true;
-                sql("update spiele set spielstarterderrunde = 1 where id = " . $s);
-            }
-            else {
-                $arr = '{"' . $ablegkarten[0] . '","' . $todel . '", "' . $ablegkarten[2] . '"}';
-                if ((($ablegkarten[0] != "keine")) && (($ablegkarten[2] != "keine"))) { //wenn er letzer in der runde ist
-                    $spielrunde++;
-                    $jetztdran = stichmacher($ablegkarten[0], $todel, $ablegkarten[2], $trumpf);
-                //punkte_dieses_stiches($dran);
-                }
-                $erster = false;
-            }
+            $arr = '{"' . $ablegkarten[0] . '","' . $todel . '", "' . $ablegkarten[2] . '"}';
+            del_hFun($arr, $ablegkarten, $todel, $spielrunde, $user, $farbe, $spielstarterderrunde, $spieler, $spielername, $trumpf, $s, 1, 2, 0);
             break;
         case '3':
-            if (($ablegkarten[0] != "keine") && ($ablegkarten[1] != "keine") && ($ablegkarten[2] != "keine")) { //wenn alle besetzt sind
-                $arr = '{"keine","keine", "' . $todel . '"}';
-                $erster = true;
-                sql("update spiele set spielstarterderrunde = 2 where id = " . $s);
-            }
-            else {
-                $arr = '{"' . $ablegkarten[0] . '","' . $ablegkarten[1] . '", "' . $todel . '"}';
-                if ((($ablegkarten[0] != "keine")) && (($ablegkarten[1] != "keine"))) {
-                    $spielrunde++;
-                    $jetztdran = stichmacher($ablegkarten[0], $ablegkarten[1], $todel, $trumpf);
-                //punkte_dieses_stiches($dran);
-                }
-                $erster = false;
-            }
+            $arr = '{"' . $ablegkarten[0] . '","' . $ablegkarten[1] . '", "' . $todel . '"}';
+            del_hFun($arr, $ablegkarten, $todel, $spielrunde, $user, $farbe, $spielstarterderrunde, $spieler, $spielername, $trumpf, $s, 2, 0, 1);
             break;
-    }
-    //wenn spieler weder farbe noch trumpf hat    |||||||||||||||||||||||||||||||||||||||||||||||||| wenn er farbe zugegeben hat||||||||||||||||||||||||||||||wenn er farbe nicht hat und trumpf zugibt
-    if ($erster == true || ((strpos($user, substr($farbe[$spielstarterderrunde], -8, 4)) == false) && (strpos($user, $trumpf) == false)) || (strpos($todel, substr($farbe[$spielstarterderrunde], -8, -4)) !== false) || ((strpos($todel, $trumpf) !== false) && (strpos($user, substr($farbe[$spielstarterderrunde], -8, 4)) == false))) {
-        echo $jetztdran;
-        $spieler->karten = array_values(array_diff($spieler->karten, [$todel]));
-        $sqlstring = "update spiele set s" . $spielername . "= '" . json_encode($spieler) . "', jetztdran= '" . $jetztdran . "', spielrunde = " . $spielrunde . ", ablegkarten = '" . $arr . "' where id = " . $s;
-
-        sql($sqlstring);
-    }
-    else {
-        echo "err";
     }
 }
 
@@ -183,7 +153,7 @@ function stichmacher($a1, $a2, $a3, $trumpf)
         $trumpfkartenspieler[] = $a2;
         $trumpfkarten[] = substr($a2, -9, 1);
     }
-    if (substr($a2, -8, 4) == $trumpf) {
+    if (substr($a3, -8, 4) == $trumpf) {
         $trumpfkartenspieler[] = $a3;
         $trumpfkarten[] = substr($a3, -9, 1);
     }

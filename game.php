@@ -1,6 +1,6 @@
 <?php
 include 'vendor/autoload.php';
-//require "config.php";
+include_once "config.php";
 function neuekarten()
 {
   $karten = array("6laub.jpg", "6sche.jpg", "6eich.jpg", "6herz.jpg", "2laub.jpg", "2sche.jpg", "2eich.jpg", "2herz.jpg", "3laub.jpg", "3sche.jpg", "3eich.jpg", "3herz.jpg", "4laub.jpg", "4sche.jpg", "4eich.jpg", "4herz.jpg", "5eich.jpg", "5herz.jpg", "5laub.jpg", "5sche.jpg", "7eich.jpg", "7herz.jpg", "7laub.jpg", "7sche.jpg", "8eich.jpg", "8herz.jpg", "8laub.jpg", "8sche.jpg", "9eich.jpg", "9herz.jpg", "9laub.jpg", "9sche.jpg", "1sche.jpg");
@@ -240,6 +240,7 @@ function gameselect($name, $s1, $s2, $s3)
     talonzeigen();
   }
 }
+
 function talonzeigen()
 {
 
@@ -257,7 +258,7 @@ function talonzeigen()
   while ($row = pg_fetch_row($data2)) {
     $s = json_decode($row[0]);
   }
-  echo '<div class="modal fade " id="exampleModal2" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"aria-hidden="true">
+  echo '<div class="modal fade " id="talonmodal" tabindex="-1" role="dialog" aria-labelledby="talonmodalLabel"aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content ">
                 <div class="modal-header ">
@@ -266,7 +267,7 @@ function talonzeigen()
                     </button>
                 </div>
                   <form method="post" class="">
-                    <h5 class="modal-title" id="exampleModalLabel">Wähle die Talonkarten aus die du möchtest</h5>
+                    <h5 class="modal-title" id="talonmodalLabel">Wähle die Talonkarten aus die du möchtest</h5>
                     <div class="modal-footer ">
                       <div class="form-check">
                         <input class="form-check-input talon" type="checkbox" value="' . $t1 . '" id="" name="talon0">
@@ -291,7 +292,7 @@ function talonzeigen()
                         </div>
                       </div>
                     </div>
-                    <h5 class="modal-title" id="exampleModalLabel">Wähle die Karten aus die du nicht brauchst</h5>
+                    <h5 class="modal-title" id="talonmodalLabel">Wähle die Karten aus die du nicht brauchst</h5>
                     <div class="modal-footer ">
                       ';
   for ($i = 0; $i < 10; $i++) {
@@ -322,7 +323,7 @@ function talonzeigen()
             }
           });
           $(window).on("load", function () {
-            $("#exampleModal2").modal("show");
+            $("#talonmodal").modal("show");
           });
         </script>';
   if (isset($_POST['talonausgewählt'])) {
@@ -336,7 +337,7 @@ function talonzeigen()
         $talonkartenausgewählt[] = $_POST['talon' . $i];
       }
     }
-    $karten = explode(',', $s->karten);
+    $karten = $s->karten;
     switch (count($kartenausgewählt)) {
       case 1:
         $karten[$kartenausgewählt[0]] = $talonkartenausgewählt[0];
@@ -354,12 +355,8 @@ function talonzeigen()
     $s->karten = $karten;
     $sqlstr = "update spiele set " . $jetztdran . " = '" . json_encode($s) . "' where id = " . $_GET['s'];
     echo $sqlstr;
-    echo '<br>';
-    echo json_encode($kartenausgewählt);
-    echo '<br>';
-    echo json_encode($s);
+    echo "<script>window.location.reload();</script>";
     sql($sqlstr);
-
   }
 }
 
@@ -523,10 +520,10 @@ function fragestellen($jetztdran, $ausgeschieden, $name, $spielart, $gehebt)
     echo '<div class="alert alert-danger">Du bist ausgeschieden</div>';
     return false;
   }
-
+  $frage_gestellt = false;
   if (($spielart > 4) && ($gehebt == "f")) {
     $bieten_heben = "heben";
-    frage($spielart, $bieten_heben);
+    frage($spielart, $bieten_heben, $frage_gestellt);
     switch ($jetztdran) {
       case 's1':
         $jetztdran = "s3";
@@ -541,17 +538,17 @@ function fragestellen($jetztdran, $ausgeschieden, $name, $spielart, $gehebt)
     if (isset($_POST['ja']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
       echo "<script>window.location.reload()</script>";
       sql("update spiele set spielart = " . ($spielart + 1) . ", gehebt = true, jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
-      return true;
+      $frage_gestellt = true;
     }
     if (isset($_POST['nein']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
       echo "<script>window.location.reload()</script>";
       sql("update spiele set gehebt = false, jetztdran = '" . $jetztdran . "', ausgeschieden = ausgeschieden || '{" . $name . "}' where id =" . $_GET['s']);
-      return true;
+      $frage_gestellt = true;
     }
   }
   else {
     $bieten_heben = "bieten";
-    frage($spielart, $bieten_heben);
+    frage($spielart, $bieten_heben, $frage_gestellt);
     switch ($jetztdran) {
       case 's1':
         $jetztdran = "s2";
@@ -564,33 +561,35 @@ function fragestellen($jetztdran, $ausgeschieden, $name, $spielart, $gehebt)
         break;
     }
     if (isset($_POST['ja']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
+
       if (($spielart > 4)) {
         echo "<script>window.location.reload()</script>";
+
         sql("update spiele set gehebt = false, jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
-        return true;
       }
       else {
         echo "<script>window.location.reload()</script>";
         sql("update spiele set spielart = " . ($spielart + 1) . ", jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
       }
+      $frage_gestellt = true;
     }
     if (isset($_POST['nein']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
       echo " <script>window.location.reload()</script>";
       sql("update spiele set jetztdran = '" . $jetztdran . "', ausgeschieden = ausgeschieden || '{" . $name . "}' where id =" . $_GET['s']);
-      return true;
+      $frage_gestellt = true;
     }
   }
 }
-function frage($spielart, $bieten_heben)
+function frage($spielart, $bieten_heben, $frage_gestellt)
 {
   echo '
     <!-- Modal -->
-    <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+    <div class="modal fade" id="frage_modal" tabindex="-1" role="dialog" aria-labelledby="frage_modalLabel"
       aria-hidden="true">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <h2 class="modal-title" id="exampleModalLabel"> Möchtest du ' . $spielart . ' ' . $bieten_heben . '?</h2>
+            <h2 class="modal-title" id="frage_modalLabel"> Möchtest du ' . $spielart . ' ' . $bieten_heben . '?</h2>
             <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
@@ -604,9 +603,9 @@ function frage($spielart, $bieten_heben)
         </div>
       </div>
     </div>';
-  echo '<script type="text/javascript">
+  echo '<script id="modalshow" type="text/javascript">
     $(window).on("load", function () {
-      $("#exampleModal").modal("show");
+      $("#frage_modal").modal("show");
     });
   </script>';
 }
@@ -633,12 +632,12 @@ function frage($spielart, $bieten_heben)
 <body>
     <script>
     if (window.history.replaceState) {
-        window.history.replaceState(null, null, window.location.href);
+        window.history.replaceState(null, null, window.location);
     }
     </script>
     <h1 class="text-center">
         <?php
-require "config.php";
+include_once "config.php";
 if (isset($_GET['s']) && !($_GET['s'] == "" && !($_GET['s'] == "null"))) {
   $data = sql("select name from spiele where id = " . $_GET['s'] . "");
   while ($row = pg_fetch_row($data)) {
@@ -680,7 +679,8 @@ if (isset($_GET['s']) && !($_GET['s'] == "" && !($_GET['s'] == "null"))) {
 
     <script src="game.js">
     </script>
-    <?php main(); ?>
+    <?php main();
+talonzeigen(); ?>
 </body>
 
 </html>
