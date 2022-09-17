@@ -80,7 +80,7 @@ function punkte_dieses_stiches($spieler)
     }
 //sql("update spiele set " . $spieler . " = " . json_encode($s) . " where id = " . $_POST['s']);
 }
-function del_hFun($arr, $ablegkarten, $todel, $spielrunde, $user, $farbe, $spielstarterderrunde, $spieler, $spielername, $trumpf, $s, $spielstarter, $a1, $a2)
+function del_hFun($arr, $ablegkarten, $todel, $spielrunde, $user, $farbe, $spielstarterderrunde, $spieler, $spielername, $trumpf, $s, $spielstarter, $a1, $a2, $jetztdran)
 {
     $erster = false;
     if ((($ablegkarten[0] != "keine") && ($ablegkarten[1] != "keine") && ($ablegkarten[2] != "keine")) || (($ablegkarten[0] == "keine") && ($ablegkarten[1] == "keine") && ($ablegkarten[2] == "keine"))) { //wenn alle besetzt sind
@@ -126,15 +126,15 @@ function del($spieler, $spielername, $dran) //löscht karte und fügt sie zu abl
     switch ($spielername) {
         case '1':
             $arr = '{"' . $todel . '","' . $ablegkarten[1] . '", "' . $ablegkarten[2] . '"}';
-            del_hFun($arr, $ablegkarten, $todel, $spielrunde, $user, $farbe, $spielstarterderrunde, $spieler, $spielername, $trumpf, $s, 0, 1, 2);
+            del_hFun($arr, $ablegkarten, $todel, $spielrunde, $user, $farbe, $spielstarterderrunde, $spieler, $spielername, $trumpf, $s, 0, 1, 2, $jetztdran);
             break;
         case '2':
             $arr = '{"' . $ablegkarten[0] . '","' . $todel . '", "' . $ablegkarten[2] . '"}';
-            del_hFun($arr, $ablegkarten, $todel, $spielrunde, $user, $farbe, $spielstarterderrunde, $spieler, $spielername, $trumpf, $s, 1, 2, 0);
+            del_hFun($arr, $ablegkarten, $todel, $spielrunde, $user, $farbe, $spielstarterderrunde, $spieler, $spielername, $trumpf, $s, 1, 2, 0, $jetztdran);
             break;
         case '3':
             $arr = '{"' . $ablegkarten[0] . '","' . $ablegkarten[1] . '", "' . $todel . '"}';
-            del_hFun($arr, $ablegkarten, $todel, $spielrunde, $user, $farbe, $spielstarterderrunde, $spieler, $spielername, $trumpf, $s, 2, 0, 1);
+            del_hFun($arr, $ablegkarten, $todel, $spielrunde, $user, $farbe, $spielstarterderrunde, $spieler, $spielername, $trumpf, $s, 2, 0, 1, $jetztdran);
             break;
     }
 }

@@ -235,10 +235,10 @@ function gameselect($name, $s1, $s2, $s3)
         $spielstarterderrunde = 2;
         break;
     }
-
+    echo "<script>window.location.reload();</script>";
     sql("update spiele set trumpf = '" . $trumpf . "', spielart =" . $_POST['spielart'] . ", spielstarterderrunde = " . $spielstarterderrunde . ", spielausgewählt = true, spieler = '" . $name . "' where id = " . $_GET['s']);
+    talonzeigen(); //geht nicht!!!
 
-    talonzeigen();
   }
 }
 
