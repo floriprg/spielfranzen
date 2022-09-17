@@ -489,8 +489,6 @@ function spielauswahl($name)
     }
   }
 
-
-
   $data_ausgeschieden = sql("select ausgeschieden, jetztdran from spiele where id = " . $_GET['s']);
   while ($row = pg_fetch_row($data_ausgeschieden)) {
     $ausgeschieden = explode(",", trim($row[0], '{}'));
@@ -501,84 +499,88 @@ function spielauswahl($name)
   }
 
   if ($fragen) { //wenn dieser Spieler dran ist
-
-    switch ($jetztdran) {
-      case 's1':
-        $jetztdran2 = "s2";
-        break;
-      case 's2':
-        $jetztdran2 = "s3";
-        break;
-      case 's3':
-        $jetztdran2 = "s1";
-        break;
-    }
-    if ($ausgeschieden[0] == $name) {
-      sql("update spiele set jetztdran = '" . $jetztdran2 . "'");
-      echo '<div class="alert alert-danger">Du bist ausgeschieden</div>';
-      return false;
-    }
-
-    if (($spielart > 4) && ($gehebt == "f")) {
-      $bieten_heben = "heben";
-      frage($spielart, $bieten_heben);
-      switch ($jetztdran) {
-        case 's1':
-          $jetztdran = "s3";
-          break;
-        case 's2':
-          $jetztdran = "s1";
-          break;
-        case 's3':
-          $jetztdran = "s2";
-          break;
-      }
-      if (isset($_POST['ja']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
-        echo "<script>window.location.reload()</script>";
-        sql("update spiele set spielart = " . ($spielart + 1) . ", gehebt = true, jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
-        return true;
-      }
-      if (isset($_POST['nein']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
-        echo "<script>window.location.reload()</script>";
-        sql("update spiele set gehebt = false, jetztdran = '" . $jetztdran . "', ausgeschieden = ausgeschieden || '{" . $name . "}' where id =" . $_GET['s']);
-        return true;
-      }
-    }
-    else {
-      $bieten_heben = "bieten";
-      frage($spielart, $bieten_heben);
-      switch ($jetztdran) {
-        case 's1':
-          $jetztdran = "s2";
-          break;
-        case 's2':
-          $jetztdran = "s3";
-          break;
-        case 's3':
-          $jetztdran = "s1";
-          break;
-      }
-      if (isset($_POST['ja']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
-        if (($spielart > 4)) {
-          echo "<script>window.location.reload()</script>";
-          sql("update spiele set gehebt = false, jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
-          return true;
-        }
-        else {
-          echo "<script>window.location.reload()</script>";
-          sql("update spiele set spielart = " . ($spielart + 1) . ", jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
-        }
-      }
-      if (isset($_POST['nein']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
-        echo " <script>window.location.reload()</script>";
-        sql("update spiele set jetztdran = '" . $jetztdran . "', ausgeschieden = ausgeschieden || '{" . $name . "}' where id =" . $_GET['s']);
-        return true;
-      }
-    }
+    fragestellen($jetztdran, $ausgeschieden, $name, $spielart, $gehebt);
   }
 
 }
 
+
+function fragestellen($jetztdran, $ausgeschieden, $name, $spielart, $gehebt)
+{
+  switch ($jetztdran) {
+    case 's1':
+      $jetztdran2 = "s2";
+      break;
+    case 's2':
+      $jetztdran2 = "s3";
+      break;
+    case 's3':
+      $jetztdran2 = "s1";
+      break;
+  }
+  if ($ausgeschieden[0] == $name) {
+    sql("update spiele set jetztdran = '" . $jetztdran2 . "'");
+    echo '<div class="alert alert-danger">Du bist ausgeschieden</div>';
+    return false;
+  }
+
+  if (($spielart > 4) && ($gehebt == "f")) {
+    $bieten_heben = "heben";
+    frage($spielart, $bieten_heben);
+    switch ($jetztdran) {
+      case 's1':
+        $jetztdran = "s3";
+        break;
+      case 's2':
+        $jetztdran = "s1";
+        break;
+      case 's3':
+        $jetztdran = "s2";
+        break;
+    }
+    if (isset($_POST['ja']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
+      echo "<script>window.location.reload()</script>";
+      sql("update spiele set spielart = " . ($spielart + 1) . ", gehebt = true, jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
+      return true;
+    }
+    if (isset($_POST['nein']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
+      echo "<script>window.location.reload()</script>";
+      sql("update spiele set gehebt = false, jetztdran = '" . $jetztdran . "', ausgeschieden = ausgeschieden || '{" . $name . "}' where id =" . $_GET['s']);
+      return true;
+    }
+  }
+  else {
+    $bieten_heben = "bieten";
+    frage($spielart, $bieten_heben);
+    switch ($jetztdran) {
+      case 's1':
+        $jetztdran = "s2";
+        break;
+      case 's2':
+        $jetztdran = "s3";
+        break;
+      case 's3':
+        $jetztdran = "s1";
+        break;
+    }
+    if (isset($_POST['ja']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
+      if (($spielart > 4)) {
+        echo "<script>window.location.reload()</script>";
+        sql("update spiele set gehebt = false, jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
+        return true;
+      }
+      else {
+        echo "<script>window.location.reload()</script>";
+        sql("update spiele set spielart = " . ($spielart + 1) . ", jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
+      }
+    }
+    if (isset($_POST['nein']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
+      echo " <script>window.location.reload()</script>";
+      sql("update spiele set jetztdran = '" . $jetztdran . "', ausgeschieden = ausgeschieden || '{" . $name . "}' where id =" . $_GET['s']);
+      return true;
+    }
+  }
+}
 function frage($spielart, $bieten_heben)
 {
   echo '
