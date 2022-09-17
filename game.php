@@ -237,22 +237,27 @@ function gameselect($name, $s1, $s2, $s3)
     }
 
     sql("update spiele set trumpf = '" . $trumpf . "', spielart =" . $_POST['spielart'] . ", spielstarterderrunde = " . $spielstarterderrunde . ", spielausgewählt = true, spieler = '" . $name . "' where id = " . $_GET['s']);
+
     talonzeigen();
   }
 }
 
 function talonzeigen()
 {
-
   //checkbox mit bildern
   //zuerst talonkarten auswählen danach eigene karten auswählen
-  $data = sql("select talon[1],talon[2],talon[3], jetztdran from spiele where id =" . $_GET['s']);
+  $data = sql("select talon[1],talon[2],talon[3], jetztdran, spielart from spiele where id =" . $_GET['s']);
   //header("Location: game.php");
+
   while ($row = pg_fetch_row($data)) {
     $t1 = $row[0];
     $t2 = $row[1];
     $t3 = $row[2];
     $jetztdran = $row[3];
+    $spielart = $row[4];
+  }
+  if ($spielart > 10) { //bei doppelbettl oder doppelmord
+    return false;
   }
   $data2 = sql("select " . $jetztdran . " from spiele where id =" . $_GET['s']);
   while ($row = pg_fetch_row($data2)) {
@@ -318,7 +323,7 @@ function talonzeigen()
         <script type="text/javascript">
           $("input.deinekarten").on("change", function (evt) {
             var limit = $("input[name=\"talon0\"]:checked").length + $("input[name=\"talon1\"]:checked").length + $("input[name=\"talon2\"]:checked").length;
-            if ($("input[name=\"deinekarten\"]:checked").length > limit) {
+            if (($("input[name=\"deinekarten\"]:checked").length) > limit) {
               this.checked = false;
             }
           });
@@ -336,6 +341,10 @@ function talonzeigen()
       if (isset($_POST['talon' . $i])) {
         $talonkartenausgewählt[] = $_POST['talon' . $i];
       }
+    }
+    if (count($kartenausgewählt) != count($talonkartenausgewählt)) {
+      talonzeigen();
+      return false;
     }
     $karten = $s->karten;
     switch (count($kartenausgewählt)) {
@@ -679,8 +688,7 @@ if (isset($_GET['s']) && !($_GET['s'] == "" && !($_GET['s'] == "null"))) {
 
     <script src="game.js">
     </script>
-    <?php main();
-talonzeigen(); ?>
+    <?php main(); ?>
 </body>
 
 </html>
