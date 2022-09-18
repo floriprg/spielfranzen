@@ -237,8 +237,7 @@ function gameselect($name, $s1, $s2, $s3)
     }
     echo "<script>window.location.reload();</script>";
     sql("update spiele set trumpf = '" . $trumpf . "', spielart =" . $_POST['spielart'] . ", spielstarterderrunde = " . $spielstarterderrunde . ", spielausgewählt = true, spieler = '" . $name . "' where id = " . $_GET['s']);
-    talonzeigen(); //geht nicht!!!
-
+  // talonzeigen(); //geht nicht!!!
   }
 }
 
@@ -615,8 +614,7 @@ function frage($spielart, $bieten_heben, $frage_gestellt)
   echo '<script id="modalshow" type="text/javascript">
     $(window).on("load", function () {
       $("#frage_modal").modal("show");
-    });
-  </script>';
+    })  </script>';
 }
 ?>
 <!DOCTYPE html>
