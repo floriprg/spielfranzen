@@ -22,6 +22,7 @@ function main()
   //   return false;
   // }
   platzZuweisung();
+
 }
 
 function spielpasswort()
@@ -237,12 +238,13 @@ function gameselect($name, $s1, $s2, $s3)
     }
     echo "<script>window.location.reload();</script>";
     sql("update spiele set trumpf = '" . $trumpf . "', spielart =" . $_POST['spielart'] . ", spielstarterderrunde = " . $spielstarterderrunde . ", spielausgewählt = true, spieler = '" . $name . "' where id = " . $_GET['s']);
-  // talonzeigen(); //geht nicht!!!
+    talonzeigen(); //geht nicht!!!
   }
 }
 
 function talonzeigen()
 {
+
   //checkbox mit bildern
   //zuerst talonkarten auswählen danach eigene karten auswählen
   $data = sql("select talon[1],talon[2],talon[3], jetztdran, spielart from spiele where id =" . $_GET['s']);
@@ -637,6 +639,18 @@ function frage($spielart, $bieten_heben, $frage_gestellt)
 </head>
 
 <body>
+    <div id="root"></div>
+    <script>
+    //!!!!!!!!!!!!
+    //Websocket!!!
+    //!!!!!!!!!!!!
+    var host = 'ws://localhost:5000/websockets.php';
+    var socket = new WebSocket(host);
+    socket.onmessage = function(e) {
+        document.getElementById('root').innerHTML = e.data;
+    };
+    </script>
+
     <script>
     if (window.history.replaceState) {
         window.history.replaceState(null, null, window.location);
