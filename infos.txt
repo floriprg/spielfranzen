@@ -1,0 +1,29 @@
+id google cloud: spielfranzen
+passwort: g!#+neznarfleips
+http://35.234.117.185/
+
+trusty-server-367014
+
+
+
+DATABASE GOOGLE_CLOUD
+Vorbereitung:
+1. https://console.cloud.google.com/welcome?project=trusty-server-367014&cloudshell=true
+2. auf shell klicken
+TERMINAL
+1. gcloud config set project trusty-server-367014
+2. gcloud sql connect spielfranzen --user=postgres
+3. Password: g!#+neznarfleips
+VERBUNDEN!
+
+
+cloudshell
+https://shell.cloud.google.com/?show=ide%2Cterminal
+
+HTTPS:
+sudo certbot --apache
+
+https://medium.com/@kerion7/creating-a-simple-php-application-on-google-app-engine-c75ce5150c30
+
+
+PHP Parse error:  syntax error, unexpected ')', expecting '|' or variable (T_VARIABLE) in /var/www/html/config.php on line 63

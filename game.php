@@ -1,28 +1,16 @@
 <?php
 include 'vendor/autoload.php';
 include_once "config.php";
-function neuekarten()
-{
-  $karten = array("6laub.jpg", "6sche.jpg", "6eich.jpg", "6herz.jpg", "2laub.jpg", "2sche.jpg", "2eich.jpg", "2herz.jpg", "3laub.jpg", "3sche.jpg", "3eich.jpg", "3herz.jpg", "4laub.jpg", "4sche.jpg", "4eich.jpg", "4herz.jpg", "5eich.jpg", "5herz.jpg", "5laub.jpg", "5sche.jpg", "7eich.jpg", "7herz.jpg", "7laub.jpg", "7sche.jpg", "8eich.jpg", "8herz.jpg", "8laub.jpg", "8sche.jpg", "9eich.jpg", "9herz.jpg", "9laub.jpg", "9sche.jpg", "1sche.jpg");
-  $zufallskarten = [];
-  for ($i = 0; $i < 33; $i++) {
-    $zahl = rand(0, (count($karten) - 1));
-    $zufallskarten[] = $karten[$zahl];
-    array_splice($karten, $zahl, 1);
-  }
-  return $zufallskarten;
-}
+include 'game_functions.php';
+
+$hatZugriff = false;
 
 function main()
 {
   if (!(errors_at_begin())) {
     return false;
   }
-  // if (!(spielpasswort())) {
-  //   return false;
-  // }
-  platzZuweisung();
-
+  spielpasswort();
 }
 
 function spielpasswort()
@@ -31,19 +19,25 @@ function spielpasswort()
   while ($row = pg_fetch_row($d)) {
     $spielpasswort = $row[0];
   }
-  if ($spielpasswort) {
-    echo "<input class='form-control' type='password' name='pwd' placeholder='Gib das Passwort für das Spiel ein '>
-    <input type='submit' name='submit' placeholder = 'OK'>";
+  if (((isset($_COOKIE["gamepwd"])) && ($spielpasswort == $_COOKIE["gamepwd"])) || !($spielpasswort)) {
+    platzZuweisung();
+  } else {
+    echo "<form method='post'><input class='form-control' type='password' name='pwd' placeholder='Gib das Passwort für das Spiel ein '>
+    <input type='submit' name='submit' placeholder = 'OK'></form>";
+
     if (isset($_POST['submit'])) {
       if ($spielpasswort == $_POST['pwd']) {
-        return true;
-      }
-      else {
+        setcookie("gamepwd", $spielpasswort);
+        platzZuweisung();
+      } else {
+        echo '<div class="alert alert-danger" role="alert">Falsches Passwort</div>';
         return false;
       }
     }
   }
 }
+
+
 function errors_at_begin()
 {
 
@@ -59,8 +53,7 @@ function errors_at_begin()
   if ((!isset($_GET['s']))) {
     if ((pg_num_rows($d) > 0)) {
       echo "<script>window.location = 'game.php?s=" . $id . "'</script>";
-    }
-    else {
+    } else {
       echo '<div class="alert alert-danger" role="alert">
       Du nimmst noch an keinem Spiel teil! <a href="index.php">Hier</a> findest du die vorhandenen Spiele      
       </div>';
@@ -121,15 +114,13 @@ function platzZuweisung()
       sql("update spiele set talon =  '{" . $talon[0] . ", " . $talon[1] . ", " . $talon[2] . "}' where id = " . $_GET['s']);
     }
     kartenausteilen($s1, $s1->name, $s2->name, $s3->name);
-  }
-  else if ($s2->name == "offen" || $s2->name == $name) {
+  } else if ($s2->name == "offen" || $s2->name == $name) {
     if ($s2->name != $name) {
       $s2->name = $name;
       sql("update spiele set s2 = '" . json_encode($s2) . "' where id = " . $_GET['s']);
     }
     kartenausteilen($s2, $s1->name, $s2->name, $s3->name);
-  }
-  else if ($s3->name == "offen" || $s3->name == $name) {
+  } else if ($s3->name == "offen" || $s3->name == $name) {
     if ($s3->name != $name) {
       $s3->name = $name;
       sql("update spiele set s3 = '" . json_encode($s3) . "' where id = " . $_GET['s']);
@@ -137,8 +128,7 @@ function platzZuweisung()
     }
     kartenausteilen($s3, $s1->name, $s2->name, $s3->name);
 
-  }
-  else {
+  } else {
     echo '<div class="alert alert-warning" role="alert">
  Dieses Spiel ist leider schon besetzt
  </div>';
@@ -150,19 +140,17 @@ function platzZuweisung()
   }
   if ($ausgeschieden < 2) {
     spielauswahl($name);
-  }
-  else {
+  } else {
     if ($spieler == "") {
       gameselect($name, $s1, $s2, $s3);
-    }
-    else {
+
+    } else {
       game($name);
     }
   }
 }
 function gameselect($name, $s1, $s2, $s3)
 {
-
   $data_ausgeschieden = sql("select ausgeschieden, spielart, spielausgewählt from spiele where id = " . $_GET['s'] . ";");
   while ($row = pg_fetch_row($data_ausgeschieden)) {
     $ausgeschieden = explode(",", trim($row[0], '{}'));
@@ -236,8 +224,8 @@ function gameselect($name, $s1, $s2, $s3)
         $spielstarterderrunde = 2;
         break;
     }
-    echo "<script>window.location.reload();</script>";
     sql("update spiele set trumpf = '" . $trumpf . "', spielart =" . $_POST['spielart'] . ", spielstarterderrunde = " . $spielstarterderrunde . ", spielausgewählt = true, spieler = '" . $name . "' where id = " . $_GET['s']);
+    echo "<script>window.location.reload();</script>";
     talonzeigen(); //geht nicht!!!
   }
 }
@@ -372,109 +360,11 @@ function talonzeigen()
 
 function game($name)
 {
-  echo "<script src='index.js'></script>";
+  echo "<script src='js/index.js'></script>";
 }
 
 
 
-function kartenausteilen($s, $n1, $n2, $n3)
-{
-  $data = sql("select jetztdran, spielrunde from spiele where id =" . $_GET['s']);
-  while ($row = pg_fetch_row($data)) {
-    $jetztdran = $row[0];
-    $spielrunde = $row[1];
-  }
-
-  $data_karten = sql("select ablegkarten[1], ablegkarten[2], ablegkarten[3] from spiele where id = " . $_GET['s']);
-  try {
-    while ($row = pg_fetch_row($data_karten)) {
-      $a_karte1 = $row[0];
-      $a_karte2 = $row[1];
-      $a_karte3 = $row[2];
-    }
-  }
-  catch (\Throwable $th) {
-    new error($th);
-  }
-  echo '<div class="container">';
-  echo '
-  <div class="d-flex flex-column justify-content-center">
-    <div class = "d-flex flex-wrap justify-content-center">
-    <div class = "d-flex flex-row justify-content-center">
-    <div  class="card m-2" style="width: 30vw; max-width: 120px">
-      <img id="ableg1"  class="card-img-top img-fluid" src="karten/' . (($a_karte1 == "keine") ? 'deckblatt.jpg' : $a_karte1) . '" alt="Karte 1">
-      <div class="card-body">
-        <h5 class="card-title">' . $n1 . '</h5>
-        <p>' . (($jetztdran == "s1") ? 'jetzt dran' : '') . '</p>
-      </div>
-    </div>
-    <div  class="card m-2" style="width: 30vw; max-width: 120px">
-      <img  id="ableg2"  class="card-img-top img-fluid" src="karten/' . (($a_karte2 == "keine") ? 'deckblatt.jpg' : $a_karte2) . '" alt="Karte 2">
-      <div class="card-body">
-        <h5 class="card-title">' . $n2 . '</h5>
-        <p>' . (($jetztdran == "s2") ? 'jetzt dran' : '') . '</p>
-      </div>
-    </div>
-    <div  class="card m-2" style="width: 30vw; max-width: 120px">
-      <img id="ableg3" class="card-img-top img-fluid" src="karten/' . (($a_karte3 == "keine") ? 'deckblatt.jpg' : $a_karte3) . '" alt="Karte 3">
-      <div class="card-body">
-        <h5 class="card-title">' . $n3 . '</h5>
-        <p>' . (($jetztdran == "s3") ? 'jetzt dran' : '') . '</p>
-      </div>
-    </div>
-    </div>
-  <p>
-  <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExample"
-    aria-expanded="false" aria-controls="collapseExample">
-    Punktetabelle
-  </button>
-  </p>
-  <div class="collapse" id="collapseExample">
-  <div class="card card-body">     
-  <table class="table w-25">
-  <thead>
-  <tr>
-    <th scope="col">Punkte</th>
-    <th scope="col">' . $n1 . '</th>
-    <th scope="col">' . $n2 . '</th>
-    <th scope="col">' . $n3 . '</th>
-  </tr>
-  </thead>
-  <tbody>';
-  $data = sql("select anzahl from spiele where id = " . $_GET['s'] . ";");
-  while ($row = pg_fetch_row($data)) {
-    $anzahl = $row[0];
-  }
-  for ($i = 1; $i < $anzahl + 1; $i++) {
-    echo '<tr>
-            <th scope="row">' . $i . '</th>
-          </tr>';
-  }
-  $d = sql("select spielart from spiele where id = " . $_GET['s'] . "");
-  while ($row = pg_fetch_row($d)) {
-    $spielart = $row[0];
-  }
-  echo '
-  <tr><th>Spielart</th><th>' . $spielart . '</th></tr>
-  </tbody>
-  </table>
-  </div>
-  </div>
-  </div>
-  <div class="d-flex flex-row">';
-  $count = count($s->karten);
-  for ($i = 0; $i < $count; $i++) {
-    echo '<div class="card m-0.5" style="width: 9vw;">
-    <img  id="' . $i . '" class="card-img-top img-fluid" src="karten/' . (!(isset($s->karten[$i])) ? 'deckblatt.jpg' : $s->karten[$i]) . '" alt="Card image cap"> 
-    </div>';
-  }
-  echo '
-  </div>
-  </div>
-  </div>
-  ';
-
-}
 
 function spielauswahl($name)
 {
@@ -490,8 +380,7 @@ function spielauswahl($name)
   while ($row = pg_fetch_row($data2)) {
     if ($row[0] == $name) {
       $fragen = true;
-    }
-    else {
+    } else {
       $fragen = false;
     }
   }
@@ -555,8 +444,7 @@ function fragestellen($jetztdran, $ausgeschieden, $name, $spielart, $gehebt)
       sql("update spiele set gehebt = false, jetztdran = '" . $jetztdran . "', ausgeschieden = ausgeschieden || '{" . $name . "}' where id =" . $_GET['s']);
       $frage_gestellt = true;
     }
-  }
-  else {
+  } else {
     $bieten_heben = "bieten";
     frage($spielart, $bieten_heben, $frage_gestellt);
     switch ($jetztdran) {
@@ -576,8 +464,7 @@ function fragestellen($jetztdran, $ausgeschieden, $name, $spielart, $gehebt)
         echo "<script>window.location.reload()</script>";
 
         sql("update spiele set gehebt = false, jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
-      }
-      else {
+      } else {
         echo "<script>window.location.reload()</script>";
         sql("update spiele set spielart = " . ($spielart + 1) . ", jetztdran = '" . $jetztdran . "' where id =" . $_GET['s']);
       }
@@ -590,34 +477,7 @@ function fragestellen($jetztdran, $ausgeschieden, $name, $spielart, $gehebt)
     }
   }
 }
-function frage($spielart, $bieten_heben, $frage_gestellt)
-{
-  echo '
-    <!-- Modal -->
-    <div class="modal fade" id="frage_modal" tabindex="-1" role="dialog" aria-labelledby="frage_modalLabel"
-      aria-hidden="true">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h2 class="modal-title" id="frage_modalLabel"> Möchtest du ' . $spielart . ' ' . $bieten_heben . '?</h2>
-            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-          <div class="modal-footer">
-            <form method="post">
-              <input type="submit" value="ja" name="ja" class="btn btn-primary">
-              <input type="submit" value="nein" name="nein" class="btn btn-primary">
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>';
-  echo '<script id="modalshow" type="text/javascript">
-    $(window).on("load", function () {
-      $("#frage_modal").modal("show");
-    })  </script>';
-}
+
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -644,11 +504,6 @@ function frage($spielart, $bieten_heben, $frage_gestellt)
     //!!!!!!!!!!!!
     //Websocket!!!
     //!!!!!!!!!!!!
-    var host = 'ws://localhost:5000/websockets.php';
-    var socket = new WebSocket(host);
-    socket.onmessage = function(e) {
-        document.getElementById('root').innerHTML = e.data;
-    };
     </script>
 
     <script>
@@ -658,15 +513,15 @@ function frage($spielart, $bieten_heben, $frage_gestellt)
     </script>
     <h1 class="text-center">
         <?php
-include_once "config.php";
-if (isset($_GET['s']) && !($_GET['s'] == "" && !($_GET['s'] == "null"))) {
-  $data = sql("select name from spiele where id = " . $_GET['s'] . "");
-  while ($row = pg_fetch_row($data)) {
-    echo "$row[0]";
-  }
-}
+        include_once "config.php";
+        if (isset($_GET['s']) && !($_GET['s'] == "" && !($_GET['s'] == "null"))) {
+          $data = sql("select name from spiele where id = " . $_GET['s'] . "");
+          while ($row = pg_fetch_row($data)) {
+            echo "$row[0]";
+          }
+        }
 
-?>
+        ?>
     </h1>
     <ul id="nav" class="nav nav-tabs justify-content-center">
         <li class="nav-item">
@@ -698,7 +553,7 @@ if (isset($_GET['s']) && !($_GET['s'] == "" && !($_GET['s'] == "null"))) {
         integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous">
     </script>
 
-    <script src="game.js">
+    <script src="js/game.js">
     </script>
     <?php main(); ?>
 </body>

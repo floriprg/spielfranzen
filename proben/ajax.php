@@ -41,7 +41,7 @@ echo '
         integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous">
     </script>
 
-    <script src="game.js">
+    <script src="js/game.js">
     </script> ';
 function neuekarten()
 {
@@ -321,7 +321,7 @@ function talonzeigen()
 
 function game($name)
 {
-  echo "<script src='index.js'></script>";
+  echo "<script src='js/index.js'></script>";
 }
 
 

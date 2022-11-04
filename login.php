@@ -29,17 +29,18 @@ function passwortvergessen(){
         }
     }
 }
+
 function login(){
     if (isset($_POST['submit']) && ($_SERVER['REQUEST_METHOD'] == 'POST')) {
         if (empty($_POST['pwd']) || empty($_POST['username'])){
-            '<div class="alert alert-warning" role="alert">
-           Fülle alle Felder aus
+            echo'<div class="alert alert-warning" role="alert">
+            Fülle alle Felder aus
             </div>';
             return false;
         }
         if ($_POST['pwd'] != strip_tags($_POST['pwd']) || $_POST['username'] != strip_tags($_POST['username'])) {
             echo '<div class="alert alert-danger" role="alert">
-            Sie dürfen keine HTML Tags eingeben!
+             Sie dürfen keine HTML Tags eingeben!
             </div>';
             return false;
         }
@@ -58,35 +59,37 @@ function login(){
         if ($login_check > 0) {
             //mit jwt
             $payload = [
-                'iss' => "spiel-franzen.herokuapp.com",
-                'aud' => 'www.spiel-franzen.herokuapp.com',
-                'exp' => time() + 3600, //1 hour
-                'data' => [
-                    'id' => $id,
-                    'name' => $name,
-                    'email' => $email,
-                ],
+            'iss' => "spiel-franzen.herokuapp.com",
+            'aud' => 'www.spiel-franzen.herokuapp.com',
+            'exp' => time() + 3600, //1 hour
+            'data' => [
+            'id' => $id,
+            'name' => $name,
+            'email' => $email,
+            ],
             ];
             $secret_key = "Hochsteller";
             $jwt = JWT::encode($payload, $secret_key, 'HS256');
             $random_number = bin2hex(openssl_random_pseudo_bytes(10));
             $jti = hash('sha256', serialize($jwt) . $random_number);
 
+
+
             setcookie("to", $jwt, [
-                'expires' => 0,
-                'secure' => true,
-                'httponly' => true,
-                'samesite' => 'Strict',
+            'expires' => 0,
+            'secure' => true,
+            'httponly' => true,
+            'samesite' => 'Strict',
             ]);
             header("Location:index.php");
             exit(1);
         }
         else {
             echo '<div class="alert alert-danger" role="alert">
-            Benutzername oder Passwort sind falsch!
+                Benutzername oder Passwort sind falsch!
             </div>';
-        }   
-     }
+        }
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -199,7 +202,7 @@ function login(){
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous">
     </script>
-    <script src="index.js"></script>
+    <script src="js/index.js"></script>
 </body>
 
 </html>
