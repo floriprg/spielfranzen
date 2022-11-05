@@ -345,7 +345,7 @@ function talonzeigen()
       }
     }
     if (count($kartenausgewählt) != count($talonkartenausgewählt)) {
-      talonzeigen();
+      talonzeigen(); //TODO BUG!
       return false;
     }
     $karten = $s->karten;
