@@ -23,7 +23,7 @@
                 <div class="iub_content legal_pp">
                     <div class="iub_header">
 
-                        <h1>Datenschutzerklärung von <strong>spiel-franzen.herokuapp.com</strong></h1>
+                        <h1>Datenschutzerklärung von <strong>spielfran.com</strong></h1>
 
                         <p>Um Informationen zu den personenbezogenen Daten, dem Zweck und den Parteien, welchen diese
                             Daten

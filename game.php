@@ -137,15 +137,29 @@ function platzZuweisung()
   while ($row = pg_fetch_row($dl)) {
     $ausgeschieden = $row[0];
     $spieler = $row[1];
+
   }
   if ($ausgeschieden < 2) {
     spielauswahl($name);
   } else {
     if ($spieler == "") {
       gameselect($name, $s1, $s2, $s3);
-
     } else {
-      game($name);
+      $spielausgewählt = "";
+      $dl2 = sql("select spielausgewählt from spiele where id = " . $_GET['s']);
+      while ($row = pg_fetch_row($dl2)) {
+        $spielausgewählt = $row[0];
+      }
+      echo $spielausgewählt;
+      if ($spielausgewählt == "t") {
+        if ($spieler == $name) {
+          talonzeigen(); //geht nicht!!!
+          echo "<script>window.location.reload</script>";
+          //sql("update spiele set spielausgewählt = false where id = " . $_GET['s']);
+        }
+      } else {
+        game($name);
+      }
     }
   }
 }
@@ -226,7 +240,6 @@ function gameselect($name, $s1, $s2, $s3)
     }
     sql("update spiele set trumpf = '" . $trumpf . "', spielart =" . $_POST['spielart'] . ", spielstarterderrunde = " . $spielstarterderrunde . ", spielausgewählt = true, spieler = '" . $name . "' where id = " . $_GET['s']);
     echo "<script>window.location.reload();</script>";
-    talonzeigen(); //geht nicht!!!
   }
 }
 
@@ -351,8 +364,8 @@ function talonzeigen()
         break;
     }
     $s->karten = $karten;
-    $sqlstr = "update spiele set " . $jetztdran . " = '" . json_encode($s) . "' where id = " . $_GET['s'];
-    echo $sqlstr;
+    $sqlstr = "update spiele set " . $jetztdran . " = '" . json_encode($s) . "', spielausgewählt = false where id = " . $_GET['s'];
+
     echo "<script>window.location.reload();</script>";
     sql($sqlstr);
   }

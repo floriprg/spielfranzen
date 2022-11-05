@@ -10,7 +10,7 @@ passwortvergessen();
 function passwortvergessen(){
     if (isset($_POST["pwdforget"])&& ($_SERVER['REQUEST_METHOD'] == 'POST')){
         $email = $_POST['pwdforgetemail'];
-        $data = sql("select email from users where email = '" . $email . "';");
+        $data = sql_login("select email from users where email = '" . $email . "';");
         $emailcheck = pg_num_rows($data);
         if ($emailcheck == 1) {
             $msg = "Gib ein neues Passwort ein!";
@@ -47,7 +47,7 @@ function login(){
         $hashpassword = sha512($_POST['pwd']);
         $username = pg_escape_string(($_POST['username']));
         $sql = "select id, username, email from users where username = '" . $username . "' and pwd ='" . $hashpassword . "'";
-        $data = sql($sql);
+        $data = sql_login($sql);
         $login_check = pg_num_rows($data);
         $i = 0;
         while ($row = pg_fetch_row($data)) {

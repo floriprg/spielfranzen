@@ -7,9 +7,13 @@ header('Access-Control-Allow-Method:POST');
 define("JWT_ALGO", "HS512");
 function sql($sql)
 {
-    //pg_connect("trusty-server-367014:europe-west8:spielfranzen port=5432 dbname=spielfranzen user=p1092094200465-1mxt3h@gcp-sa-cloud-sql.iam.gserviceaccount.com password=g!#+neznarfleips");
-    return pg_query(pg_connect("host=ec2-34-242-84-130.eu-west-1.compute.amazonaws.com port=5432 dbname=d2stjk7j24ibr user=ziekgdhkxuqkta password=c7029fdf0002ed1705c9fbf741c8a9dcf6fc3d4ca04f4c1957d7d7b3a1277543"), $sql);
+    return pg_query(pg_connect("host=surus.db.elephantsql.com port=5432 dbname=ezxcezfz user=ezxcezfz password=BKQzHevfNx0ZB1pORmS3P8ELhVL5R4Qa"), $sql);
 }
+
+function sql_login($sql){
+    return pg_query(pg_connect("host=surus.db.elephantsql.com port=5432 dbname=bgjwlwho user=bgjwlwho password=wv27u-IX-Xe5mEmOV4Y94zAj_H0SCZdb"), $sql);
+}
+
 
 function sec_sql($sql){
     try {

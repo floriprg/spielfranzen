@@ -19,7 +19,7 @@ function register()
             </div>';
                 return false;
             }
-            if(!(preg_match('/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/', $_POST['pwd'])) && !$production){
+            if (!(preg_match('/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/', $_POST['pwd'])) && !$production) {
                 echo '<div class="alert alert-danger" role="alert">
                     Du must mindestens 1 Buchstaben und 1 Zahl eingeben! Das Passwort muss 6 Zeichen lang sein!
                 </div>';
@@ -38,28 +38,26 @@ function register()
                 return false;
             }
             $sql2 = "select * from users where username ='" . $_POST['username'] . "' OR email='" . sha512(pg_escape_string($_POST['email'])) . "'";
-            $data = sql($sql2);
+            $data = sql_login($sql2);
             $login_check = pg_num_rows($data);
             if ($login_check != 0) {
-                echo('<div class="alert alert-danger" role="alert">
+                echo ('<div class="alert alert-danger" role="alert">
                     Email oder Benutzername wird bereits verwendet!
                     </div>');
                 return false;
             }
             $sql = "insert into users(username,email,pwd)values('" . $_POST['username'] . "','" . sha512(pg_escape_string($_POST['email'])) . "','" . sha512($_POST['pwd']) . "')";
-            $ret = sql($sql);
+            $ret = sql_login($sql);
             if ($ret) {
                 echo '<div class="alert alert-success" role="alert">
                     Erfolgreich registriert!
                     </div>';
-            }
-            else {
+            } else {
                 echo '<div class="alert alert-danger" role="alert">
                     Etwas ist schiefgelaufen!
                     </div>';
             }
-        }
-        else {
+        } else {
             echo '<div class="alert alert-warning" role="alert">
             Fülle alle Felder aus!
             </div>';
