@@ -113,20 +113,20 @@ function platzZuweisung()
       sql("update spiele set s3 = '" . json_encode($s3) . "' where id = " . $_GET['s']);
       sql("update spiele set talon =  '{" . $talon[0] . ", " . $talon[1] . ", " . $talon[2] . "}' where id = " . $_GET['s']);
     }
-    kartenausteilen($s1, $s1->name, $s2->name, $s3->name);
+    kartenausteilen($s1, $s1, $s2, $s3);
   } else if ($s2->name == "offen" || $s2->name == $name) {
     if ($s2->name != $name) {
       $s2->name = $name;
       sql("update spiele set s2 = '" . json_encode($s2) . "' where id = " . $_GET['s']);
     }
-    kartenausteilen($s2, $s1->name, $s2->name, $s3->name);
+    kartenausteilen($s2, $s1, $s2, $s3);
   } else if ($s3->name == "offen" || $s3->name == $name) {
     if ($s3->name != $name) {
       $s3->name = $name;
       sql("update spiele set s3 = '" . json_encode($s3) . "' where id = " . $_GET['s']);
       sql("update spiele set gestartet = true where id = " . $_GET['s']);
     }
-    kartenausteilen($s3, $s1->name, $s2->name, $s3->name);
+    kartenausteilen($s3, $s1, $s2, $s3);
 
   } else {
     echo '<div class="alert alert-warning" role="alert">
@@ -494,36 +494,36 @@ function fragestellen($jetztdran, $ausgeschieden, $name, $spielart, $gehebt)
 <html lang="de">
 
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mein Spiel</title>
-    <link rel="icon" type="image/jpg" href="karten/weliicon.jpg">
-    <meta name="description"
-        content="Spiele Spiel Franzen online gegen echte Gegner! Nimm an einem Spiel teil oder beginne dein eigenes! Für 3 Spieler.">
-    <meta name="keywords" content="Spiel Franzen">
-    <meta name="language" content="de">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mein Spiel</title>
+  <link rel="icon" type="image/jpg" href="karten/weliicon.jpg">
+  <meta name="description"
+    content="Spiele Spiel Franzen online gegen echte Gegner! Nimm an einem Spiel teil oder beginne dein eigenes! Für 3 Spieler.">
+  <meta name="keywords" content="Spiel Franzen">
+  <meta name="language" content="de">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 </head>
 
 <body>
-    <div id="root"></div>
-    <script>
+  <div id="root"></div>
+  <script>
     //!!!!!!!!!!!!
     //Websocket!!!
     //!!!!!!!!!!!!
-    </script>
+  </script>
 
-    <script>
+  <script>
     if (window.history.replaceState) {
-        window.history.replaceState(null, null, window.location);
+      window.history.replaceState(null, null, window.location);
     }
-    </script>
-    <h1 class="text-center">
-        <?php
+  </script>
+  <h1 class="text-center">
+    <?php
         include_once "config.php";
         if (isset($_GET['s']) && !($_GET['s'] == "" && !($_GET['s'] == "null"))) {
           $data = sql("select name from spiele where id = " . $_GET['s'] . "");
@@ -533,40 +533,40 @@ function fragestellen($jetztdran, $ausgeschieden, $name, $spielart, $gehebt)
         }
 
         ?>
-    </h1>
-    <ul id="nav" class="nav nav-tabs justify-content-center">
-        <li class="nav-item">
-            <a class="nav-link " href="home.php">
-                Home
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="index.php">Spielen</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="login.php">
-                Anmelden
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link " href="register.php">Registrieren</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="rangliste.php">Rangliste</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link active" href="game.php">Mein Spiel</a>
-        </li>
-    </ul>
-    <style src="style.css"></style>
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous">
+  </h1>
+  <ul id="nav" class="nav nav-tabs justify-content-center">
+    <li class="nav-item">
+      <a class="nav-link " href="home.php">
+        Home
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="index.php">Spielen</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="login.php">
+        Anmelden
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link " href="register.php">Registrieren</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="rangliste.php">Rangliste</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link active" href="game.php">Mein Spiel</a>
+    </li>
+  </ul>
+  <style src="style.css"></style>
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous">
     </script>
 
-    <script src="js/game.js">
-    </script>
-    <?php main(); ?>
+  <script src="js/game.js">
+  </script>
+  <?php main(); ?>
 </body>
 
 </html>

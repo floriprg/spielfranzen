@@ -31,31 +31,31 @@ function kartenausteilen($s, $n1, $n2, $n3)
         new error($th);
     }
     echo '<div class="container">';
-echo '
+    echo '
 <div class="d-flex flex-column justify-content-center">
     <div class="d-flex flex-wrap justify-content-center">
         <div class="d-flex flex-row justify-content-center">
             <div class="card m-2" style="width: 30vw; max-width: 120px">
-                <img id="ableg1" class="card-img-top img-fluid" src="karten/' . (($a_karte1=="keine") ? 'deckblatt.jpg'
-                    : $a_karte1) . '" alt="Karte 1">
+                <img id="ableg1" class="card-img-top img-fluid" src="karten/' . (($a_karte1 == "keine") ? 'deckblatt.jpg'
+        : $a_karte1) . '" alt="Karte 1">
                 <div class="card-body">
-                    <h5 class="card-title">' . $n1 . '</h5>
+                    <h5 class="card-title">' . $n1->name . '</h5>
                     <p>' . (($jetztdran == "s1") ? 'jetzt dran' : '') . '</p>
                 </div>
             </div>
             <div class="card m-2" style="width: 30vw; max-width: 120px">
-                <img id="ableg2" class="card-img-top img-fluid" src="karten/' . (($a_karte2=="keine") ? 'deckblatt.jpg'
-                    : $a_karte2) . '" alt="Karte 2">
+                <img id="ableg2" class="card-img-top img-fluid" src="karten/' . (($a_karte2 == "keine") ? 'deckblatt.jpg'
+        : $a_karte2) . '" alt="Karte 2">
                 <div class="card-body">
-                    <h5 class="card-title">' . $n2 . '</h5>
+                    <h5 class="card-title">' . $n2->name . '</h5>
                     <p>' . (($jetztdran == "s2") ? 'jetzt dran' : '') . '</p>
                 </div>
             </div>
             <div class="card m-2" style="width: 30vw; max-width: 120px">
-                <img id="ableg3" class="card-img-top img-fluid" src="karten/' . (($a_karte3=="keine") ? 'deckblatt.jpg'
-                    : $a_karte3) . '" alt="Karte 3">
+                <img id="ableg3" class="card-img-top img-fluid" src="karten/' . (($a_karte3 == "keine") ? 'deckblatt.jpg'
+        : $a_karte3) . '" alt="Karte 3">
                 <div class="card-body">
-                    <h5 class="card-title">' . $n3 . '</h5>
+                    <h5 class="card-title">' . $n3->name . '</h5>
                     <p>' . (($jetztdran == "s3") ? 'jetzt dran' : '') . '</p>
                 </div>
             </div>
@@ -72,38 +72,43 @@ echo '
                     <thead>
                         <tr>
                             <th scope="col">Punkte</th>
-                            <th scope="col">' . $n1 . '</th>
-                            <th scope="col">' . $n2 . '</th>
-                            <th scope="col">' . $n3 . '</th>
+                            <th scope="col">' . $n1->name . '</th>
+                            <th scope="col">' . $n2->name . '</th>
+                            <th scope="col">' . $n3->name . '</th>
                         </tr>
                     </thead>
                     <tbody>';
-                        $data = sql("select anzahl from spiele where id = " . $_GET['s'] . ";");
-                        while ($row = pg_fetch_row($data)) {
-                        $anzahl = $row[0];
-                        }
-                        for ($i = 1; $i < $anzahl + 1; $i++) { echo '<tr>
-                            <th scope="row">' . $i . '</th>
-                            </tr>';
-                            }
-                            $d = sql("select spielart from spiele where id = " . $_GET['s'] . "");
-                            while ($row = pg_fetch_row($d)) {
-                            $spielart = $row[0];
-                            }
-                            echo '
-                            <tr>
-                                <th>Spielart</th>
-                                <th>' . $spielart . '</th>
-                            </tr>
+    $data = sql("select anzahl from spiele where id = " . $_GET['s'] . ";");
+    while ($row = pg_fetch_row($data)) {
+        $anzahl = $row[0];
+    }
+    for ($i = 1; $i < $anzahl + 1; $i++) {
+        echo '<tr>
+            <th scope="row">' . $i . '</th>
+            <th scope="row">' . $n1->punkte . '</th>
+            <th scope="row">' . $n2->punkte . '</th>
+            <th scope="row">' . $n3->punkte . '</th>
+            </tr>';
+    }
+    $d = sql("select spielart from spiele where id = " . $_GET['s'] . "");
+    while ($row = pg_fetch_row($d)) {
+        $spielart = $row[0];
+    }
+    echo '
+                        <tr>
+                            <th>Spielart</th>
+                            <th>' . $spielart . '</th>
+                        </tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
     <div class="d-flex flex-row">';
-        $count = count($s->karten);
-        for ($i = 0; $i < $count; $i++) { echo '<div class="card m-0.5" style="width: 9vw;">
-            <img id="' . $i . '" class="card-img-top img-fluid" src="karten/' . (!(isset($s->karten[$i])) ?
+    $count = count($s->karten);
+    for ($i = 0; $i < $count; $i++) {
+        echo '<div class="card m-0.5" style="width: 9vw;">
+            <img id="' . $i . '" class="card-img-top img-fluid" src="karten/' . (!(isset($s->karten[$i])) ? 
             'deckblatt.jpg' : $s->karten[$i]) . '" alt="Card image cap">
     </div>';
     }
@@ -117,7 +122,7 @@ echo '
 
 function frage($spielart, $bieten_heben, $frage_gestellt)
 {
-echo '
+    echo '
 <!-- Modal -->
 <div class="modal fade" id="frage_modal" tabindex="-1" role="dialog" aria-labelledby="frage_modalLabel"
     aria-hidden="true">
@@ -138,7 +143,7 @@ echo '
         </div>
     </div>
 </div>';
-echo '
+    echo '
 <script id="modalshow" type="text/javascript">
     $(window).on("load", function () {
       $("#frage_modal").modal("show");
