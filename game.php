@@ -384,7 +384,6 @@ function spielauswahl($name)
   $data = sql("select jetztdran, spielart, gehebt from spiele where id =" . $_GET['s'] . ";");
   while ($row = pg_fetch_row($data)) {
     $jetztdran = $row[0];
-    $jetztdran2 = $row[0];
     $spielart = $row[1];
     $gehebt = $row[2];
   }
