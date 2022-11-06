@@ -79,8 +79,8 @@ function punkte_dieses_stiches($spieler, $s)
     } else {
         $sp->stiche = 1;
     }
-    echo json_encode($sp);
-    //sql("update spiele set " . $spieler . " = " . json_encode($sp) . " where id = " . $s);
+    //echo json_encode($sp);
+    sql("update spiele set " . $spieler . " = '" . json_encode($sp) . "' where id = " . $s);
 }
 
 function del_hFun($dran, $arr2, $arr, $ablegkarten, $todel, $spielrunde, $user, $farbe, $spielstarterderrunde, $spieler, $spielername, $trumpf, $s, $spielstarter, $a1, $a2, $jetztdran)
