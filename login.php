@@ -59,8 +59,8 @@ function login(){
         if ($login_check > 0) {
             //mit jwt
             $payload = [
-            'iss' => "spiel-franzen.herokuapp.com",
-            'aud' => 'www.spiel-franzen.herokuapp.com',
+            'iss' => "spielfranzen.com",
+            'aud' => 'www.spielfranzen.com',
             'exp' => time() + 3600, //1 hour
             'data' => [
             'id' => $id,

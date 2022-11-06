@@ -155,7 +155,6 @@ function platzZuweisung()
         if ($spieler == $name) {
           talonzeigen(); //geht nicht!!!
           echo "<script>window.location.reload</script>";
-          //sql("update spiele set spielausgewählt = false where id = " . $_GET['s']);
         }
       } else {
         game($name);

@@ -54,30 +54,35 @@ function tosql()
 }
 
 
-function punkte_dieses_stiches($spieler)
+function punkte_dieses_stiches($spieler, $s)
 {
-    $data = sql("select " . $spieler . ", ablegkarten[0], ablegkarten[1], ablegkarten[2] from spiele where id =" . $_POST['s']);
+    $sp = "";
+    $data = sql("select " . $spieler . ", ablegkarten[0], ablegkarten[1], ablegkarten[2] from spiele where id =" . $s);
     while ($row = pg_fetch_row($data)) {
-        $s = json_decode($row[0]);
+        $sp = json_decode($row[0]);
         $a1 = intval(substr($row[1], -9, 1));
         $a2 = intval(substr($row[2], -9, 1));
         $a3 = intval(substr($row[3], -9, 1));
     }
-    if (isset($s->punkte)) {
-        $s->punkte = intval($s->punkte) + $a1 + $a2 + $a3;
+    $punkteliste = [0, 0, 0, 0, 0, 2, 3, 4, 10, 11];
+    $gesamtpunkte = $punkteliste[$a1] + $punkteliste[$a2] + $punkteliste[$a3];
+
+    if (isset($sp->punkte)) {
+
+        $sp->punkte = intval($sp->punkte) + $gesamtpunkte;
     } else {
         //TODO punkte sind anders
-        $s->punkte = $a1 + $a2 + $a3;
+        $sp->punkte = $gesamtpunkte;
     }
-    if (isset($s->stiche)) {
-        $s->stiche = intval($s->stiche) + 1;
+    if (isset($sp->stiche)) {
+        $sp->stiche = intval($sp->stiche) + 1;
     } else {
-        $s->stiche = $a1 + $a2 + $a3;
+        $sp->stiche = 1;
     }
-    //sql("update spiele set " . $spieler . " = " . json_encode($s) . " where id = " . $_POST['s']);
+    sql("update spiele set " . $spieler . " = " . json_encode($sp) . " where id = " . $s);
 }
 
-function del_hFun($arr2, $arr, $ablegkarten, $todel, $spielrunde, $user, $farbe, $spielstarterderrunde, $spieler, $spielername, $trumpf, $s, $spielstarter, $a1, $a2, $jetztdran)
+function del_hFun($dran, $arr2, $arr, $ablegkarten, $todel, $spielrunde, $user, $farbe, $spielstarterderrunde, $spieler, $spielername, $trumpf, $s, $spielstarter, $a1, $a2, $jetztdran)
 {
     $erster = false;
     if ((($ablegkarten[0] != "keine") && ($ablegkarten[1] != "keine") && ($ablegkarten[2] != "keine")) || (($ablegkarten[0] == "keine") && ($ablegkarten[1] == "keine") && ($ablegkarten[2] == "keine"))) { //wenn alle besetzt sind
@@ -90,7 +95,7 @@ function del_hFun($arr2, $arr, $ablegkarten, $todel, $spielrunde, $user, $farbe,
             $drei_karten = [$spielstarter, $a2, $a1];
             $jetztdran = "s" . ($drei_karten[stichmacher($todel, $ablegkarten[$a2], $ablegkarten[$a1], $trumpf)] + 1);
             echo $todel, $ablegkarten[$a1], $ablegkarten[$a2], $a1, $a2;
-            //punkte_dieses_stiches($dran);
+            punkte_dieses_stiches($dran, $s);
         }
         $erster = false;
     }
@@ -124,19 +129,20 @@ function del($spieler, $spielername, $dran) //löscht karte und fügt sie zu abl
     }
     switch ($spielername) {
         case '1':
+
             $arr = '{"' . $todel . '","' . $ablegkarten[1] . '", "' . $ablegkarten[2] . '"}';
             $arr2 = '{"' . $todel . '","keine", "keine"}';
-            del_hFun($arr2, $arr, $ablegkarten, $todel, $spielrunde, $user, $farbe, $spielstarterderrunde, $spieler, $spielername, $trumpf, $s, 0, 1, 2, $jetztdran);
+            del_hFun($dran, $arr2, $arr, $ablegkarten, $todel, $spielrunde, $user, $farbe, $spielstarterderrunde, $spieler, $spielername, $trumpf, $s, 0, 1, 2, $jetztdran);
             break;
         case '2':
             $arr = '{"' . $ablegkarten[0] . '","' . $todel . '", "' . $ablegkarten[2] . '"}';
             $arr2 = '{"keine","' . $todel . '", "keine"}';
-            del_hFun($arr2, $arr, $ablegkarten, $todel, $spielrunde, $user, $farbe, $spielstarterderrunde, $spieler, $spielername, $trumpf, $s, 1, 2, 0, $jetztdran);
+            del_hFun($dran, $arr2, $arr, $ablegkarten, $todel, $spielrunde, $user, $farbe, $spielstarterderrunde, $spieler, $spielername, $trumpf, $s, 1, 2, 0, $jetztdran);
             break;
         case '3':
             $arr = '{"' . $ablegkarten[0] . '","' . $ablegkarten[1] . '", "' . $todel . '"}';
             $arr2 = '{"keine","keine", "' . $todel . '"}';
-            del_hFun($arr2, $arr, $ablegkarten, $todel, $spielrunde, $user, $farbe, $spielstarterderrunde, $spieler, $spielername, $trumpf, $s, 2, 0, 1, $jetztdran);
+            del_hFun($dran, $arr2, $arr, $ablegkarten, $todel, $spielrunde, $user, $farbe, $spielstarterderrunde, $spieler, $spielername, $trumpf, $s, 2, 0, 1, $jetztdran);
             break;
     }
 }
