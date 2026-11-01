@@ -26,14 +26,15 @@ export const TrickArea: React.FC<TrickAreaProps> = ({
 }) => {
   const [showLastTrick, setShowLastTrick] = useState<boolean>(false);
 
-  // In Bettl (9 & 11) and Mord (10 & 12), card eyes/points are irrelevant!
-  const isBettl = gameMode === 9 || gameMode === 11;
-  const isMord = gameMode === 10 || gameMode === 12;
+  // Reliable numerical parse for mode
+  const modeNum = gameMode !== null && gameMode !== undefined ? Number(gameMode) : null;
+  const isBettl = modeNum === 9 || modeNum === 11;
+  const isMord = modeNum === 10 || modeNum === 12;
   const isBettlOrMord = isBettl || isMord;
 
   const declarerPlayer =
-    players.find((p) => p.role === 'DECLARER') ||
-    (declarerSeat !== null && declarerSeat !== undefined ? players[declarerSeat] : null);
+    (declarerSeat !== null && declarerSeat !== undefined ? players[declarerSeat] : null) ||
+    players.find((p) => p.role === 'DECLARER');
 
   // Trick is complete when all 3 cards have been played
   const isTrickCompleted = currentTrick.length === 3;
@@ -45,13 +46,13 @@ export const TrickArea: React.FC<TrickAreaProps> = ({
     : currentTrick.reduce((acc, p) => acc + p.card.points, 0);
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-[230px] w-full max-w-xl mx-auto py-2">
+    <div className="relative flex flex-col items-center justify-center w-full max-w-xl mx-auto py-2">
       {/* Status Counters / Objectives at Table Top */}
       {isBettl ? (
-        <div className="flex items-center gap-3 mb-2 text-xs font-semibold">
+        <div className="flex items-center gap-3 mb-3 text-xs font-semibold z-10">
           <div className="flex items-center gap-1.5 px-3 py-1 bg-purple-950/80 border border-purple-500/50 rounded-full text-purple-200 shadow-sm">
             <Target className="w-3.5 h-3.5 text-purple-400" />
-            <span>{gameMode === 11 ? 'Doppelbettl' : 'Bettl'} • Ziel: 0 Stiche für Alleinspieler</span>
+            <span>{modeNum === 11 ? 'Doppelbettl' : 'Bettl'} • Ziel: 0 Stiche für Alleinspieler</span>
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-800/80 border border-slate-600 rounded-full text-slate-300">
             <span>
@@ -67,10 +68,10 @@ export const TrickArea: React.FC<TrickAreaProps> = ({
           </div>
         </div>
       ) : isMord ? (
-        <div className="flex items-center gap-3 mb-2 text-xs font-semibold">
+        <div className="flex items-center gap-3 mb-3 text-xs font-semibold z-10">
           <div className="flex items-center gap-1.5 px-3 py-1 bg-rose-950/80 border border-rose-500/50 rounded-full text-rose-200 shadow-sm">
             <Target className="w-3.5 h-3.5 text-rose-400" />
-            <span>{gameMode === 12 ? 'Doppelmord' : 'Mord'} • Ziel: Alle 10 Stiche für Alleinspieler</span>
+            <span>{modeNum === 12 ? 'Doppelmord' : 'Mord'} • Ziel: Alle 10 Stiche für Alleinspieler</span>
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-800/80 border border-slate-600 rounded-full text-slate-300">
             <span>
@@ -81,12 +82,12 @@ export const TrickArea: React.FC<TrickAreaProps> = ({
         </div>
       ) : (
         /* Color Game (5..8): Eyes matter! */
-        <div className="flex items-center gap-4 mb-2 text-xs font-semibold">
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-950/70 border border-amber-500/40 rounded-full text-amber-300">
+        <div className="flex items-center gap-4 mb-3 text-xs font-semibold z-10">
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-950/70 border border-amber-500/40 rounded-full text-amber-300 shadow-sm">
             <Eye className="w-3.5 h-3.5 text-amber-400" />
             <span>Alleinspieler: {declarerCardPoints} / 66 Augen</span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-800/80 border border-slate-600 rounded-full text-slate-300">
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-800/80 border border-slate-600 rounded-full text-slate-300 shadow-sm">
             <Eye className="w-3.5 h-3.5 text-slate-400" />
             <span>Gegner: {defenderCardPoints} / 66 Augen</span>
           </div>
@@ -95,8 +96,8 @@ export const TrickArea: React.FC<TrickAreaProps> = ({
 
       {/* Main Trick Cards Display */}
       {showLastTrick && lastTrick ? (
-        <div className="relative p-4 rounded-xl bg-slate-900/90 border border-amber-500/50 shadow-2xl flex flex-col items-center">
-          <div className="text-xs text-amber-300 font-bold mb-2 flex items-center gap-1">
+        <div className="relative p-5 rounded-2xl bg-slate-900/95 border-2 border-amber-500/60 shadow-2xl flex flex-col items-center z-20">
+          <div className="text-xs text-amber-300 font-bold mb-3 flex items-center gap-1">
             <History className="w-3.5 h-3.5" /> Letzter Stich (#{lastTrick.trickNumber}) - Gewonnen
             von {players[lastTrick.winnerSeat!]?.username}
             {!isBettlOrMord && ` (${lastTrick.points} Augen)`}
@@ -119,13 +120,16 @@ export const TrickArea: React.FC<TrickAreaProps> = ({
           </button>
         </div>
       ) : (
-        <div className="relative w-full flex flex-col items-center justify-center min-h-[170px]">
-          {/* Felt center circular marking */}
-          <div className="absolute w-56 h-56 rounded-full border border-emerald-700/30 bg-emerald-950/20 pointer-events-none -z-0" />
-
+        /* Felt Table Playing Surface (Properly proportioned container, no slicing circles) */
+        <div className="relative w-full flex flex-col items-center justify-center min-h-[180px] px-6 py-4 rounded-3xl bg-emerald-950/30 border border-emerald-800/30 shadow-inner">
           {currentTrick.length === 0 ? (
-            <div className="text-center p-4 rounded-xl bg-emerald-950/40 border border-emerald-800/40 text-emerald-300/80 text-xs">
-              Stich #{trickNumber || 1} • Noch keine Karte gespielt
+            <div className="flex flex-col items-center justify-center text-center py-4">
+              <span className="text-xs font-bold text-amber-300/80 tracking-widest uppercase">
+                Stich #{trickNumber || 1}
+              </span>
+              <span className="text-[11px] text-emerald-400/60 mt-1">
+                Warten auf Ausspiel...
+              </span>
             </div>
           ) : (
             <div className="flex items-center justify-center gap-4 z-10">
@@ -193,7 +197,7 @@ export const TrickArea: React.FC<TrickAreaProps> = ({
       {lastTrick && !showLastTrick && !isTrickCompleted && (
         <button
           onClick={() => setShowLastTrick(true)}
-          className="mt-2 flex items-center gap-1 text-[11px] text-amber-400/80 hover:text-amber-300 bg-slate-900/60 hover:bg-slate-900 px-2.5 py-1 rounded-full border border-amber-500/20 transition-all cursor-pointer"
+          className="mt-3 flex items-center gap-1 text-[11px] text-amber-400/80 hover:text-amber-300 bg-slate-900/60 hover:bg-slate-900 px-3 py-1 rounded-full border border-amber-500/20 transition-all cursor-pointer shadow-sm"
         >
           <History className="w-3 h-3" /> Letzten Stich ansehen
         </button>

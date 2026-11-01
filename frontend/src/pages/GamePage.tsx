@@ -97,8 +97,9 @@ export const GamePage: React.FC = () => {
 
   const isMyTurn = mySeatIndex !== null && currentTurnSeat === mySeatIndex;
   const isDeclarer = mySeatIndex !== null && declarerSeat === mySeatIndex;
+  const modeNum = gameMode !== null && gameMode !== undefined ? Number(gameMode) : null;
   const isBettlOrMord =
-    gameMode === 9 || gameMode === 10 || gameMode === 11 || gameMode === 12;
+    modeNum === 9 || modeNum === 10 || modeNum === 11 || modeNum === 12;
 
   // Determine seating layout relative to current user:
   // Me is at bottom. Opponent 1 is left (me + 1) % 3, Opponent 2 is right (me + 2) % 3.
@@ -310,10 +311,10 @@ export const GamePage: React.FC = () => {
         </div>
 
         {/* Bottom: Player's Own Hand & Status */}
-        <div className="flex flex-col items-center max-w-5xl mx-auto w-full">
+        <div className="flex flex-col items-center max-w-5xl mx-auto w-full pb-6 pt-2">
           {/* Turn Alert */}
           {isMyTurn && phase === 'TRICK_PLAY' && (
-            <div className="mb-2 px-4 py-1 rounded-full bg-amber-500 text-slate-950 font-black text-xs shadow-lg animate-bounce">
+            <div className="mb-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-xs shadow-lg animate-bounce border border-yellow-300">
               Du bist am Zug! Wähle eine gültige Karte zum Ausspielen:
             </div>
           )}
@@ -347,19 +348,35 @@ export const GamePage: React.FC = () => {
 
           {/* Player Seat Summary at bottom */}
           {myPlayer && (
-            <div className="flex items-center gap-3 text-xs text-slate-300 font-semibold bg-slate-900/80 px-4 py-1.5 rounded-full border border-slate-700/80 shadow mt-1">
+            <div className="flex items-center gap-3 text-xs text-slate-300 font-semibold bg-slate-900/90 px-4 py-1.5 rounded-full border border-slate-700/80 shadow-md mt-2">
               <span className="text-amber-400 font-bold">{myPlayer.username} (Du)</span>
-              <span>•</span>
-              <span>
+              <span className="text-slate-600">•</span>
+              <span className="flex items-center gap-1">
                 Rolle:{' '}
-                {myPlayer.role === 'DECLARER'
-                  ? '👑 Alleinspieler'
-                  : myPlayer.role === 'DEFENDER'
-                  ? '🛡️ Gegner'
-                  : 'Ausstehend'}
+                {myPlayer.role === 'DECLARER' ? (
+                  <span className="text-amber-300 font-bold flex items-center gap-1">
+                    <Crown className="w-3.5 h-3.5 text-amber-400" /> Alleinspieler
+                  </span>
+                ) : myPlayer.role === 'DEFENDER' ? (
+                  <span className="text-slate-300 font-semibold flex items-center gap-1">
+                    <Shield className="w-3.5 h-3.5 text-slate-400" /> Gegner
+                  </span>
+                ) : (
+                  'Ausstehend'
+                )}
               </span>
-              <span>•</span>
-              <span>Stiche: {myPlayer.tricksWon}</span>
+              <span className="text-slate-600">•</span>
+              <span>
+                Stiche: <strong className="text-slate-100">{myPlayer.tricksWon}</strong>
+              </span>
+              {!isBettlOrMord && (
+                <>
+                  <span className="text-slate-600">•</span>
+                  <span>
+                    Augen: <strong className="text-amber-300">{myPlayer.cardPointsWon}</strong>
+                  </span>
+                </>
+              )}
             </div>
           )}
         </div>

@@ -22,33 +22,38 @@ export const PlayerSeatView: React.FC<PlayerSeatViewProps> = ({
 }) => {
   return (
     <div
-      className={`relative flex flex-col items-center p-3 rounded-xl backdrop-blur-md transition-all duration-300 ${
+      className={`relative flex flex-col items-center p-3 rounded-2xl backdrop-blur-md transition-all duration-300 shadow-xl ${
         isCurrentTurn
-          ? 'bg-amber-950/60 ring-2 ring-amber-400 shadow-lg shadow-amber-500/20'
-          : 'bg-slate-900/70 border border-slate-700/60'
+          ? 'bg-gradient-to-b from-amber-950/70 to-slate-900/90 border-2 border-amber-400 shadow-amber-500/20 shadow-lg'
+          : 'bg-slate-900/80 border border-slate-700/60'
       } ${className}`}
     >
-      {/* Dealer Badge */}
-      {isDealer && (
-        <span
-          className="absolute -top-3 -left-2 bg-gradient-to-r from-amber-500 to-yellow-600 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full shadow-md border border-yellow-300"
-          title="Geber"
-        >
-          GEBER
-        </span>
-      )}
+      {/* Top Header Row inside the card (Clean, no floating overlaps) */}
+      <div className="w-full flex items-center justify-between min-h-[22px] mb-2 px-0.5">
+        {/* Dealer Badge */}
+        {isDealer ? (
+          <span
+            className="bg-gradient-to-r from-amber-500 to-yellow-600 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded shadow-sm border border-yellow-300 tracking-wider"
+            title="Geber"
+          >
+            GEBER
+          </span>
+        ) : (
+          <span className="w-1" />
+        )}
 
-      {/* Role Badge */}
-      {player.role === 'DECLARER' && (
-        <span className="absolute -top-3 right-0 flex items-center gap-1 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md">
-          <Crown className="w-3 h-3 text-slate-950" /> Alleinspieler
-        </span>
-      )}
-      {player.role === 'DEFENDER' && (
-        <span className="absolute -top-3 right-0 flex items-center gap-1 bg-slate-700 text-slate-200 text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-md border border-slate-600">
-          <Shield className="w-3 h-3 text-slate-300" /> Gegner
-        </span>
-      )}
+        {/* Role Badge */}
+        {player.role === 'DECLARER' && (
+          <span className="flex items-center gap-1 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">
+            <Crown className="w-3 h-3 text-slate-950" /> Alleinspieler
+          </span>
+        )}
+        {player.role === 'DEFENDER' && (
+          <span className="flex items-center gap-1 bg-slate-800 text-slate-200 text-[10px] font-semibold px-2.5 py-0.5 rounded-full shadow-sm border border-slate-600">
+            <Shield className="w-3 h-3 text-slate-400" /> Gegner
+          </span>
+        )}
+      </div>
 
       {/* Avatar & Online status */}
       <div className="relative mb-1">
@@ -76,15 +81,15 @@ export const PlayerSeatView: React.FC<PlayerSeatViewProps> = ({
       </div>
 
       {/* Name and Info */}
-      <div className="text-center">
+      <div className="text-center w-full">
         <div className="flex items-center justify-center gap-1">
-          <span className="font-semibold text-sm text-slate-100 truncate max-w-[120px]">
+          <span className="font-semibold text-sm text-slate-100 truncate max-w-[130px]">
             {player.username} {isMe && '(Du)'}
           </span>
         </div>
 
-        {/* Online / Bot note */}
-        <div className="flex items-center justify-center gap-1 text-[11px] text-slate-400">
+        {/* Online / Bot note & Score */}
+        <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 mt-0.5">
           {player.isOnline ? (
             <span className="flex items-center text-emerald-400 gap-0.5">
               <Wifi className="w-2.5 h-2.5" /> Online
@@ -111,7 +116,7 @@ export const PlayerSeatView: React.FC<PlayerSeatViewProps> = ({
 
       {/* Bidding Speech Bubble if any */}
       {biddingText && (
-        <div className="mt-1.5 px-2 py-0.5 bg-amber-950/80 border border-amber-500/40 rounded text-amber-200 text-xs font-medium text-center">
+        <div className="mt-2 px-2.5 py-0.5 bg-amber-950/80 border border-amber-500/40 rounded-full text-amber-200 text-xs font-medium text-center shadow-sm">
           {biddingText}
         </div>
       )}
@@ -122,6 +127,13 @@ export const PlayerSeatView: React.FC<PlayerSeatViewProps> = ({
           <CardBack size="sm" className="w-5 !aspect-[256/480]" />
           <span className="text-xs font-bold text-slate-300">{player.handCount} Karten</span>
         </div>
+      )}
+
+      {/* Turn Indicator Pill */}
+      {isCurrentTurn && (
+        <span className="absolute -bottom-2.5 px-3 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[10px] tracking-wider shadow-lg uppercase border border-yellow-300 animate-pulse">
+          Am Zug
+        </span>
       )}
     </div>
   );
