@@ -138,6 +138,19 @@ export class GameSocketHandler {
      */
     async persistMatchState(state) {
         try {
+            const matchExists = await prisma.match.findUnique({
+                where: { id: state.matchId },
+                select: { id: true },
+            });
+            if (!matchExists) {
+                // Match was deleted or does not exist in DB
+                this.activeMatches.delete(state.matchId);
+                if (this.botTimers.has(state.matchId)) {
+                    clearTimeout(this.botTimers.get(state.matchId));
+                    this.botTimers.delete(state.matchId);
+                }
+                return;
+            }
             await prisma.match.update({
                 where: { id: state.matchId },
                 data: {
@@ -158,6 +171,15 @@ export class GameSocketHandler {
             }
         }
         catch (err) {
+            if (err?.code === 'P2025') {
+                // Record was removed from DB
+                this.activeMatches.delete(state.matchId);
+                if (this.botTimers.has(state.matchId)) {
+                    clearTimeout(this.botTimers.get(state.matchId));
+                    this.botTimers.delete(state.matchId);
+                }
+                return;
+            }
             console.error('Error persisting match state:', err);
         }
     }
@@ -178,14 +200,132 @@ export class GameSocketHandler {
         }
     }
     /**
+     * Broadcasts sanitized state for WAITING lobby room so players see seats & bot buttons.
+     */
+    async syncWaitingState(matchId) {
+        const match = await prisma.match.findUnique({
+            where: { id: matchId },
+            include: {
+                participants: {
+                    include: { user: true },
+                    orderBy: { seatIndex: 'asc' },
+                },
+            },
+        });
+        if (!match)
+            return;
+        const dummySeats = [
+            {
+                seatIndex: 0,
+                userId: '',
+                username: '',
+                isBot: false,
+                isOnline: false,
+                score: 0,
+                role: 'NONE',
+                handCount: 0,
+                tricksWon: 0,
+                cardPointsWon: 0,
+            },
+            {
+                seatIndex: 1,
+                userId: '',
+                username: '',
+                isBot: false,
+                isOnline: false,
+                score: 0,
+                role: 'NONE',
+                handCount: 0,
+                tricksWon: 0,
+                cardPointsWon: 0,
+            },
+            {
+                seatIndex: 2,
+                userId: '',
+                username: '',
+                isBot: false,
+                isOnline: false,
+                score: 0,
+                role: 'NONE',
+                handCount: 0,
+                tricksWon: 0,
+                cardPointsWon: 0,
+            },
+        ];
+        for (const p of match.participants) {
+            if (p.seatIndex >= 0 && p.seatIndex <= 2) {
+                dummySeats[p.seatIndex] = {
+                    seatIndex: p.seatIndex,
+                    userId: p.userId,
+                    username: p.isBot ? p.botName || 'Bot' : p.user.username,
+                    isBot: p.isBot,
+                    isOnline: true,
+                    score: p.currentMatchScore,
+                    role: 'NONE',
+                    handCount: 0,
+                    tricksWon: 0,
+                    cardPointsWon: 0,
+                };
+            }
+        }
+        const room = `match:${matchId}`;
+        const socketsInRoom = this.io.sockets.adapter.rooms.get(room);
+        if (!socketsInRoom)
+            return;
+        for (const socketId of socketsInRoom) {
+            const clientSocket = this.io.sockets.sockets.get(socketId);
+            if (clientSocket && clientSocket.data.user) {
+                const uid = clientSocket.data.user.userId;
+                const participant = match.participants.find((p) => p.userId === uid);
+                const mySeatIndex = participant ? participant.seatIndex : null;
+                const waitingState = {
+                    matchId: match.id,
+                    code: match.code,
+                    status: 'WAITING',
+                    totalRounds: match.totalRounds,
+                    currentRound: match.currentRound,
+                    phase: 'WAITING_FOR_PLAYERS',
+                    dealerSeat: 0,
+                    currentTurnSeat: 0,
+                    declarerSeat: null,
+                    gameMode: null,
+                    minMode: null,
+                    talonTaken: false,
+                    mySeatIndex,
+                    players: dummySeats,
+                    myHand: [],
+                    talonCount: 3,
+                    talonCards: null,
+                    currentTrick: [],
+                    trickLeadSeat: 0,
+                    lastTrick: null,
+                    declarerCardPoints: 0,
+                    defenderCardPoints: 0,
+                    biddingState: {
+                        phase: 'OPENING',
+                        currentBid: 0,
+                        holderSeat: null,
+                        challengerSeat: null,
+                        currentTurnSeat: 0,
+                        passedSeats: [],
+                        history: [],
+                    },
+                    lastRoundResult: null,
+                    matchResult: null,
+                    legalCardIdsToPlay: [],
+                };
+                clientSocket.emit('game:state_sync', waitingState);
+            }
+        }
+    }
+    /**
      * Handles player joining the match socket room.
      */
     async handlePlayerJoin(socket, matchId, userId) {
         socket.join(`match:${matchId}`);
         let state = await this.getOrLoadMatchState(matchId);
         if (!state) {
-            // Check if match exists and can be started
-            const match = await prisma.match.findUnique({
+            let match = await prisma.match.findUnique({
                 where: { id: matchId },
                 include: {
                     participants: {
@@ -195,9 +335,35 @@ export class GameSocketHandler {
                 },
             });
             if (!match) {
-                throw new Error('Spiel nicht gefunden.');
+                socket.emit('game:error', { message: 'Spiel nicht gefunden.' });
+                return;
             }
-            // If match is WAITING and has 3 participants, initialize game state
+            // If user is not yet a participant and match is WAITING with free seats, auto-seat them!
+            const isParticipant = match.participants.some((p) => p.userId === userId);
+            if (!isParticipant && match.status === 'WAITING' && match.participants.length < 3) {
+                const takenSeats = match.participants.map((p) => p.seatIndex);
+                const freeSeat = [0, 1, 2].find((s) => !takenSeats.includes(s));
+                if (freeSeat !== undefined) {
+                    await prisma.matchParticipant.create({
+                        data: {
+                            matchId: match.id,
+                            userId,
+                            seatIndex: freeSeat,
+                        },
+                    });
+                    // Refresh match participants
+                    match = (await prisma.match.findUnique({
+                        where: { id: matchId },
+                        include: {
+                            participants: {
+                                include: { user: true },
+                                orderBy: { seatIndex: 'asc' },
+                            },
+                        },
+                    }));
+                }
+            }
+            // If match is WAITING and now has 3 participants, initialize game state and start!
             if (match.status === 'WAITING' && match.participants.length === 3) {
                 const players = match.participants.map((p) => ({
                     userId: p.userId,
@@ -208,11 +374,14 @@ export class GameSocketHandler {
                 this.activeMatches.set(matchId, state);
                 await this.persistMatchState(state);
             }
-            else {
-                // Send basic sync or wait
+            else if (match.status === 'WAITING') {
+                // Broadcast waiting room state so players see seats & bot buttons!
+                await this.syncWaitingState(matchId);
                 return;
             }
         }
+        if (!state)
+            return;
         // Set player online status
         const seatIdx = state.players.findIndex((p) => p.userId === userId);
         if (seatIdx !== -1) {
@@ -307,6 +476,14 @@ export class GameSocketHandler {
      */
     async handleMatchCompletion(matchId, state, result) {
         try {
+            const matchExists = await prisma.match.findUnique({
+                where: { id: matchId },
+                select: { id: true },
+            });
+            if (!matchExists) {
+                this.activeMatches.delete(matchId);
+                return;
+            }
             await prisma.match.update({
                 where: { id: matchId },
                 data: {
@@ -424,6 +601,10 @@ export class GameSocketHandler {
             this.syncStateToMatch(matchId, state);
             this.checkAndTriggerBot(matchId, state);
         }
+        else {
+            // 1 or 2 participants: sync waiting room state so clients see the added bot!
+            await this.syncWaitingState(matchId);
+        }
     }
     /**
      * Removes a Bot.
@@ -442,6 +623,8 @@ export class GameSocketHandler {
         await prisma.matchParticipant.deleteMany({
             where: { matchId, seatIndex, isBot: true },
         });
+        // Sync updated waiting room state
+        await this.syncWaitingState(matchId);
     }
     /**
      * Checks if the active turn belongs to a Bot and executes bot move after a realistic delay.
@@ -466,6 +649,16 @@ export class GameSocketHandler {
                 const liveState = this.activeMatches.get(matchId);
                 if (!liveState || liveState.currentTurnSeat !== currentSeat)
                     return;
+                // Verify match still exists in DB
+                const matchExists = await prisma.match.findUnique({
+                    where: { id: matchId },
+                    select: { id: true },
+                });
+                if (!matchExists) {
+                    this.activeMatches.delete(matchId);
+                    this.botTimers.delete(matchId);
+                    return;
+                }
                 if (liveState.phase === 'BIDDING') {
                     const decision = BotEngine.decideBidAction(liveState, currentSeat);
                     GameEngine.handleBid(liveState, currentSeat, decision.action, decision.bidValue);

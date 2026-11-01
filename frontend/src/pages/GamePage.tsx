@@ -43,6 +43,22 @@ export const GamePage: React.FC = () => {
     };
   }, [matchId]);
 
+  if (error && !gameState) {
+    return (
+      <div className="min-h-[calc(100vh-65px)] flex items-center justify-center flex-col gap-4 bg-slate-950 text-slate-200 p-4">
+        <div className="bg-slate-900 border border-rose-500/50 p-6 rounded-2xl text-center max-w-md shadow-2xl">
+          <p className="text-base font-bold text-rose-400 mb-4">{error}</p>
+          <button
+            onClick={() => navigate('/lobby')}
+            className="px-6 py-2.5 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-slate-950 font-bold rounded-xl text-sm shadow transition-all"
+          >
+            Zurück zur Lobby
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!gameState) {
     return (
       <div className="min-h-[calc(100vh-65px)] flex items-center justify-center flex-col gap-4 bg-slate-950 text-slate-200">
