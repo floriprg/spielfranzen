@@ -172,6 +172,21 @@ export class GameSocketHandler {
    */
   private async persistMatchState(state: FullGameState): Promise<void> {
     try {
+      const matchExists = await prisma.match.findUnique({
+        where: { id: state.matchId },
+        select: { id: true },
+      });
+
+      if (!matchExists) {
+        // Match was deleted or does not exist in DB
+        this.activeMatches.delete(state.matchId);
+        if (this.botTimers.has(state.matchId)) {
+          clearTimeout(this.botTimers.get(state.matchId)!);
+          this.botTimers.delete(state.matchId);
+        }
+        return;
+      }
+
       await prisma.match.update({
         where: { id: state.matchId },
         data: {
@@ -191,7 +206,16 @@ export class GameSocketHandler {
           });
         }
       }
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.code === 'P2025') {
+        // Record was removed from DB
+        this.activeMatches.delete(state.matchId);
+        if (this.botTimers.has(state.matchId)) {
+          clearTimeout(this.botTimers.get(state.matchId)!);
+          this.botTimers.delete(state.matchId);
+        }
+        return;
+      }
       console.error('Error persisting match state:', err);
     }
   }
@@ -384,6 +408,15 @@ export class GameSocketHandler {
     result: MatchResult,
   ): Promise<void> {
     try {
+      const matchExists = await prisma.match.findUnique({
+        where: { id: matchId },
+        select: { id: true },
+      });
+      if (!matchExists) {
+        this.activeMatches.delete(matchId);
+        return;
+      }
+
       await prisma.match.update({
         where: { id: matchId },
         data: {
@@ -582,6 +615,17 @@ export class GameSocketHandler {
       try {
         const liveState = this.activeMatches.get(matchId);
         if (!liveState || liveState.currentTurnSeat !== currentSeat) return;
+
+        // Verify match still exists in DB
+        const matchExists = await prisma.match.findUnique({
+          where: { id: matchId },
+          select: { id: true },
+        });
+        if (!matchExists) {
+          this.activeMatches.delete(matchId);
+          this.botTimers.delete(matchId);
+          return;
+        }
 
         if (liveState.phase === 'BIDDING') {
           const decision = BotEngine.decideBidAction(liveState, currentSeat);
