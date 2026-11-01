@@ -54,7 +54,7 @@ export const CardView: React.FC<CardViewProps> = ({
         }
         ${className}
       `}
-      title={`${card.name} (${card.points} Augen)${!isLegal ? ' - Nicht regelkonform' : ''}`}
+      title={`${card.name}${showPoints ? ` (${card.points} Augen)` : ''}${!isLegal ? ' - Nicht regelkonform' : ''}`}
     >
       {/* Authentic South Tyrolean Card Image */}
       {!imgError ? (

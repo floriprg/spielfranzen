@@ -97,6 +97,8 @@ export const GamePage: React.FC = () => {
 
   const isMyTurn = mySeatIndex !== null && currentTurnSeat === mySeatIndex;
   const isDeclarer = mySeatIndex !== null && declarerSeat === mySeatIndex;
+  const isBettlOrMord =
+    gameMode === 9 || gameMode === 10 || gameMode === 11 || gameMode === 12;
 
   // Determine seating layout relative to current user:
   // Me is at bottom. Opponent 1 is left (me + 1) % 3, Opponent 2 is right (me + 2) % 3.
@@ -301,6 +303,8 @@ export const GamePage: React.FC = () => {
               declarerCardPoints={declarerCardPoints}
               defenderCardPoints={defenderCardPoints}
               trickNumber={gameState.lastTrick ? gameState.lastTrick.trickNumber + 1 : 1}
+              gameMode={gameMode}
+              declarerSeat={declarerSeat}
             />
           )}
         </div>
@@ -335,6 +339,7 @@ export const GamePage: React.FC = () => {
                     }
                   }}
                   size="md"
+                  showPoints={!isBettlOrMord}
                 />
               );
             })}
