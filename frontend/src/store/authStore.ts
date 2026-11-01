@@ -1,4 +1,4 @@
-import { UserProfile } from '@spielfranzen/shared';
+import { GoogleAuthRequest, UserProfile } from '@spielfranzen/shared';
 import { create } from 'zustand';
 import { api, clearAuthToken, getAuthToken, setAuthToken } from '../api/client.js';
 
@@ -10,6 +10,10 @@ interface AuthState {
   checkAuth: () => Promise<void>;
   login: (emailOrUsername: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
+  loginWithGoogle: (
+    credential?: string,
+    mockGoogleUser?: GoogleAuthRequest['mockGoogleUser'],
+  ) => Promise<void>;
   logout: () => void;
   clearError: () => void;
 }
@@ -59,6 +63,18 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ user: res.user, token: res.token, isLoading: false, error: null });
     } catch (err: any) {
       set({ isLoading: false, error: err.message || 'Registrierung fehlgeschlagen.' });
+      throw err;
+    }
+  },
+
+  loginWithGoogle: async (credential, mockGoogleUser) => {
+    set({ isLoading: true, error: null });
+    try {
+      const res = await api.loginWithGoogle({ credential, mockGoogleUser });
+      setAuthToken(res.token);
+      set({ user: res.user, token: res.token, isLoading: false, error: null });
+    } catch (err: any) {
+      set({ isLoading: false, error: err.message || 'Google-Anmeldung fehlgeschlagen.' });
       throw err;
     }
   },

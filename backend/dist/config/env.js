@@ -11,5 +11,6 @@ export const config = {
     jwtSecret: process.env.JWT_SECRET || 'spielfranzen_default_secret_key_change_me',
     databaseUrl: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5433/spielfranzen?schema=public',
     corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    googleClientId: process.env.GOOGLE_CLIENT_ID || '',
 };
 //# sourceMappingURL=env.js.map

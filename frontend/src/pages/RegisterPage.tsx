@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { GoogleAuthButton } from '../components/auth/GoogleAuthButton.js';
 import { useAuthStore } from '../store/authStore.js';
 
 export const RegisterPage: React.FC = () => {
@@ -40,6 +41,19 @@ export const RegisterPage: React.FC = () => {
             {error}
           </div>
         )}
+
+        {/* Google Registration */}
+        <div className="mb-5">
+          <GoogleAuthButton mode="register" />
+        </div>
+
+        <div className="relative flex py-1 items-center mb-4">
+          <div className="flex-grow border-t border-slate-700/60" />
+          <span className="flex-shrink mx-3 text-xs text-slate-400 font-medium">
+            oder mit E-Mail & Passwort
+          </span>
+          <div className="flex-grow border-t border-slate-700/60" />
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

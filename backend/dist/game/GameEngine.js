@@ -5,7 +5,7 @@ export class GameEngine {
     /**
      * Initializes a new match state with 3 seated players.
      */
-    static createInitialState(matchId, code, totalRounds, players) {
+    static createInitialState(matchId, code, totalRounds, players, timerConfig) {
         if (players.length !== 3) {
             throw new Error('A Franzen match requires exactly 3 players.');
         }
@@ -46,6 +46,11 @@ export class GameEngine {
         ];
         // Dealer in round 1 is chosen randomly
         const dealerSeat = Math.floor(Math.random() * 3);
+        const timerCfg = {
+            enabled: timerConfig?.enabled ?? true,
+            turnTimeLimit: timerConfig?.turnTimeLimit ?? 60,
+            totalTimeBank: timerConfig?.totalTimeBank ?? 300,
+        };
         const state = {
             matchId,
             code,
@@ -79,6 +84,16 @@ export class GameEngine {
             defenderCardPoints: 0,
             lastRoundResult: null,
             matchResult: null,
+            timer: {
+                config: timerCfg,
+                turnStartedAt: null,
+                turnDuration: timerCfg.turnTimeLimit,
+                playerBanks: [
+                    timerCfg.totalTimeBank,
+                    timerCfg.totalTimeBank,
+                    timerCfg.totalTimeBank,
+                ],
+            },
         };
         return GameEngine.startNewRound(state);
     }
@@ -104,6 +119,7 @@ export class GameEngine {
         state.gameMode = null;
         state.minMode = null;
         state.talonTaken = false;
+        state.talonRevealed = false;
         state.hands = [sortCards(hand0), sortCards(hand1), sortCards(hand2)];
         state.talon = talon;
         state.discardedCards = [];
@@ -212,7 +228,7 @@ export class GameEngine {
                     username: player.username,
                     action: 'raise',
                     bidValue: val,
-                    text: `${player.username} reizt auf ${val}`,
+                    text: `${player.username} bietet auf ${val}`,
                 });
                 // Turn goes to Halter to hold or pass
                 biddingState.currentTurnSeat = holderSeat;
@@ -318,6 +334,7 @@ export class GameEngine {
         }
         state.phase = 'TALON_AND_DECLARATION';
         state.currentTurnSeat = declarerSeat;
+        state.talonRevealed = false;
         state.biddingState.history.push({
             seatIndex: declarerSeat,
             username: state.players[declarerSeat].username,
@@ -348,14 +365,23 @@ export class GameEngine {
             }
             state.gameMode = selectedMode;
             state.talonTaken = false;
+            state.talonRevealed = false;
             // Start Trick Play
             state.phase = 'TRICK_PLAY';
             state.trickLeadSeat = seatIndex;
             state.currentTurnSeat = seatIndex;
             return state;
         }
-        // Option 2: Take talon
-        if (action === 'take_talon') {
+        // Option 2: Step 1 - Take/Reveal Talon (declarer decides to play with talon)
+        if (action === 'take_talon' && (!discardedCardIds || discardedCardIds.length === 0)) {
+            if (minMode >= 11) {
+                throw new Error('Taking talon is not permitted when bidding reached 11 or 12 (Handspiel mandatory).');
+            }
+            state.talonRevealed = true;
+            return state;
+        }
+        // Option 3: Step 2 - Discard 3 cards and declare mode (or combined take_talon with discards)
+        if (action === 'discard_and_declare' || (action === 'take_talon' && discardedCardIds)) {
             if (minMode >= 11) {
                 throw new Error('Taking talon is not permitted when bidding reached 11 or 12 (Handspiel mandatory).');
             }
@@ -365,6 +391,7 @@ export class GameEngine {
             if (!discardedCardIds || discardedCardIds.length !== 3) {
                 throw new Error('Declarer must discard exactly 3 cards.');
             }
+            state.talonRevealed = true;
             // Combine hand (10 cards) + talon (3 cards) = 13 cards
             const declarerHand = [...state.hands[seatIndex], ...state.talon];
             // Validate discarded cards exist in declarer's 13 cards
@@ -380,20 +407,32 @@ export class GameEngine {
             if (declarerHand.length !== 10) {
                 throw new Error('After discarding, hand must contain exactly 10 cards.');
             }
-            // Save state: Hand is now 10 cards, talon is taken, discarded cards stored (0 points)
+            // Save state: Hand is now 10 cards, talon is taken, discarded cards stored
             const trumpSuit = GAME_MODE_INFO[selectedMode]?.trumpSuit;
             state.hands[seatIndex] = sortCards(declarerHand, trumpSuit);
             state.discardedCards = discardedCards;
             state.talon = []; // Cleared from active game
             state.talonTaken = true;
             state.gameMode = selectedMode;
+            // In color games (5..8), discarded card points count for declarer
+            if (selectedMode >= 5 && selectedMode <= 8) {
+                state.declarerCardPoints = discardedCards.reduce((sum, c) => sum + c.points, 0);
+            }
             // Transition to Trick Play: Declarer plays first card
             state.phase = 'TRICK_PLAY';
             state.trickLeadSeat = seatIndex;
             state.currentTurnSeat = seatIndex;
             return state;
         }
-        throw new Error(`Invalid talon action ${action}`);
+        throw new Error(`Invalid talon action: ${action}`);
+    }
+    /**
+     * Returns list of legal cards for a given seat in the current trick.
+     */
+    static getLegalCardsToPlay(state, seatIndex) {
+        const hand = state.hands[seatIndex] || [];
+        const legalIds = getLegalCardIds(hand, state.currentTrick, state.gameMode);
+        return hand.filter((c) => legalIds.includes(c.id));
     }
     /**
      * Handles playing a card in Trick Play.
@@ -401,6 +440,10 @@ export class GameEngine {
     static handlePlayCard(state, seatIndex, cardId) {
         if (state.phase !== 'TRICK_PLAY') {
             throw new Error('Not in trick play phase.');
+        }
+        // If previous trick was still on the table (e.g. in test loops or synchronous runs), clear it
+        if (state.currentTrick.length >= 3) {
+            state.currentTrick = [];
         }
         if (state.currentTurnSeat !== seatIndex) {
             throw new Error(`It is seat ${state.currentTurnSeat}'s turn, not seat ${seatIndex}.`);
@@ -446,7 +489,7 @@ export class GameEngine {
         // Next trick lead is the winner of this trick
         state.trickLeadSeat = trickWinnerSeat;
         state.currentTurnSeat = trickWinnerSeat;
-        state.currentTrick = []; // Cleared for next trick
+        // NOTE: state.currentTrick holds all 3 cards so clients can see the complete trick for >= 3 seconds!
         // --- Check Instant Round End / Evaluation Rules ---
         const roundEvaluation = GameEngine.evaluateRound(state, completedTrick);
         if (roundEvaluation.isOver) {
@@ -454,6 +497,12 @@ export class GameEngine {
             return { state, trickCompleted: true, roundEnded: true };
         }
         return { state, trickCompleted: true, roundEnded: false };
+    }
+    /**
+     * Clears the completed trick from the table to start the next trick.
+     */
+    static clearCurrentTrick(state) {
+        state.currentTrick = [];
     }
     /**
      * Evaluates the winner of a completed 3-card trick.

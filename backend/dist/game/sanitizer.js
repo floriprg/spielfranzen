@@ -59,11 +59,12 @@ export function sanitizeGameStateForPlayer(state, userId) {
     if (mySeatIndex !== null && state.hands[mySeatIndex]) {
         myHand = sortCards(state.hands[mySeatIndex], trumpSuit);
     }
-    // Talon visibility: Only if declarer is inspecting/picking talon
+    // Talon visibility: ONLY if declarer has chosen to take/reveal the talon!
     let talonCards = null;
     if (mySeatIndex !== null &&
         state.declarerSeat === mySeatIndex &&
         state.phase === 'TALON_AND_DECLARATION' &&
+        state.talonRevealed &&
         !state.talonTaken) {
         // Declarer can see talon
         talonCards = state.talon;
@@ -73,6 +74,7 @@ export function sanitizeGameStateForPlayer(state, userId) {
     if (mySeatIndex !== null &&
         state.phase === 'TRICK_PLAY' &&
         state.currentTurnSeat === mySeatIndex &&
+        state.currentTrick.length < 3 &&
         myHand.length > 0) {
         legalCardIdsToPlay = getLegalCardIds(myHand, state.currentTrick, state.gameMode);
     }
@@ -91,6 +93,7 @@ export function sanitizeGameStateForPlayer(state, userId) {
         gameMode: state.gameMode,
         minMode: state.minMode,
         talonTaken: state.talonTaken,
+        talonRevealed: state.talonRevealed || false,
         mySeatIndex,
         players: sanitizedPlayers,
         myHand,
@@ -105,6 +108,7 @@ export function sanitizeGameStateForPlayer(state, userId) {
         lastRoundResult: state.lastRoundResult,
         matchResult: state.matchResult,
         legalCardIdsToPlay,
+        timer: state.timer,
     };
 }
 //# sourceMappingURL=sanitizer.js.map

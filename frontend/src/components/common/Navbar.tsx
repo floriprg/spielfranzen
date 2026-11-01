@@ -60,8 +60,17 @@ export const Navbar: React.FC = () => {
               to={`/profile/${user.username}`}
               className="flex items-center gap-1.5 sm:gap-2 bg-slate-900/90 border border-amber-500/30 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full hover:border-amber-400 transition-colors"
             >
-              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-600/30 text-amber-300 font-bold text-[11px] sm:text-xs flex items-center justify-center">
-                {user.username.slice(0, 1).toUpperCase()}
+              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-600/30 text-amber-300 font-bold text-[11px] sm:text-xs flex items-center justify-center overflow-hidden">
+                {user.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.username}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  user.username.slice(0, 1).toUpperCase()
+                )}
               </div>
               <div className="flex flex-col text-left text-xs">
                 <span className="font-bold text-slate-100 leading-tight">{user.username}</span>

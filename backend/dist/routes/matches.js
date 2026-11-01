@@ -15,6 +15,9 @@ function generateMatchCode() {
 const createMatchSchema = z.object({
     totalRounds: z.number().int().min(1).max(100).default(15),
     isPrivate: z.boolean().default(false),
+    timerEnabled: z.boolean().default(true),
+    turnTimeLimit: z.number().int().min(10).max(600).default(60),
+    totalTimeBank: z.number().int().min(30).max(3600).default(300),
 });
 // GET /api/matches (List open public lobbies)
 matchesRouter.get('/', authenticateToken, async (req, res) => {
@@ -31,17 +34,21 @@ matchesRouter.get('/', authenticateToken, async (req, res) => {
             orderBy: { createdAt: 'desc' },
             take: 20,
         });
-        const list = matches.map((m) => ({
-            id: m.id,
-            code: m.code,
-            hostUsername: m.host.username,
-            isPrivate: m.isPrivate,
-            status: m.status,
-            totalRounds: m.totalRounds,
-            currentRound: m.currentRound,
-            playerCount: m.participants.length,
-            createdAt: m.createdAt.toISOString(),
-        }));
+        const list = matches.map((m) => {
+            const live = m.liveGameState;
+            return {
+                id: m.id,
+                code: m.code,
+                hostUsername: m.host.username,
+                isPrivate: m.isPrivate,
+                status: m.status,
+                totalRounds: m.totalRounds,
+                currentRound: m.currentRound,
+                playerCount: m.participants.length,
+                createdAt: m.createdAt.toISOString(),
+                timerConfig: live?.timer?.config || live?.timerConfig,
+            };
+        });
         res.json(list);
     }
     catch (err) {
@@ -99,7 +106,12 @@ matchesRouter.post('/', authenticateToken, async (req, res) => {
             res.status(400).json({ error: parseResult.error.errors[0]?.message });
             return;
         }
-        const { totalRounds, isPrivate } = parseResult.data;
+        const { totalRounds, isPrivate, timerEnabled, turnTimeLimit, totalTimeBank } = parseResult.data;
+        const timerConfig = {
+            enabled: timerEnabled,
+            turnTimeLimit,
+            totalTimeBank,
+        };
         let code = generateMatchCode();
         // Ensure code uniqueness
         while (await prisma.match.findUnique({ where: { code } })) {
@@ -113,6 +125,9 @@ matchesRouter.post('/', authenticateToken, async (req, res) => {
                 isPrivate,
                 status: 'WAITING',
                 currentRound: 1,
+                liveGameState: {
+                    timerConfig,
+                },
                 participants: {
                     create: {
                         userId: req.user.userId,

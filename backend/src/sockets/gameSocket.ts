@@ -386,6 +386,16 @@ export class GameSocketHandler {
           lastRoundResult: null,
           matchResult: null,
           legalCardIdsToPlay: [],
+          timer: {
+            config: {
+              enabled: true,
+              turnTimeLimit: 60,
+              totalTimeBank: 300,
+            },
+            playerBanks: [300, 300, 300],
+            turnStartedAt: null,
+            turnDuration: 60,
+          },
         };
 
         clientSocket.emit('game:state_sync', waitingState);

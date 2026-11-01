@@ -174,6 +174,7 @@ export interface UserProfile {
     id: string;
     username: string;
     email: string;
+    avatarUrl?: string | null;
     lifetimeScore: number;
     eloRating: number;
     matchesPlayed: number;
@@ -261,6 +262,15 @@ export interface RegisterRequest {
 export interface LoginRequest {
     emailOrUsername: string;
     password: string;
+}
+export interface GoogleAuthRequest {
+    credential?: string;
+    mockGoogleUser?: {
+        email: string;
+        name: string;
+        googleId: string;
+        picture?: string;
+    };
 }
 export interface AuthResponse {
     token: string;

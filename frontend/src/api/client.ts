@@ -1,6 +1,7 @@
 import {
   AuthResponse,
   CreateMatchRequest,
+  GoogleAuthRequest,
   LeaderboardEntry,
   LoginRequest,
   MatchListItem,
@@ -55,6 +56,12 @@ export const api = {
 
   login: (payload: LoginRequest) =>
     request<AuthResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  loginWithGoogle: (payload: GoogleAuthRequest) =>
+    request<AuthResponse>('/auth/google', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
