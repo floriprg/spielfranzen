@@ -517,6 +517,11 @@ export class GameEngine {
     if (state.phase !== 'TRICK_PLAY') {
       throw new Error('Not in trick play phase.');
     }
+    // If previous trick was still on the table (e.g. in test loops or synchronous runs), clear it
+    if (state.currentTrick.length >= 3) {
+      state.currentTrick = [];
+    }
+
     if (state.currentTurnSeat !== seatIndex) {
       throw new Error(`It is seat ${state.currentTurnSeat}'s turn, not seat ${seatIndex}.`);
     }
@@ -569,7 +574,7 @@ export class GameEngine {
     // Next trick lead is the winner of this trick
     state.trickLeadSeat = trickWinnerSeat;
     state.currentTurnSeat = trickWinnerSeat;
-    state.currentTrick = []; // Cleared for next trick
+    // NOTE: state.currentTrick holds all 3 cards so clients can see the complete trick for >= 3 seconds!
 
     // --- Check Instant Round End / Evaluation Rules ---
     const roundEvaluation = GameEngine.evaluateRound(state, completedTrick);
@@ -580,6 +585,13 @@ export class GameEngine {
     }
 
     return { state, trickCompleted: true, roundEnded: false };
+  }
+
+  /**
+   * Clears the completed trick from the table to start the next trick.
+   */
+  public static clearCurrentTrick(state: FullGameState): void {
+    state.currentTrick = [];
   }
 
   /**

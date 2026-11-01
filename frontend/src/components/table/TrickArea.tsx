@@ -22,11 +22,17 @@ export const TrickArea: React.FC<TrickAreaProps> = ({
 }) => {
   const [showLastTrick, setShowLastTrick] = useState<boolean>(false);
 
-  // Trick points in the center
-  const currentTrickPoints = currentTrick.reduce((acc, p) => acc + p.card.points, 0);
+  // Trick is complete when all 3 cards have been played
+  const isTrickCompleted = currentTrick.length === 3;
+  const winnerSeat = isTrickCompleted ? lastTrick?.winnerSeat : null;
+  const winnerName =
+    winnerSeat !== null && winnerSeat !== undefined ? players[winnerSeat]?.username : null;
+  const trickPoints = isTrickCompleted
+    ? lastTrick?.points || 0
+    : currentTrick.reduce((acc, p) => acc + p.card.points, 0);
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-[220px] w-full max-w-xl mx-auto py-2">
+    <div className="relative flex flex-col items-center justify-center min-h-[230px] w-full max-w-xl mx-auto py-2">
       {/* Eye Counters / Eyes on Table */}
       <div className="flex items-center gap-4 mb-2 text-xs font-semibold">
         <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-950/70 border border-amber-500/40 rounded-full text-amber-300">
@@ -64,7 +70,7 @@ export const TrickArea: React.FC<TrickAreaProps> = ({
           </button>
         </div>
       ) : (
-        <div className="relative w-full flex items-center justify-center min-h-[160px]">
+        <div className="relative w-full flex flex-col items-center justify-center min-h-[170px]">
           {/* Felt center circular marking */}
           <div className="absolute w-56 h-56 rounded-full border border-emerald-700/30 bg-emerald-950/20 pointer-events-none -z-0" />
 
@@ -74,24 +80,68 @@ export const TrickArea: React.FC<TrickAreaProps> = ({
             </div>
           ) : (
             <div className="flex items-center justify-center gap-4 z-10">
-              {currentTrick.map((play, index) => (
-                <div
-                  key={index}
-                  className="flex flex-col items-center transition-all duration-300 animate-in fade-in zoom-in-95"
-                >
-                  <CardView card={play.card} size="md" isLegal={true} />
-                  <span className="text-xs font-semibold text-amber-200 mt-1 px-2 py-0.5 rounded bg-slate-900/80 border border-amber-500/20 shadow">
-                    {players[play.seatIndex]?.username}
-                  </span>
-                </div>
-              ))}
+              {currentTrick.map((play, index) => {
+                const isWinner = isTrickCompleted && play.seatIndex === winnerSeat;
+
+                return (
+                  <div
+                    key={index}
+                    className={`relative flex flex-col items-center transition-all duration-300 ${
+                      isWinner
+                        ? 'scale-105 z-20'
+                        : isTrickCompleted
+                        ? 'opacity-85 scale-95'
+                        : 'animate-in fade-in zoom-in-95'
+                    }`}
+                  >
+                    {isWinner && (
+                      <div className="absolute -top-7 px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[10px] shadow-lg flex items-center gap-1 animate-bounce z-30">
+                        <span>👑 Gewinner (+{trickPoints} Augen)</span>
+                      </div>
+                    )}
+                    <div
+                      className={`rounded-xl transition-all ${
+                        isWinner
+                          ? 'ring-4 ring-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.85)]'
+                          : ''
+                      }`}
+                    >
+                      <CardView card={play.card} size="md" isLegal={true} />
+                    </div>
+                    <span
+                      className={`text-xs font-semibold mt-1.5 px-2.5 py-0.5 rounded-full border shadow transition-all ${
+                        isWinner
+                          ? 'text-amber-300 bg-slate-900 border-amber-400/80 font-bold'
+                          : 'text-amber-200/90 bg-slate-900/80 border-amber-500/20'
+                      }`}
+                    >
+                      {players[play.seatIndex]?.username}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Banner & Countdown Bar for completed 3-card trick */}
+          {isTrickCompleted && winnerName && (
+            <div className="flex flex-col items-center mt-3 z-10 animate-in fade-in zoom-in-95">
+              <div className="px-4 py-1 rounded-full bg-amber-950/90 border border-amber-400/80 text-amber-200 font-bold text-xs shadow-lg flex items-center gap-1.5">
+                <span>
+                  👑 Stich geht an <strong className="text-amber-300">{winnerName}</strong> (+
+                  {trickPoints} Augen)
+                </span>
+              </div>
+              <div className="w-36 h-1 bg-slate-800 rounded-full mt-2 overflow-hidden border border-slate-700/80 shadow-inner">
+                <div className="h-full bg-amber-400 animate-[trickProgress_3.2s_linear]" />
+              </div>
             </div>
           )}
         </div>
       )}
 
-      {/* Toggle button for Last Trick */}
-      {lastTrick && !showLastTrick && (
+      {/* Toggle button for Last Trick (only if not currently reviewing a complete trick) */}
+      {lastTrick && !showLastTrick && !isTrickCompleted && (
         <button
           onClick={() => setShowLastTrick(true)}
           className="mt-2 flex items-center gap-1 text-[11px] text-amber-400/80 hover:text-amber-300 bg-slate-900/60 hover:bg-slate-900 px-2.5 py-1 rounded-full border border-amber-500/20 transition-all"

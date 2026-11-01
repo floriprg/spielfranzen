@@ -386,8 +386,8 @@ export const GamePage: React.FC = () => {
         </div>
       )}
 
-      {/* Round Summary Modal */}
-      {phase === 'ROUND_SUMMARY' && lastRoundResult && (
+      {/* Round Summary Modal: only opens after trick review (3 cards) completes */}
+      {phase === 'ROUND_SUMMARY' && lastRoundResult && currentTrick.length < 3 && (
         <RoundSummaryModal
           roundResult={lastRoundResult}
           players={players}
@@ -396,8 +396,8 @@ export const GamePage: React.FC = () => {
         />
       )}
 
-      {/* Match Completed Modal */}
-      {(phase === 'MATCH_COMPLETED' || status === 'COMPLETED') && matchResult && (
+      {/* Match Completed Modal: only opens after trick review (3 cards) completes */}
+      {(phase === 'MATCH_COMPLETED' || status === 'COMPLETED') && matchResult && currentTrick.length < 3 && (
         <MatchCompletedModal matchResult={matchResult} />
       )}
     </div>

@@ -103,6 +103,7 @@ export function sanitizeGameStateForPlayer(
     mySeatIndex !== null &&
     state.phase === 'TRICK_PLAY' &&
     state.currentTurnSeat === mySeatIndex &&
+    state.currentTrick.length < 3 &&
     myHand.length > 0
   ) {
     legalCardIdsToPlay = getLegalCardIds(myHand, state.currentTrick, state.gameMode);

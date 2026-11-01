@@ -26,6 +26,8 @@ export class GameSocketHandler {
   private userSockets: Map<string, Set<string>> = new Map();
   // Map of matchId -> active Bot timeout timer
   private botTimers: Map<string, NodeJS.Timeout> = new Map();
+  // Map of matchId -> active trick review timer (3 seconds pause to view 3rd card and winner)
+  private trickTimers: Map<string, NodeJS.Timeout> = new Map();
 
   constructor(
     io: Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>,
@@ -186,6 +188,10 @@ export class GameSocketHandler {
           clearTimeout(this.botTimers.get(state.matchId)!);
           this.botTimers.delete(state.matchId);
         }
+        if (this.trickTimers.has(state.matchId)) {
+          clearTimeout(this.trickTimers.get(state.matchId)!);
+          this.trickTimers.delete(state.matchId);
+        }
         return;
       }
 
@@ -215,6 +221,10 @@ export class GameSocketHandler {
         if (this.botTimers.has(state.matchId)) {
           clearTimeout(this.botTimers.get(state.matchId)!);
           this.botTimers.delete(state.matchId);
+        }
+        if (this.trickTimers.has(state.matchId)) {
+          clearTimeout(this.trickTimers.get(state.matchId)!);
+          this.trickTimers.delete(state.matchId);
         }
         return;
       }
@@ -509,16 +519,63 @@ export class GameSocketHandler {
     const seatIdx = state.players.findIndex((p) => p.userId === userId);
     if (seatIdx === -1) throw new Error('Du bist kein Mitspieler in diesem Raum.');
 
-    const result = GameEngine.handlePlayCard(state, seatIdx, cardId);
+    if (state.currentTrick.length >= 3) {
+      throw new Error('Der vorherige Stich wird noch ausgewertet.');
+    }
 
+    const result = GameEngine.handlePlayCard(state, seatIdx, cardId);
+    await this.processTrickPlayResult(matchId, result);
+  }
+
+  /**
+   * Processes trick play result (human or bot move).
+   * If the trick was completed (3 cards played), holds the 3 cards on the table for at least 3 seconds
+   * so all players can clearly view the 3rd card, the trick winner, and the points before clearing.
+   */
+  private async processTrickPlayResult(
+    matchId: string,
+    result: { state: FullGameState; trickCompleted: boolean; roundEnded: boolean },
+  ): Promise<void> {
     await this.persistMatchState(result.state);
     this.syncStateToMatch(matchId, result.state);
 
-    if (result.roundEnded) {
-      await this.handleRoundEnd(matchId, result.state);
+    if (result.trickCompleted) {
+      // Clear any existing trick review timer for this match
+      if (this.trickTimers.has(matchId)) {
+        clearTimeout(this.trickTimers.get(matchId)!);
+        this.trickTimers.delete(matchId);
+      }
+
+      // Hold trick visible on table for at least 3 seconds (3200ms)
+      const timer = setTimeout(async () => {
+        try {
+          this.trickTimers.delete(matchId);
+          const liveState = this.activeMatches.get(matchId);
+          if (!liveState) return;
+
+          // Clear completed trick from table
+          GameEngine.clearCurrentTrick(liveState);
+
+          if (result.roundEnded) {
+            await this.handleRoundEnd(matchId, liveState);
+            return;
+          }
+
+          await this.persistMatchState(liveState);
+          this.syncStateToMatch(matchId, liveState);
+
+          // Trigger bot if the next turn belongs to a bot
+          this.checkAndTriggerBot(matchId, liveState);
+        } catch (err) {
+          console.error('Error resolving completed trick:', err);
+        }
+      }, 3200);
+
+      this.trickTimers.set(matchId, timer);
       return;
     }
 
+    // Trick not completed yet (card 1 or 2): trigger bot move if applicable
     this.checkAndTriggerBot(matchId, result.state);
   }
 
@@ -760,6 +817,7 @@ export class GameSocketHandler {
   private checkAndTriggerBot(matchId: string, state: FullGameState): void {
     if (state.status !== 'IN_PROGRESS') return;
     if (state.phase === 'ROUND_SUMMARY' || state.phase === 'MATCH_COMPLETED') return;
+    if (state.currentTrick.length >= 3) return; // Wait for the 3-second trick review to conclude
 
     const currentSeat = state.currentTurnSeat;
     const player = state.players[currentSeat];
@@ -814,17 +872,10 @@ export class GameSocketHandler {
         }
 
         if (liveState.phase === 'TRICK_PLAY') {
+          if (liveState.currentTrick.length >= 3) return;
           const cardId = BotEngine.decideCardToPlay(liveState, currentSeat);
           const result = GameEngine.handlePlayCard(liveState, currentSeat, cardId);
-          await this.persistMatchState(result.state);
-          this.syncStateToMatch(matchId, result.state);
-
-          if (result.roundEnded) {
-            await this.handleRoundEnd(matchId, result.state);
-            return;
-          }
-
-          this.checkAndTriggerBot(matchId, result.state);
+          await this.processTrickPlayResult(matchId, result);
           return;
         }
       } catch (err) {
