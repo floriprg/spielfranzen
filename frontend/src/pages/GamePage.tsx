@@ -120,51 +120,53 @@ export const GamePage: React.FC = () => {
   const modeInfo = gameMode ? GAME_MODE_INFO[gameMode] : null;
 
   return (
-    <div className="min-h-[calc(100vh-65px)] flex flex-col bg-slate-950 select-none">
+    <div className="h-[calc(100dvh-54px)] max-h-[calc(100dvh-54px)] flex flex-col bg-slate-950 select-none overflow-hidden">
       {/* Top Match Status & Score Bar */}
-      <div className="bg-slate-900/90 border-b border-amber-600/30 px-4 py-2 flex flex-wrap items-center justify-between gap-3 shadow-md">
+      <div className="bg-slate-900/95 border-b border-amber-600/30 px-3 py-1 flex items-center justify-between gap-2 shadow-sm flex-shrink-0 text-xs">
         {/* Left: Round & Code */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             onClick={handleCopyCode}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 font-mono text-xs font-bold transition-colors"
+            className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 font-mono text-[11px] font-bold transition-colors cursor-pointer"
             title="Code kopieren"
           >
             <span>#{code}</span>
-            {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+            {copiedCode ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
           </button>
 
-          <span className="text-xs font-bold text-slate-300">
-            Runde <strong className="text-amber-400">{currentRound}</strong> / {totalRounds}
+          <span className="text-[11px] font-bold text-slate-300">
+            Runde <strong className="text-amber-400">{currentRound}</strong>/{totalRounds}
           </span>
         </div>
 
         {/* Center: Mode Indicator */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {modeInfo ? (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-950/80 border border-amber-500/60 shadow-sm text-amber-300 text-xs font-bold">
-              {modeInfo.trumpSuit && <SuitIcon suit={modeInfo.trumpSuit} size={16} />}
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/60 shadow-sm text-amber-300 text-[11px] font-bold">
+              {modeInfo.trumpSuit && <SuitIcon suit={modeInfo.trumpSuit} size={14} />}
               <span>{modeInfo.name}</span>
             </div>
           ) : (
-            <div className="px-3 py-1 rounded-full bg-slate-800 text-slate-400 text-xs font-medium border border-slate-700">
-              {phase === 'BIDDING' ? 'Biet-Phase aktiv' : 'Austeilen...'}
+            <div className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[11px] font-medium border border-slate-700">
+              {phase === 'BIDDING' ? 'Biet-Phase' : 'Austeilen...'}
             </div>
           )}
         </div>
 
         {/* Right: Live Scoreboard (Zero-Sum) */}
-        <div className="flex items-center gap-3 text-xs">
+        <div className="flex items-center gap-1.5 text-[11px]">
           {players.map((p) => (
             <div
               key={p.seatIndex}
-              className={`flex items-center gap-1 px-2.5 py-0.5 rounded-lg border ${
+              className={`flex items-center gap-1 px-2 py-0.2 rounded border ${
                 p.seatIndex === mySeatIndex
                   ? 'bg-amber-950/40 border-amber-500/50'
                   : 'bg-slate-900 border-slate-800'
               }`}
             >
-              <span className="font-semibold text-slate-300">{p.username}:</span>
+              <span className="font-semibold text-slate-300 truncate max-w-[55px] sm:max-w-[75px]">
+                {p.username}:
+              </span>
               <span
                 className={`font-mono font-bold ${
                   p.score > 0
@@ -183,43 +185,43 @@ export const GamePage: React.FC = () => {
 
       {/* Global Error Banner */}
       {error && (
-        <div className="bg-rose-900/90 text-rose-200 px-4 py-1.5 text-xs font-semibold text-center flex items-center justify-center gap-2">
+        <div className="bg-rose-900/90 text-rose-200 px-3 py-1 text-xs font-semibold text-center flex items-center justify-center gap-2 flex-shrink-0">
           <span>{error}</span>
-          <button onClick={clearError} className="underline hover:text-white">
+          <button onClick={clearError} className="underline hover:text-white cursor-pointer">
             OK
           </button>
         </div>
       )}
 
-      {/* Main Card Game Table */}
-      <div className="flex-1 relative flex flex-col justify-between p-4 bg-radial from-emerald-900 via-emerald-950 to-slate-950 shadow-felt border-4 border-amber-950/70 overflow-hidden">
+      {/* Main Card Game Table - Zero Scroll Fit */}
+      <div className="flex-1 min-h-0 relative flex flex-col justify-between p-1.5 sm:p-2.5 bg-radial from-emerald-900 via-emerald-950 to-slate-950 shadow-felt border-2 sm:border-4 border-amber-950/70 overflow-hidden">
         {/* Waiting Room Overlay if 3 players not yet ready */}
         {status === 'WAITING' && (
-          <div className="absolute inset-0 z-30 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-slate-900 border-2 border-amber-500 rounded-2xl max-w-md w-full p-6 text-center shadow-2xl">
-              <Users className="w-12 h-12 text-amber-400 mx-auto mb-3" />
-              <h2 className="text-2xl font-bold font-serif-vintage text-amber-300 mb-1">
+          <div className="absolute inset-0 z-30 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3">
+            <div className="bg-slate-900 border-2 border-amber-500 rounded-2xl max-w-sm w-full p-5 text-center shadow-2xl">
+              <Users className="w-10 h-10 text-amber-400 mx-auto mb-2" />
+              <h2 className="text-xl font-bold font-serif-vintage text-amber-300 mb-1">
                 Warte auf Mitspieler
               </h2>
-              <p className="text-xs text-slate-300 mb-4">
+              <p className="text-xs text-slate-300 mb-3">
                 Teile den Raum-Code <strong className="text-amber-400 font-mono">#{code}</strong>{' '}
-                mit deinen Freunden oder fülle leere Plätze mit Bots auf.
+                oder füge Bots hinzu.
               </p>
 
-              <div className="space-y-3 mb-6">
+              <div className="space-y-2 mb-4">
                 {[0, 1, 2].map((sIndex) => {
                   const p = players[sIndex];
                   const isTaken = p && p.userId && p.userId !== '';
                   return (
                     <div
                       key={sIndex}
-                      className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800"
+                      className="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800 text-xs"
                     >
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-slate-800 text-amber-400 font-bold text-xs flex items-center justify-center">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-slate-800 text-amber-400 font-bold text-xs flex items-center justify-center">
                           {sIndex + 1}
                         </div>
-                        <span className="font-semibold text-sm text-slate-200">
+                        <span className="font-semibold text-slate-200">
                           {isTaken ? (
                             <>
                               {p.username} {p.isBot && '(Bot)'}
@@ -233,16 +235,16 @@ export const GamePage: React.FC = () => {
                       {!isTaken ? (
                         <button
                           onClick={() => addBot(sIndex)}
-                          className="px-3 py-1 rounded-lg bg-amber-600/30 hover:bg-amber-600 text-amber-300 hover:text-slate-950 border border-amber-500/40 text-xs font-bold transition-all flex items-center gap-1"
+                          className="px-2.5 py-1 rounded-lg bg-amber-600/30 hover:bg-amber-600 text-amber-300 hover:text-slate-950 border border-amber-500/40 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
                         >
-                          <Bot className="w-3.5 h-3.5" />
+                          <Bot className="w-3 h-3" />
                           <span>Bot hinzufügen</span>
                         </button>
                       ) : (
                         p.isBot && (
                           <button
                             onClick={() => removeBot(sIndex)}
-                            className="text-xs text-rose-400 hover:text-rose-300 hover:underline"
+                            className="text-xs text-rose-400 hover:text-rose-300 hover:underline cursor-pointer"
                           >
                             Entfernen
                           </button>
@@ -255,24 +257,24 @@ export const GamePage: React.FC = () => {
 
               <button
                 onClick={handleCopyCode}
-                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-colors flex items-center justify-center gap-2"
+                className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Copy className="w-4 h-4 text-amber-400" />
-                <span>{copiedCode ? 'Code kopiert!' : 'Raum-Code in Zwischenablage kopieren'}</span>
+                <Copy className="w-3.5 h-3.5 text-amber-400" />
+                <span>{copiedCode ? 'Code kopiert!' : 'Raum-Code kopieren'}</span>
               </button>
             </div>
           </div>
         )}
 
         {/* Top: Opponent Seats */}
-        <div className="flex justify-between items-start max-w-5xl mx-auto w-full px-4">
+        <div className="flex justify-between items-start max-w-4xl mx-auto w-full px-2 pt-0.5 flex-shrink-0">
           {opponentLeft && (
             <PlayerSeatView
               player={opponentLeft}
               isCurrentTurn={currentTurnSeat === opponentLeft.seatIndex}
               isDealer={dealerSeat === opponentLeft.seatIndex}
               isMe={false}
-              className="w-48"
+              className="w-32 sm:w-40"
             />
           )}
 
@@ -282,13 +284,13 @@ export const GamePage: React.FC = () => {
               isCurrentTurn={currentTurnSeat === opponentRight.seatIndex}
               isDealer={dealerSeat === opponentRight.seatIndex}
               isMe={false}
-              className="w-48"
+              className="w-32 sm:w-40"
             />
           )}
         </div>
 
-        {/* Center: Trick Play or Bidding Controls */}
-        <div className="my-auto py-4">
+        {/* Center: Trick Play or Bidding Controls (strictly contained) */}
+        <div className="flex-1 min-h-0 flex items-center justify-center my-auto py-0.5 overflow-hidden">
           {phase === 'BIDDING' ? (
             <BiddingControls
               biddingState={biddingState}
@@ -311,17 +313,17 @@ export const GamePage: React.FC = () => {
         </div>
 
         {/* Bottom: Player's Own Hand & Status */}
-        <div className="flex flex-col items-center max-w-5xl mx-auto w-full pb-6 pt-2">
+        <div className="flex flex-col items-center max-w-4xl mx-auto w-full pb-1 pt-0 flex-shrink-0">
           {/* Turn Alert */}
           {isMyTurn && phase === 'TRICK_PLAY' && (
-            <div className="mb-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-xs shadow-lg animate-bounce border border-yellow-300">
-              Du bist am Zug! Wähle eine gültige Karte zum Ausspielen:
+            <div className="mb-1 px-3 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[11px] shadow animate-bounce border border-yellow-300">
+              Du bist am Zug! Wähle eine Karte:
             </div>
           )}
 
-          {/* Cards Fan */}
-          <div className="relative flex flex-wrap justify-center items-end gap-1.5 sm:gap-2 px-2 pb-2">
-            {myHand.map((card) => {
+          {/* Cards Fan (Single row with fan overlap - never wraps, zero scroll!) */}
+          <div className="relative flex justify-center items-end px-1 pt-2 pb-0.5 max-w-full">
+            {myHand.map((card, index) => {
               const isLegal =
                 phase !== 'TRICK_PLAY'
                   ? true
@@ -329,37 +331,50 @@ export const GamePage: React.FC = () => {
                   ? true
                   : legalCardIdsToPlay.includes(card.id);
 
+              const overlapClass =
+                index === 0
+                  ? ''
+                  : myHand.length > 7
+                  ? '-ml-4 sm:-ml-6 md:-ml-7'
+                  : myHand.length > 4
+                  ? '-ml-3 sm:-ml-5 md:-ml-6'
+                  : 'ml-0.5 sm:ml-1';
+
               return (
-                <CardView
+                <div
                   key={card.id}
-                  card={card}
-                  isLegal={isLegal}
-                  onClick={() => {
-                    if (isMyTurn && phase === 'TRICK_PLAY') {
-                      playCard(card.id);
-                    }
-                  }}
-                  size="md"
-                  showPoints={!isBettlOrMord}
-                />
+                  className={`relative transition-all duration-200 hover:-translate-y-3 sm:hover:-translate-y-4 hover:z-30 ${overlapClass}`}
+                >
+                  <CardView
+                    card={card}
+                    isLegal={isLegal}
+                    onClick={() => {
+                      if (isMyTurn && phase === 'TRICK_PLAY') {
+                        playCard(card.id);
+                      }
+                    }}
+                    size="md"
+                    showPoints={!isBettlOrMord}
+                  />
+                </div>
               );
             })}
           </div>
 
           {/* Player Seat Summary at bottom */}
           {myPlayer && (
-            <div className="flex items-center gap-3 text-xs text-slate-300 font-semibold bg-slate-900/90 px-4 py-1.5 rounded-full border border-slate-700/80 shadow-md mt-2">
+            <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-slate-300 font-semibold bg-slate-900/90 px-3 py-0.5 rounded-full border border-slate-700/80 shadow mt-1">
               <span className="text-amber-400 font-bold">{myPlayer.username} (Du)</span>
               <span className="text-slate-600">•</span>
               <span className="flex items-center gap-1">
                 Rolle:{' '}
                 {myPlayer.role === 'DECLARER' ? (
-                  <span className="text-amber-300 font-bold flex items-center gap-1">
-                    <Crown className="w-3.5 h-3.5 text-amber-400" /> Alleinspieler
+                  <span className="text-amber-300 font-bold flex items-center gap-0.5">
+                    <Crown className="w-3 h-3 text-amber-400" /> Alleinspieler
                   </span>
                 ) : myPlayer.role === 'DEFENDER' ? (
-                  <span className="text-slate-300 font-semibold flex items-center gap-1">
-                    <Shield className="w-3.5 h-3.5 text-slate-400" /> Gegner
+                  <span className="text-slate-300 font-semibold flex items-center gap-0.5">
+                    <Shield className="w-3 h-3 text-slate-400" /> Gegner
                   </span>
                 ) : (
                   'Ausstehend'

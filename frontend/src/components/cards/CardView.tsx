@@ -7,7 +7,7 @@ interface CardViewProps {
   isLegal?: boolean;
   isSelected?: boolean;
   onClick?: () => void;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   className?: string;
   showPoints?: boolean;
 }
@@ -24,9 +24,10 @@ export const CardView: React.FC<CardViewProps> = ({
   const [imgError, setImgError] = useState(false);
 
   const sizeClasses = {
-    sm: 'w-14 aspect-[256/480] text-xs',
-    md: 'w-20 sm:w-22 aspect-[256/480] text-sm',
-    lg: 'w-26 sm:w-28 aspect-[256/480] text-base',
+    xs: 'w-9 sm:w-11 aspect-[256/480] text-[9px]',
+    sm: 'w-11 sm:w-13 aspect-[256/480] text-[10px]',
+    md: 'w-13 sm:w-15 md:w-18 aspect-[256/480] text-xs',
+    lg: 'w-18 sm:w-22 md:w-26 aspect-[256/480] text-sm',
   }[size];
 
   const suitTextColor: Record<string, string> = {
