@@ -1,7 +1,8 @@
-import { SanitizedPlayerSeat } from '@spielfranzen/shared';
-import { Bot, Crown, Shield, Wifi, WifiOff } from 'lucide-react';
+import { GameTimerState, SanitizedPlayerSeat } from '@spielfranzen/shared';
+import { Bot, Clock, Crown, Shield, Wifi, WifiOff } from 'lucide-react';
 import React from 'react';
 import { CardBack } from '../cards/CardBack.js';
+import { formatSecondsMMSS, useTurnTimer } from '../common/useTurnTimer.js';
 
 interface PlayerSeatViewProps {
   player: SanitizedPlayerSeat;
@@ -9,6 +10,7 @@ interface PlayerSeatViewProps {
   isDealer: boolean;
   isMe: boolean;
   biddingText?: string;
+  timer?: GameTimerState;
   className?: string;
 }
 
@@ -18,8 +20,10 @@ export const PlayerSeatView: React.FC<PlayerSeatViewProps> = ({
   isDealer,
   isMe,
   biddingText,
+  timer,
   className = '',
 }) => {
+  const timerResult = useTurnTimer(timer, player.seatIndex, isCurrentTurn);
   return (
     <div
       className={`relative flex flex-col items-center p-2 rounded-xl backdrop-blur-md transition-all duration-300 shadow-md ${
@@ -100,6 +104,22 @@ export const PlayerSeatView: React.FC<PlayerSeatViewProps> = ({
             >
               {player.score > 0 ? `+${player.score}` : player.score} Pkt
             </span>
+            {timerResult.enabled && (
+              <>
+                <span className="text-slate-600">•</span>
+                <span
+                  className={`flex items-center gap-0.5 font-mono text-[9px] ${
+                    isCurrentTurn && timerResult.isUrgent
+                      ? 'text-rose-400 font-bold'
+                      : 'text-slate-400'
+                  }`}
+                  title="Verbleibende Gesamtbedenkzeit"
+                >
+                  <Clock className="w-2.5 h-2.5 text-slate-500" />
+                  {formatSecondsMMSS(timerResult.bankSecondsRemaining)}
+                </span>
+              </>
+            )}
           </div>
         </div>
 
@@ -121,8 +141,19 @@ export const PlayerSeatView: React.FC<PlayerSeatViewProps> = ({
 
       {/* Turn Indicator Pill */}
       {isCurrentTurn && (
-        <span className="absolute -bottom-2 px-2 py-0.2 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[8px] sm:text-[9px] tracking-wider shadow uppercase border border-yellow-300 animate-pulse">
-          Am Zug
+        <span
+          className={`absolute -bottom-2 px-2 py-0.2 rounded-full font-black text-[8px] sm:text-[9px] tracking-wider shadow uppercase border flex items-center gap-1 ${
+            timerResult.enabled && timerResult.isUrgent
+              ? 'bg-gradient-to-r from-rose-600 to-red-600 text-white border-rose-300 animate-pulse'
+              : 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 border-yellow-300 animate-pulse'
+          }`}
+        >
+          <span>Am Zug</span>
+          {timerResult.enabled && (
+            <span className="font-mono text-[9px] font-black ml-0.5">
+              ⏱ {timerResult.turnSecondsRemaining}s
+            </span>
+          )}
         </span>
       )}
     </div>

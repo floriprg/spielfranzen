@@ -1,5 +1,5 @@
 import { MatchListItem } from '@spielfranzen/shared';
-import { ArrowRight, Bot, Key, Lock, Play, Plus, RefreshCw, Users } from 'lucide-react';
+import { ArrowRight, Bot, Clock, Key, Lock, Play, Plus, RefreshCw, Users } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
@@ -26,6 +26,9 @@ export const LobbyPage: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
   const [totalRounds, setTotalRounds] = useState<number>(15);
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
+  const [timerEnabled, setTimerEnabled] = useState<boolean>(true);
+  const [turnTimeLimit, setTurnTimeLimit] = useState<number>(60);
+  const [totalTimeBank, setTotalTimeBank] = useState<number>(300);
   const [isCreating, setIsCreating] = useState<boolean>(false);
 
   const fetchLobbiesAndCurrent = async () => {
@@ -51,7 +54,13 @@ export const LobbyPage: React.FC = () => {
     e.preventDefault();
     setIsCreating(true);
     try {
-      const match = await api.createMatch({ totalRounds, isPrivate });
+      const match = await api.createMatch({
+        totalRounds,
+        isPrivate,
+        timerEnabled,
+        turnTimeLimit,
+        totalTimeBank,
+      });
       navigate(`/game/${match.id}`);
     } catch (err: any) {
       alert(err.message || 'Fehler beim Erstellen des Spiels.');
@@ -189,9 +198,23 @@ export const LobbyPage: React.FC = () => {
                       Host: {m.hostUsername}
                     </div>
 
-                    <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                      <Users className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{m.playerCount} / 3 Spieler</span>
+                    <div className="flex items-center justify-between text-xs text-slate-400 mt-2">
+                      <div className="flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{m.playerCount} / 3 Spieler</span>
+                      </div>
+                      {m.timerConfig?.enabled ? (
+                        <span className="flex items-center gap-1 text-[10px] text-amber-400 font-mono bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-500/30">
+                          <Clock className="w-3 h-3 text-amber-400" />
+                          <span>
+                            {m.timerConfig.turnTimeLimit}s / {Math.round(m.timerConfig.totalTimeBank / 60)}m
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-500 bg-slate-950/60 px-1.5 py-0.5 rounded border border-slate-800">
+                          Kein Timer
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -285,6 +308,89 @@ export const LobbyPage: React.FC = () => {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Timer Settings */}
+              <div className="pt-2 border-t border-slate-800">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={timerEnabled}
+                      onChange={(e) => setTimerEnabled(e.target.checked)}
+                      className="w-4 h-4 rounded text-amber-500 focus:ring-amber-500 bg-slate-950 border-slate-700"
+                    />
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 text-amber-400" />
+                      <span>Bedenkzeit / Timer aktivieren</span>
+                    </div>
+                  </label>
+                  <span className="text-[10px] text-amber-400/80 font-mono">
+                    {timerEnabled ? 'Aktiv' : 'Deaktiviert'}
+                  </span>
+                </div>
+
+                {timerEnabled ? (
+                  <div className="space-y-3 pl-6 pt-1">
+                    <div>
+                      <label className="block text-xs text-slate-300 font-medium mb-1">
+                        Max. Bedenkzeit pro Zug:
+                      </label>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {[
+                          { val: 30, label: '30s' },
+                          { val: 45, label: '45s' },
+                          { val: 60, label: '60s (1m)' },
+                          { val: 90, label: '90s' },
+                        ].map((opt) => (
+                          <button
+                            key={opt.val}
+                            type="button"
+                            onClick={() => setTurnTimeLimit(opt.val)}
+                            className={`py-1.5 rounded-lg text-xs font-bold transition-all ${
+                              turnTimeLimit === opt.val
+                                ? 'bg-amber-600 text-white shadow ring-1 ring-amber-400'
+                                : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-slate-300 font-medium mb-1">
+                        Gesamtzeit pro Spieler (ganzes Spiel):
+                      </label>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {[
+                          { val: 180, label: '3 Min' },
+                          { val: 300, label: '5 Min' },
+                          { val: 600, label: '10 Min' },
+                          { val: 900, label: '15 Min' },
+                        ].map((opt) => (
+                          <button
+                            key={opt.val}
+                            type="button"
+                            onClick={() => setTotalTimeBank(opt.val)}
+                            className={`py-1.5 rounded-lg text-xs font-bold transition-all ${
+                              totalTimeBank === opt.val
+                                ? 'bg-amber-600 text-white shadow ring-1 ring-amber-400'
+                                : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-400 pl-6">
+                    Ohne Zeitbegrenzung: Spieler können beliebig lange überlegen.
+                  </p>
+                )}
               </div>
 
               <div>

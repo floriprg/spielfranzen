@@ -141,5 +141,6 @@ export function sanitizeGameStateForPlayer(
     lastRoundResult: state.lastRoundResult,
     matchResult: state.matchResult,
     legalCardIdsToPlay,
+    timer: state.timer,
   };
 }

@@ -1,9 +1,10 @@
 import { GAME_MODE_INFO, GameMode } from '@spielfranzen/shared';
-import { Bot, Check, Copy, Crown, Play, Shield, Users } from 'lucide-react';
+import { Bot, Check, Clock, Copy, Crown, Play, Shield, Users } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CardView } from '../components/cards/CardView.js';
 import { SuitIcon } from '../components/cards/SuitIcon.js';
+import { formatSecondsMMSS, useTurnTimer } from '../components/common/useTurnTimer.js';
 import { BiddingControls } from '../components/table/BiddingControls.js';
 import { MatchCompletedModal } from '../components/table/MatchCompletedModal.js';
 import { PlayerSeatView } from '../components/table/PlayerSeatView.js';
@@ -110,6 +111,13 @@ export const GamePage: React.FC = () => {
   const opponentLeft = players[opponentLeftSeat];
   const opponentRight = players[opponentRightSeat];
   const myPlayer = players[mySeat];
+
+  const myTimer = useTurnTimer(gameState.timer, mySeat, isMyTurn);
+  const declarerTimer = useTurnTimer(
+    gameState.timer,
+    declarerSeat ?? 0,
+    phase === 'TALON_AND_DECLARATION',
+  );
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(code);
@@ -274,6 +282,7 @@ export const GamePage: React.FC = () => {
               isCurrentTurn={currentTurnSeat === opponentLeft.seatIndex}
               isDealer={dealerSeat === opponentLeft.seatIndex}
               isMe={false}
+              timer={gameState.timer}
               className="flex-1 max-w-[165px] sm:max-w-[210px]"
             />
           )}
@@ -284,6 +293,7 @@ export const GamePage: React.FC = () => {
               isCurrentTurn={currentTurnSeat === opponentRight.seatIndex}
               isDealer={dealerSeat === opponentRight.seatIndex}
               isMe={false}
+              timer={gameState.timer}
               className="flex-1 max-w-[165px] sm:max-w-[210px]"
             />
           )}
@@ -297,6 +307,7 @@ export const GamePage: React.FC = () => {
               mySeatIndex={mySeat}
               isMyTurn={isMyTurn}
               onBid={sendBid}
+              timer={gameState.timer}
             />
           ) : (
             <TrickArea
@@ -316,8 +327,24 @@ export const GamePage: React.FC = () => {
         <div className="flex flex-col items-center max-w-4xl mx-auto w-full pb-2 pt-0 flex-shrink-0">
           {/* Turn Alert */}
           {isMyTurn && phase === 'TRICK_PLAY' && (
-            <div className="mb-1 px-3 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[11px] shadow animate-bounce border border-yellow-300">
-              Du bist am Zug! Wähle eine Karte:
+            <div
+              className={`mb-1 px-3 py-0.5 rounded-full font-black text-[11px] shadow flex items-center gap-1.5 border ${
+                myTimer.enabled && myTimer.isUrgent
+                  ? 'bg-gradient-to-r from-rose-600 to-red-600 text-white border-rose-300 animate-pulse'
+                  : 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 border-yellow-300 animate-bounce'
+              }`}
+            >
+              <span>Du bist am Zug! Wähle eine Karte:</span>
+              {myTimer.enabled && (
+                <>
+                  <span className="font-mono bg-black/25 px-1.5 py-0.2 rounded text-[10px]">
+                    ⏱️ {myTimer.turnSecondsRemaining}s
+                  </span>
+                  <span className="text-[10px] opacity-80 font-normal">
+                    ({formatSecondsMMSS(myTimer.bankSecondsRemaining)})
+                  </span>
+                </>
+              )}
             </div>
           )}
 
@@ -488,6 +515,30 @@ export const GamePage: React.FC = () => {
                   </span>
                 </>
               )}
+              {myTimer.enabled && (
+                <>
+                  <span className="text-slate-600">•</span>
+                  <span
+                    className={`flex items-center gap-1 font-mono text-[10px] sm:text-xs ${
+                      isMyTurn
+                        ? myTimer.isUrgent
+                          ? 'text-rose-400 font-bold animate-pulse'
+                          : 'text-amber-300 font-bold'
+                        : 'text-slate-400'
+                    }`}
+                    title="Verbleibende Gesamtbedenkzeit"
+                  >
+                    <Clock className="w-3 h-3" />
+                    {isMyTurn ? (
+                      <span>
+                        {myTimer.turnSecondsRemaining}s ({formatSecondsMMSS(myTimer.bankSecondsRemaining)})
+                      </span>
+                    ) : (
+                      <span>{formatSecondsMMSS(myTimer.bankSecondsRemaining)}</span>
+                    )}
+                  </span>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -500,6 +551,8 @@ export const GamePage: React.FC = () => {
           talonCards={talonCards}
           minMode={(minMode || 5) as GameMode}
           onTalonAction={sendTalonAction}
+          timer={gameState.timer}
+          seatIndex={mySeat}
         />
       )}
 
@@ -515,6 +568,12 @@ export const GamePage: React.FC = () => {
               Der Alleinspieler ({players[declarerSeat!]?.username}) inspiziert den Talon und wählt
               den Spielmodus...
             </p>
+            {declarerTimer.enabled && (
+              <div className="mt-3 inline-flex items-center justify-center gap-1.5 text-xs text-amber-300 font-mono font-bold bg-slate-950/70 py-1 px-3 rounded-full border border-amber-500/40">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Bedenkzeit: {declarerTimer.turnSecondsRemaining}s</span>
+              </div>
+            )}
           </div>
         </div>
       )}

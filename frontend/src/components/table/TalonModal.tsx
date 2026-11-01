@@ -1,7 +1,9 @@
-import { Card, GAME_MODE_INFO, GameMode } from '@spielfranzen/shared';
+import { Card, GAME_MODE_INFO, GameMode, GameTimerState } from '@spielfranzen/shared';
+import { Clock } from 'lucide-react';
 import React, { useState } from 'react';
 import { CardBack } from '../cards/CardBack.js';
 import { CardView } from '../cards/CardView.js';
+import { formatSecondsMMSS, useTurnTimer } from '../common/useTurnTimer.js';
 
 interface TalonModalProps {
   myHand: Card[];
@@ -12,6 +14,8 @@ interface TalonModalProps {
     discardedCardIds?: string[],
     selectedMode?: number,
   ) => void;
+  timer?: GameTimerState;
+  seatIndex?: number;
 }
 
 export const TalonModal: React.FC<TalonModalProps> = ({
@@ -19,7 +23,11 @@ export const TalonModal: React.FC<TalonModalProps> = ({
   talonCards,
   minMode,
   onTalonAction,
+  timer,
+  seatIndex = 0,
 }) => {
+  const timerResult = useTurnTimer(timer, seatIndex, true);
+
   // Discards selection (for Phase 2 when talon is taken)
   const [selectedDiscards, setSelectedDiscards] = useState<string[]>([]);
 
@@ -54,6 +62,24 @@ export const TalonModal: React.FC<TalonModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
       <div className="bg-slate-900 border-2 border-amber-500 rounded-2xl max-w-4xl w-full p-5 sm:p-6 shadow-2xl my-auto">
+        {timerResult.enabled && (
+          <div className="flex justify-center mb-3">
+            <div
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold border shadow ${
+                timerResult.isUrgent
+                  ? 'bg-rose-950/90 text-rose-300 border-rose-500 animate-pulse'
+                  : 'bg-slate-800/90 text-amber-300 border-amber-500/40'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>Bedenkzeit: {timerResult.turnSecondsRemaining}s</span>
+              <span className="text-slate-400 font-normal">
+                (Gesamt: {formatSecondsMMSS(timerResult.bankSecondsRemaining)})
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* ========================================================= */}
         {/* PHASE 1: ENTSCHEIDUNG (BEVOR TALON AUFGEDECKT WIRD)      */}
         {/* ========================================================= */}

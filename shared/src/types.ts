@@ -205,6 +205,20 @@ export interface MatchResult {
   }[];
 }
 
+// Timer Configuration and State
+export interface GameTimerConfig {
+  enabled: boolean;
+  turnTimeLimit: number; // seconds per turn, default 60
+  totalTimeBank: number; // total seconds per player for match, default 300 (5 mins)
+}
+
+export interface GameTimerState {
+  config: GameTimerConfig;
+  turnStartedAt: number | null; // epoch timestamp in ms
+  turnDuration: number; // allotted seconds for current turn
+  playerBanks: [number, number, number]; // remaining bank seconds for seat 0, 1, 2
+}
+
 // Full Server-Side State (Stored in DB JSONB and in memory)
 export interface FullGameState {
   matchId: string;
@@ -232,6 +246,7 @@ export interface FullGameState {
   defenderCardPoints: number;
   lastRoundResult: RoundResult | null;
   matchResult: MatchResult | null;
+  timer: GameTimerState;
 }
 
 // Client-Sanitized State (Anti-Cheat: Opponent hands & hidden talon stripped)
@@ -276,6 +291,7 @@ export interface SanitizedGameState {
   lastRoundResult: RoundResult | null;
   matchResult: MatchResult | null;
   legalCardIdsToPlay: string[]; // Server-calculated valid cards for current turn player
+  timer: GameTimerState;
 }
 
 // User Profile & Leaderboard
@@ -315,6 +331,7 @@ export interface MatchListItem {
   currentRound: number;
   playerCount: number;
   createdAt: string;
+  timerConfig?: GameTimerConfig;
 }
 
 // Socket.io Typed Events
@@ -366,4 +383,7 @@ export interface AuthResponse {
 export interface CreateMatchRequest {
   totalRounds: number;
   isPrivate: boolean;
+  timerEnabled?: boolean;
+  turnTimeLimit?: number;
+  totalTimeBank?: number;
 }

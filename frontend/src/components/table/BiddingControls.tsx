@@ -1,12 +1,14 @@
-import { BiddingState } from '@spielfranzen/shared';
+import { BiddingState, GameTimerState } from '@spielfranzen/shared';
 import { Check, ChevronDown } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
+import { useTurnTimer } from '../common/useTurnTimer.js';
 
 interface BiddingControlsProps {
   biddingState: BiddingState;
   mySeatIndex: number;
   isMyTurn: boolean;
   onBid: (action: 'open' | 'raise' | 'hold' | 'pass', bidValue?: number) => void;
+  timer?: GameTimerState;
 }
 
 export const BiddingControls: React.FC<BiddingControlsProps> = ({
@@ -14,7 +16,9 @@ export const BiddingControls: React.FC<BiddingControlsProps> = ({
   mySeatIndex,
   isMyTurn,
   onBid,
+  timer,
 }) => {
+  const timerResult = useTurnTimer(timer, mySeatIndex, isMyTurn);
   const { phase, currentBid, holderSeat, challengerSeat } = biddingState;
   const [customBid, setCustomBid] = useState<number>(currentBid + 1);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -77,9 +81,28 @@ export const BiddingControls: React.FC<BiddingControlsProps> = ({
       {/* Action Controls for Turn Player */}
       {isMyTurn ? (
         <div className="flex flex-col gap-1.5 p-2 bg-amber-950/40 border border-amber-500/30 rounded-xl">
-          <p className="text-[11px] text-amber-300 font-semibold text-center animate-pulse">
-            Du bist am Zug! Wähle deine Aktion:
-          </p>
+          <div className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-center">
+            <span
+              className={
+                timerResult.enabled && timerResult.isUrgent
+                  ? 'text-rose-400 font-bold animate-pulse'
+                  : 'text-amber-300 animate-pulse'
+              }
+            >
+              Du bist am Zug! Wähle deine Aktion:
+            </span>
+            {timerResult.enabled && (
+              <span
+                className={`font-mono text-[10px] px-1.5 py-0.2 rounded font-bold ${
+                  timerResult.isUrgent
+                    ? 'bg-rose-950/80 text-rose-300 border border-rose-500 animate-pulse'
+                    : 'bg-black/40 text-amber-200'
+                }`}
+              >
+                ⏱ {timerResult.turnSecondsRemaining}s
+              </span>
+            )}
+          </div>
 
           <div className="flex flex-wrap items-center justify-center gap-2">
             {phase === 'OPENING' && (

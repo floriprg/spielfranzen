@@ -28,6 +28,8 @@ export class GameSocketHandler {
   private botTimers: Map<string, NodeJS.Timeout> = new Map();
   // Map of matchId -> active trick review timer (3 seconds pause to view 3rd card and winner)
   private trickTimers: Map<string, NodeJS.Timeout> = new Map();
+  // Map of matchId -> active player turn timeout timer
+  private turnTimers: Map<string, NodeJS.Timeout> = new Map();
 
   constructor(
     io: Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>,
@@ -164,6 +166,14 @@ export class GameSocketHandler {
 
     if (match.liveGameState) {
       const state = match.liveGameState as unknown as FullGameState;
+      if (state && !state.timer) {
+        state.timer = {
+          config: { enabled: true, turnTimeLimit: 60, totalTimeBank: 300 },
+          turnStartedAt: null,
+          turnDuration: 60,
+          playerBanks: [300, 300, 300],
+        };
+      }
       this.activeMatches.set(matchId, state);
       return state;
     }
@@ -191,6 +201,10 @@ export class GameSocketHandler {
         if (this.trickTimers.has(state.matchId)) {
           clearTimeout(this.trickTimers.get(state.matchId)!);
           this.trickTimers.delete(state.matchId);
+        }
+        if (this.turnTimers.has(state.matchId)) {
+          clearTimeout(this.turnTimers.get(state.matchId)!);
+          this.turnTimers.delete(state.matchId);
         }
         return;
       }
@@ -225,6 +239,10 @@ export class GameSocketHandler {
         if (this.trickTimers.has(state.matchId)) {
           clearTimeout(this.trickTimers.get(state.matchId)!);
           this.trickTimers.delete(state.matchId);
+        }
+        if (this.turnTimers.has(state.matchId)) {
+          clearTimeout(this.turnTimers.get(state.matchId)!);
+          this.turnTimers.delete(state.matchId);
         }
         return;
       }
@@ -433,9 +451,11 @@ export class GameSocketHandler {
           isBot: p.isBot,
         }));
 
-        state = GameEngine.createInitialState(match.id, match.code, match.totalRounds, players);
+        const timerConfig = (match.liveGameState as any)?.timerConfig;
+        state = GameEngine.createInitialState(match.id, match.code, match.totalRounds, players, timerConfig);
         this.activeMatches.set(matchId, state);
         await this.persistMatchState(state);
+        this.startTurnTimer(matchId, state);
       } else if (match.status === 'WAITING') {
         // Broadcast waiting room state so players see seats & bot buttons!
         await this.syncWaitingState(matchId);
@@ -473,10 +493,12 @@ export class GameSocketHandler {
     const seatIdx = state.players.findIndex((p) => p.userId === userId);
     if (seatIdx === -1) throw new Error('Du bist kein Mitspieler in diesem Raum.');
 
+    this.deductTurnTime(state, seatIdx);
     GameEngine.handleBid(state, seatIdx, action, bidValue);
     await this.persistMatchState(state);
     this.syncStateToMatch(matchId, state);
 
+    this.startTurnTimer(matchId, state);
     this.checkAndTriggerBot(matchId, state);
   }
 
@@ -497,10 +519,12 @@ export class GameSocketHandler {
     const seatIdx = state.players.findIndex((p) => p.userId === userId);
     if (seatIdx === -1) throw new Error('Du bist kein Mitspieler in diesem Raum.');
 
+    this.deductTurnTime(state, seatIdx);
     GameEngine.handleTalonAction(state, seatIdx, action, discardedCardIds, selectedMode);
     await this.persistMatchState(state);
     this.syncStateToMatch(matchId, state);
 
+    this.startTurnTimer(matchId, state);
     this.checkAndTriggerBot(matchId, state);
   }
 
@@ -523,6 +547,7 @@ export class GameSocketHandler {
       throw new Error('Der vorherige Stich wird noch ausgewertet.');
     }
 
+    this.deductTurnTime(state, seatIdx);
     const result = GameEngine.handlePlayCard(state, seatIdx, cardId);
     await this.processTrickPlayResult(matchId, result);
   }
@@ -540,6 +565,7 @@ export class GameSocketHandler {
     this.syncStateToMatch(matchId, result.state);
 
     if (result.trickCompleted) {
+      this.clearTurnTimer(matchId);
       // Clear any existing trick review timer for this match
       if (this.trickTimers.has(matchId)) {
         clearTimeout(this.trickTimers.get(matchId)!);
@@ -564,7 +590,8 @@ export class GameSocketHandler {
           await this.persistMatchState(liveState);
           this.syncStateToMatch(matchId, liveState);
 
-          // Trigger bot if the next turn belongs to a bot
+          // Start timer for the next turn player & trigger bot if applicable
+          this.startTurnTimer(matchId, liveState);
           this.checkAndTriggerBot(matchId, liveState);
         } catch (err) {
           console.error('Error resolving completed trick:', err);
@@ -575,7 +602,8 @@ export class GameSocketHandler {
       return;
     }
 
-    // Trick not completed yet (card 1 or 2): trigger bot move if applicable
+    // Trick not completed yet (card 1 or 2): trigger bot move if applicable & start timer
+    this.startTurnTimer(matchId, result.state);
     this.checkAndTriggerBot(matchId, result.state);
   }
 
@@ -583,6 +611,7 @@ export class GameSocketHandler {
    * Handles round end: saves round history to DB, handles match completion.
    */
   private async handleRoundEnd(matchId: string, state: FullGameState): Promise<void> {
+    this.clearTurnTimer(matchId);
     const lastResult = state.lastRoundResult;
     if (lastResult) {
       try {
@@ -697,6 +726,7 @@ export class GameSocketHandler {
     await this.persistMatchState(state);
     this.syncStateToMatch(matchId, state);
 
+    this.startTurnTimer(matchId, state);
     this.checkAndTriggerBot(matchId, state);
   }
 
@@ -765,15 +795,18 @@ export class GameSocketHandler {
         isBot: p.isBot,
       }));
 
+      const timerConfig = (updatedMatch.liveGameState as any)?.timerConfig;
       const state = GameEngine.createInitialState(
         updatedMatch.id,
         updatedMatch.code,
         updatedMatch.totalRounds,
         players,
+        timerConfig,
       );
       this.activeMatches.set(matchId, state);
       await this.persistMatchState(state);
       this.syncStateToMatch(matchId, state);
+      this.startTurnTimer(matchId, state);
       this.checkAndTriggerBot(matchId, state);
     } else {
       // 1 or 2 participants: sync waiting room state so clients see the added bot!
@@ -848,15 +881,18 @@ export class GameSocketHandler {
         }
 
         if (liveState.phase === 'BIDDING') {
+          this.deductTurnTime(liveState, currentSeat);
           const decision = BotEngine.decideBidAction(liveState, currentSeat);
           GameEngine.handleBid(liveState, currentSeat, decision.action, decision.bidValue);
           await this.persistMatchState(liveState);
           this.syncStateToMatch(matchId, liveState);
+          this.startTurnTimer(matchId, liveState);
           this.checkAndTriggerBot(matchId, liveState);
           return;
         }
 
         if (liveState.phase === 'TALON_AND_DECLARATION') {
+          this.deductTurnTime(liveState, currentSeat);
           const decision = BotEngine.decideTalonAction(liveState, currentSeat);
           GameEngine.handleTalonAction(
             liveState,
@@ -867,12 +903,14 @@ export class GameSocketHandler {
           );
           await this.persistMatchState(liveState);
           this.syncStateToMatch(matchId, liveState);
+          this.startTurnTimer(matchId, liveState);
           this.checkAndTriggerBot(matchId, liveState);
           return;
         }
 
         if (liveState.phase === 'TRICK_PLAY') {
           if (liveState.currentTrick.length >= 3) return;
+          this.deductTurnTime(liveState, currentSeat);
           const cardId = BotEngine.decideCardToPlay(liveState, currentSeat);
           const result = GameEngine.handlePlayCard(liveState, currentSeat, cardId);
           await this.processTrickPlayResult(matchId, result);
@@ -884,5 +922,162 @@ export class GameSocketHandler {
     }, delay);
 
     this.botTimers.set(matchId, timer);
+  }
+
+  /**
+   * Clears active turn timeout timer for a match.
+   */
+  private clearTurnTimer(matchId: string): void {
+    if (this.turnTimers.has(matchId)) {
+      clearTimeout(this.turnTimers.get(matchId)!);
+      this.turnTimers.delete(matchId);
+    }
+  }
+
+  /**
+   * Deducts elapsed turn time from player's total match time bank.
+   */
+  private deductTurnTime(state: FullGameState, seatIndex: number): void {
+    if (!state.timer?.config?.enabled) return;
+    if (state.timer.turnStartedAt !== null) {
+      const elapsed = Math.max(0, Math.floor((Date.now() - state.timer.turnStartedAt) / 1000));
+      const currentBank = state.timer.playerBanks[seatIndex] ?? state.timer.config.totalTimeBank;
+      state.timer.playerBanks[seatIndex] = Math.max(0, currentBank - elapsed);
+      state.timer.turnStartedAt = null;
+    }
+  }
+
+  /**
+   * Starts thinking timer for the active turn player.
+   */
+  private startTurnTimer(matchId: string, state: FullGameState): void {
+    this.clearTurnTimer(matchId);
+
+    if (!state.timer?.config?.enabled) {
+      if (state.timer) state.timer.turnStartedAt = null;
+      return;
+    }
+
+    if (state.status !== 'IN_PROGRESS') {
+      state.timer.turnStartedAt = null;
+      return;
+    }
+
+    let activeSeat: number | null = null;
+    if (state.phase === 'BIDDING') {
+      activeSeat = state.biddingState.currentTurnSeat;
+    } else if (state.phase === 'TALON_AND_DECLARATION') {
+      activeSeat = state.declarerSeat;
+    } else if (state.phase === 'TRICK_PLAY') {
+      if (state.currentTrick.length >= 3) {
+        state.timer.turnStartedAt = null;
+        return;
+      }
+      activeSeat = state.currentTurnSeat;
+    }
+
+    if (activeSeat === null || activeSeat < 0 || activeSeat > 2) {
+      state.timer.turnStartedAt = null;
+      return;
+    }
+
+    const bankRemaining = state.timer.playerBanks[activeSeat] ?? state.timer.config.totalTimeBank;
+    const maxTurnLimit = state.timer.config.turnTimeLimit;
+    const turnDuration = Math.max(0, Math.min(maxTurnLimit, bankRemaining));
+
+    state.timer.turnDuration = turnDuration;
+    state.timer.turnStartedAt = Date.now();
+
+    // Broadcast the new turn timer to clients immediately so they see the clock start ticking!
+    this.syncStateToMatch(matchId, state);
+
+    // Timeout duration in ms (+ 500ms grace period for network latency)
+    const timeoutMs = (turnDuration + 0.5) * 1000;
+    const timer = setTimeout(async () => {
+      try {
+        await this.handleTurnTimeout(matchId, activeSeat!);
+      } catch (err) {
+        console.error(`Error in handleTurnTimeout for match ${matchId}:`, err);
+      }
+    }, timeoutMs);
+
+    this.turnTimers.set(matchId, timer);
+  }
+
+  /**
+   * Handles timeout when a player runs out of thinking time:
+   * "bei zeitüberschreitung wird einfach ein zufälliger gültiger zug gemacht"
+   */
+  private async handleTurnTimeout(matchId: string, seatIndex: number): Promise<void> {
+    this.clearTurnTimer(matchId);
+
+    const state = this.activeMatches.get(matchId);
+    if (!state || state.status !== 'IN_PROGRESS') return;
+
+    // Deduct remaining time for this turn
+    if (state.timer?.config?.enabled) {
+      const currentBank = state.timer.playerBanks[seatIndex] ?? state.timer.config.totalTimeBank;
+      state.timer.playerBanks[seatIndex] = Math.max(0, currentBank - state.timer.turnDuration);
+      state.timer.turnStartedAt = null;
+    }
+
+    // 1. TIMEOUT IN BIDDING PHASE
+    if (state.phase === 'BIDDING') {
+      if (state.biddingState.currentTurnSeat !== seatIndex) return;
+
+      GameEngine.handleBid(state, seatIndex, 'pass');
+      await this.persistMatchState(state);
+      this.syncStateToMatch(matchId, state);
+
+      if (
+        state.phase === 'BIDDING' ||
+        state.phase === 'TALON_AND_DECLARATION' ||
+        state.phase === 'DEALING'
+      ) {
+        this.startTurnTimer(matchId, state);
+        this.checkAndTriggerBot(matchId, state);
+      }
+      return;
+    }
+
+    // 2. TIMEOUT IN TALON & DECLARATION PHASE
+    if (state.phase === 'TALON_AND_DECLARATION') {
+      if (state.declarerSeat !== seatIndex) return;
+
+      const minMode = state.minMode || 5;
+
+      if (minMode >= 11) {
+        GameEngine.handleTalonAction(state, seatIndex, 'declare_hand', undefined, minMode);
+      } else if (!state.talonRevealed) {
+        GameEngine.handleTalonAction(state, seatIndex, 'take_talon');
+      } else {
+        const botDecision = BotEngine.decideTalonAction(state, seatIndex);
+        const discardIds =
+          botDecision.discardedCardIds ||
+          [...state.hands[seatIndex]!, ...state.talon].slice(0, 3).map((c) => c.id);
+        const selectedMode = botDecision.selectedMode || minMode;
+        GameEngine.handleTalonAction(state, seatIndex, 'discard_and_declare', discardIds, selectedMode);
+      }
+
+      await this.persistMatchState(state);
+      this.syncStateToMatch(matchId, state);
+      this.startTurnTimer(matchId, state);
+      this.checkAndTriggerBot(matchId, state);
+      return;
+    }
+
+    // 3. TIMEOUT IN TRICK PLAY PHASE
+    if (state.phase === 'TRICK_PLAY') {
+      if (state.currentTurnSeat !== seatIndex || state.currentTrick.length >= 3) return;
+
+      const legalCards = GameEngine.getLegalCardsToPlay(state, seatIndex);
+      if (legalCards.length === 0) return;
+
+      // Pick random legal card: "bei zeitüberschreitung wird einfach ein zufälliger gültiger zug gemacht"
+      const randomCard = legalCards[Math.floor(Math.random() * legalCards.length)]!;
+      const result = GameEngine.handlePlayCard(state, seatIndex, randomCard.id);
+
+      await this.processTrickPlayResult(matchId, result);
+    }
   }
 }

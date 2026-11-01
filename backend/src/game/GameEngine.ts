@@ -3,6 +3,7 @@ import {
   FullGameState,
   GAME_MODE_INFO,
   GameMode,
+  GameTimerConfig,
   MatchResult,
   PlayerSeatState,
   RoundResult,
@@ -20,6 +21,7 @@ export class GameEngine {
     code: string,
     totalRounds: number,
     players: { userId: string; username: string; isBot: boolean }[],
+    timerConfig?: Partial<GameTimerConfig>,
   ): FullGameState {
     if (players.length !== 3) {
       throw new Error('A Franzen match requires exactly 3 players.');
@@ -64,6 +66,12 @@ export class GameEngine {
     // Dealer in round 1 is chosen randomly
     const dealerSeat = Math.floor(Math.random() * 3);
 
+    const timerCfg: GameTimerConfig = {
+      enabled: timerConfig?.enabled ?? true,
+      turnTimeLimit: timerConfig?.turnTimeLimit ?? 60,
+      totalTimeBank: timerConfig?.totalTimeBank ?? 300,
+    };
+
     const state: FullGameState = {
       matchId,
       code,
@@ -97,6 +105,16 @@ export class GameEngine {
       defenderCardPoints: 0,
       lastRoundResult: null,
       matchResult: null,
+      timer: {
+        config: timerCfg,
+        turnStartedAt: null,
+        turnDuration: timerCfg.turnTimeLimit,
+        playerBanks: [
+          timerCfg.totalTimeBank,
+          timerCfg.totalTimeBank,
+          timerCfg.totalTimeBank,
+        ],
+      },
     };
 
     return GameEngine.startNewRound(state);
@@ -504,6 +522,15 @@ export class GameEngine {
     }
 
     throw new Error(`Invalid talon action: ${action}`);
+  }
+
+  /**
+   * Returns list of legal cards for a given seat in the current trick.
+   */
+  public static getLegalCardsToPlay(state: FullGameState, seatIndex: number): Card[] {
+    const hand = state.hands[seatIndex] || [];
+    const legalIds = getLegalCardIds(hand, state.currentTrick, state.gameMode);
+    return hand.filter((c) => legalIds.includes(c.id));
   }
 
   /**

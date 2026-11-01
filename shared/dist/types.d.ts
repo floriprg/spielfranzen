@@ -89,6 +89,17 @@ export interface MatchResult {
         eloAfter: number;
     }[];
 }
+export interface GameTimerConfig {
+    enabled: boolean;
+    turnTimeLimit: number;
+    totalTimeBank: number;
+}
+export interface GameTimerState {
+    config: GameTimerConfig;
+    turnStartedAt: number | null;
+    turnDuration: number;
+    playerBanks: [number, number, number];
+}
 export interface FullGameState {
     matchId: string;
     code: string;
@@ -115,6 +126,7 @@ export interface FullGameState {
     defenderCardPoints: number;
     lastRoundResult: RoundResult | null;
     matchResult: MatchResult | null;
+    timer: GameTimerState;
 }
 export interface SanitizedPlayerSeat {
     seatIndex: number;
@@ -156,6 +168,7 @@ export interface SanitizedGameState {
     lastRoundResult: RoundResult | null;
     matchResult: MatchResult | null;
     legalCardIdsToPlay: string[];
+    timer: GameTimerState;
 }
 export interface UserProfile {
     id: string;
@@ -191,6 +204,7 @@ export interface MatchListItem {
     currentRound: number;
     playerCount: number;
     createdAt: string;
+    timerConfig?: GameTimerConfig;
 }
 export interface ServerToClientEvents {
     'game:state_sync': (state: SanitizedGameState) => void;
@@ -255,4 +269,7 @@ export interface AuthResponse {
 export interface CreateMatchRequest {
     totalRounds: number;
     isPrivate: boolean;
+    timerEnabled?: boolean;
+    turnTimeLimit?: number;
+    totalTimeBank?: number;
 }
