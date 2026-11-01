@@ -68,19 +68,10 @@ export const CardView: React.FC<CardViewProps> = ({
             loading="eager"
           />
 
-          {/* Points / Augen Badge for scoring clarity */}
-          {showPoints && card.points > 0 && size !== 'sm' && (
-            <div className="absolute bottom-1 right-1 pointer-events-none">
-              <span className="text-[10px] font-bold px-1.5 py-0.5 bg-amber-950/85 text-amber-300 border border-amber-500/70 rounded shadow-sm backdrop-blur-[2px]">
-                {card.points} {card.points === 1 ? 'Auge' : 'Augen'}
-              </span>
-            </div>
-          )}
-
-          {/* Weli special indicator badge */}
-          {isWeli && size !== 'sm' && (
-            <div className="absolute top-1 right-1 pointer-events-none">
-              <span className="text-[9px] font-extrabold px-1 py-0.2 bg-amber-600/90 text-white border border-amber-300 rounded shadow-sm">
+          {/* Weli subtle indicator badge if needed */}
+          {isWeli && (
+            <div className="absolute top-0.5 right-0.5 pointer-events-none">
+              <span className="text-[8px] font-extrabold px-1 py-0.2 bg-amber-600/90 text-white border border-amber-300 rounded shadow-sm">
                 WELI
               </span>
             </div>

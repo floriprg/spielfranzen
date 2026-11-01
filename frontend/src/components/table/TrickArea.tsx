@@ -47,45 +47,6 @@ export const TrickArea: React.FC<TrickAreaProps> = ({
 
   return (
     <div className="relative flex flex-col items-center justify-center w-full max-w-xl mx-auto py-0.5">
-      {/* Status Counters / Objectives at Table Top */}
-      {isBettl ? (
-        <div className="flex items-center gap-2 mb-1.5 text-[11px] sm:text-xs font-semibold z-10">
-          <div className="flex items-center gap-1 px-2.5 py-0.5 bg-purple-950/80 border border-purple-500/50 rounded-full text-purple-200 shadow-sm">
-            <Target className="w-3 h-3 text-purple-400" />
-            <span>{modeNum === 11 ? 'Doppelbettl' : 'Bettl'} • Ziel: 0 Stiche</span>
-          </div>
-          <div className="flex items-center gap-1 px-2.5 py-0.5 bg-slate-800/80 border border-slate-600 rounded-full text-slate-300">
-            <span>
-              Stiche: <strong className={(declarerPlayer?.tricksWon || 0) > 0 ? 'text-rose-400' : 'text-emerald-400'}>{declarerPlayer?.tricksWon || 0}</strong>
-            </span>
-          </div>
-        </div>
-      ) : isMord ? (
-        <div className="flex items-center gap-2 mb-1.5 text-[11px] sm:text-xs font-semibold z-10">
-          <div className="flex items-center gap-1 px-2.5 py-0.5 bg-rose-950/80 border border-rose-500/50 rounded-full text-rose-200 shadow-sm">
-            <Target className="w-3 h-3 text-rose-400" />
-            <span>{modeNum === 12 ? 'Doppelmord' : 'Mord'} • Ziel: Alle 10 Stiche</span>
-          </div>
-          <div className="flex items-center gap-1 px-2.5 py-0.5 bg-slate-800/80 border border-slate-600 rounded-full text-slate-300">
-            <span>
-              Stiche: <strong className="text-amber-400">{declarerPlayer?.tricksWon || 0} / 10</strong>
-            </span>
-          </div>
-        </div>
-      ) : (
-        /* Color Game (5..8): Eyes matter! */
-        <div className="flex items-center gap-3 mb-1.5 text-[11px] sm:text-xs font-semibold z-10">
-          <div className="flex items-center gap-1 px-2.5 py-0.5 bg-amber-950/70 border border-amber-500/40 rounded-full text-amber-300 shadow-sm">
-            <Eye className="w-3 h-3 text-amber-400" />
-            <span>Alleinspieler: {declarerCardPoints} / 66</span>
-          </div>
-          <div className="flex items-center gap-1 px-2.5 py-0.5 bg-slate-800/80 border border-slate-600 rounded-full text-slate-300 shadow-sm">
-            <Eye className="w-3 h-3 text-slate-400" />
-            <span>Gegner: {defenderCardPoints} / 66</span>
-          </div>
-        </div>
-      )}
-
       {/* Main Trick Cards Display */}
       {showLastTrick && lastTrick ? (
         <div className="relative p-3 sm:p-4 rounded-2xl bg-slate-900/95 border-2 border-amber-500/60 shadow-2xl flex flex-col items-center z-20">
@@ -113,7 +74,45 @@ export const TrickArea: React.FC<TrickAreaProps> = ({
         </div>
       ) : (
         /* Felt Table Playing Surface */
-        <div className="relative w-full flex flex-col items-center justify-center min-h-[135px] sm:min-h-[155px] px-3 py-2 sm:px-6 sm:py-2.5 rounded-2xl sm:rounded-3xl bg-emerald-950/30 border border-emerald-800/30 shadow-inner">
+        <div className="relative w-full flex flex-col items-center justify-between min-h-[140px] sm:min-h-[160px] px-3 py-2 sm:px-5 sm:py-2.5 rounded-2xl sm:rounded-3xl bg-emerald-950/40 border border-emerald-800/40 shadow-inner">
+          {/* Status Counters / Objectives integrated inside Felt Top */}
+          {isBettl ? (
+            <div className="flex items-center gap-2 mb-1 text-[10px] sm:text-xs font-semibold z-10">
+              <div className="flex items-center gap-1 px-2.5 py-0.5 bg-purple-950/90 border border-purple-500/50 rounded-full text-purple-200 shadow-sm">
+                <Target className="w-3 h-3 text-purple-400" />
+                <span>{modeNum === 11 ? 'Doppelbettl' : 'Bettl'} • Ziel: 0 Stiche</span>
+              </div>
+              <div className="flex items-center gap-1 px-2 py-0.5 bg-slate-900/80 border border-slate-700 rounded-full text-slate-300">
+                <span>
+                  Stiche: <strong className={(declarerPlayer?.tricksWon || 0) > 0 ? 'text-rose-400' : 'text-emerald-400'}>{declarerPlayer?.tricksWon || 0}</strong>
+                </span>
+              </div>
+            </div>
+          ) : isMord ? (
+            <div className="flex items-center gap-2 mb-1 text-[10px] sm:text-xs font-semibold z-10">
+              <div className="flex items-center gap-1 px-2.5 py-0.5 bg-rose-950/90 border border-rose-500/50 rounded-full text-rose-200 shadow-sm">
+                <Target className="w-3 h-3 text-rose-400" />
+                <span>{modeNum === 12 ? 'Doppelmord' : 'Mord'} • Ziel: Alle 10 Stiche</span>
+              </div>
+              <div className="flex items-center gap-1 px-2 py-0.5 bg-slate-900/80 border border-slate-700 rounded-full text-slate-300">
+                <span>
+                  Stiche: <strong className="text-amber-400">{declarerPlayer?.tricksWon || 0} / 10</strong>
+                </span>
+              </div>
+            </div>
+          ) : (
+            /* Color Game (5..8): Eyes matter! */
+            <div className="flex items-center gap-2 sm:gap-3 mb-1 text-[10px] sm:text-xs font-semibold z-10">
+              <div className="flex items-center gap-1 px-2.5 py-0.5 bg-amber-950/80 border border-amber-500/50 rounded-full text-amber-300 shadow-sm">
+                <Eye className="w-3 h-3 text-amber-400" />
+                <span>Alleinspieler: {declarerCardPoints} / 66</span>
+              </div>
+              <div className="flex items-center gap-1 px-2.5 py-0.5 bg-slate-900/80 border border-slate-700 rounded-full text-slate-300 shadow-sm">
+                <Eye className="w-3 h-3 text-slate-400" />
+                <span>Gegner: {defenderCardPoints} / 66</span>
+              </div>
+            </div>
+          )}
           {currentTrick.length === 0 ? (
             <div className="flex flex-col items-center justify-center text-center py-2">
               <span className="text-xs font-bold text-amber-300/80 tracking-widest uppercase">

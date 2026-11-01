@@ -120,7 +120,7 @@ export const GamePage: React.FC = () => {
   const modeInfo = gameMode ? GAME_MODE_INFO[gameMode] : null;
 
   return (
-    <div className="h-[calc(100dvh-54px)] max-h-[calc(100dvh-54px)] flex flex-col bg-slate-950 select-none overflow-hidden">
+    <div className="h-full flex-1 min-h-0 flex flex-col bg-slate-950 select-none overflow-hidden">
       {/* Top Match Status & Score Bar */}
       <div className="bg-slate-900/95 border-b border-amber-600/30 px-3 py-1 flex items-center justify-between gap-2 shadow-sm flex-shrink-0 text-xs">
         {/* Left: Round & Code */}
@@ -142,7 +142,7 @@ export const GamePage: React.FC = () => {
         {/* Center: Mode Indicator */}
         <div className="flex items-center gap-1.5">
           {modeInfo ? (
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/60 shadow-sm text-amber-300 text-[11px] font-bold">
+            <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/60 shadow-sm text-amber-300 text-[11px] font-bold">
               {modeInfo.trumpSuit && <SuitIcon suit={modeInfo.trumpSuit} size={14} />}
               <span>{modeInfo.name}</span>
             </div>
@@ -153,8 +153,8 @@ export const GamePage: React.FC = () => {
           )}
         </div>
 
-        {/* Right: Live Scoreboard (Zero-Sum) */}
-        <div className="flex items-center gap-1.5 text-[11px]">
+        {/* Right: Live Scoreboard (Zero-Sum) - Visible on sm and larger screens */}
+        <div className="hidden sm:flex items-center gap-1.5 text-[11px]">
           {players.map((p) => (
             <div
               key={p.seatIndex}
@@ -164,7 +164,7 @@ export const GamePage: React.FC = () => {
                   : 'bg-slate-900 border-slate-800'
               }`}
             >
-              <span className="font-semibold text-slate-300 truncate max-w-[55px] sm:max-w-[75px]">
+              <span className="font-semibold text-slate-300 truncate max-w-[80px]" title={p.username}>
                 {p.username}:
               </span>
               <span
@@ -267,14 +267,14 @@ export const GamePage: React.FC = () => {
         )}
 
         {/* Top: Opponent Seats */}
-        <div className="flex justify-between items-start max-w-4xl mx-auto w-full px-2 pt-0.5 flex-shrink-0">
+        <div className="flex justify-between items-start max-w-4xl mx-auto w-full px-2 pt-0.5 flex-shrink-0 gap-2">
           {opponentLeft && (
             <PlayerSeatView
               player={opponentLeft}
               isCurrentTurn={currentTurnSeat === opponentLeft.seatIndex}
               isDealer={dealerSeat === opponentLeft.seatIndex}
               isMe={false}
-              className="w-32 sm:w-40"
+              className="flex-1 max-w-[165px] sm:max-w-[210px]"
             />
           )}
 
@@ -284,7 +284,7 @@ export const GamePage: React.FC = () => {
               isCurrentTurn={currentTurnSeat === opponentRight.seatIndex}
               isDealer={dealerSeat === opponentRight.seatIndex}
               isMe={false}
-              className="w-32 sm:w-40"
+              className="flex-1 max-w-[165px] sm:max-w-[210px]"
             />
           )}
         </div>
@@ -313,7 +313,7 @@ export const GamePage: React.FC = () => {
         </div>
 
         {/* Bottom: Player's Own Hand & Status */}
-        <div className="flex flex-col items-center max-w-4xl mx-auto w-full pb-1 pt-0 flex-shrink-0">
+        <div className="flex flex-col items-center max-w-4xl mx-auto w-full pb-2 pt-0 flex-shrink-0">
           {/* Turn Alert */}
           {isMyTurn && phase === 'TRICK_PLAY' && (
             <div className="mb-1 px-3 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[11px] shadow animate-bounce border border-yellow-300">
@@ -321,8 +321,104 @@ export const GamePage: React.FC = () => {
             </div>
           )}
 
-          {/* Cards Fan (Single row with fan overlap - never wraps, zero scroll!) */}
-          <div className="relative flex justify-center items-end px-1 pt-2 pb-0.5 max-w-full">
+          {/* Mobile Hand (Two staggered rows when > 5 cards, single row when <= 5 cards) */}
+          <div className="flex sm:hidden flex-col items-center w-full px-1 pt-1 pb-0.5">
+            {myHand.length > 5 ? (
+              <>
+                {/* Back Row */}
+                <div className="flex justify-center items-end -space-x-1.5">
+                  {myHand.slice(0, Math.ceil(myHand.length / 2)).map((card) => {
+                    const isLegal =
+                      phase !== 'TRICK_PLAY'
+                        ? true
+                        : !isMyTurn
+                        ? true
+                        : legalCardIdsToPlay.includes(card.id);
+                    return (
+                      <div
+                        key={card.id}
+                        className="relative transition-all duration-200 hover:-translate-y-3 hover:z-30 active:scale-95"
+                      >
+                        <CardView
+                          card={card}
+                          isLegal={isLegal}
+                          onClick={() => {
+                            if (isMyTurn && phase === 'TRICK_PLAY') {
+                              playCard(card.id);
+                            }
+                          }}
+                          size="sm"
+                          showPoints={!isBettlOrMord}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Front Row (slightly overlapping top row vertically) */}
+                <div className="flex justify-center items-end -space-x-1.5 -mt-9 z-10">
+                  {myHand.slice(Math.ceil(myHand.length / 2)).map((card) => {
+                    const isLegal =
+                      phase !== 'TRICK_PLAY'
+                        ? true
+                        : !isMyTurn
+                        ? true
+                        : legalCardIdsToPlay.includes(card.id);
+                    return (
+                      <div
+                        key={card.id}
+                        className="relative transition-all duration-200 hover:-translate-y-3 hover:z-30 active:scale-95"
+                      >
+                        <CardView
+                          card={card}
+                          isLegal={isLegal}
+                          onClick={() => {
+                            if (isMyTurn && phase === 'TRICK_PLAY') {
+                              playCard(card.id);
+                            }
+                          }}
+                          size="sm"
+                          showPoints={!isBettlOrMord}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              /* Single row on mobile when 5 or fewer cards */
+              <div className="flex justify-center items-end gap-1">
+                {myHand.map((card) => {
+                  const isLegal =
+                    phase !== 'TRICK_PLAY'
+                      ? true
+                      : !isMyTurn
+                      ? true
+                      : legalCardIdsToPlay.includes(card.id);
+                  return (
+                    <div
+                      key={card.id}
+                      className="relative transition-all duration-200 hover:-translate-y-3 hover:z-30 active:scale-95"
+                    >
+                      <CardView
+                        card={card}
+                        isLegal={isLegal}
+                        onClick={() => {
+                          if (isMyTurn && phase === 'TRICK_PLAY') {
+                            playCard(card.id);
+                          }
+                        }}
+                        size="md"
+                        showPoints={!isBettlOrMord}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop Hand (Single row with fan overlap) */}
+          <div className="hidden sm:flex justify-center items-end px-2 pt-2 pb-1 max-w-full">
             {myHand.map((card, index) => {
               const isLegal =
                 phase !== 'TRICK_PLAY'
@@ -335,15 +431,15 @@ export const GamePage: React.FC = () => {
                 index === 0
                   ? ''
                   : myHand.length > 7
-                  ? '-ml-4 sm:-ml-6 md:-ml-7'
+                  ? '-ml-4 sm:-ml-5 md:-ml-6'
                   : myHand.length > 4
-                  ? '-ml-3 sm:-ml-5 md:-ml-6'
-                  : 'ml-0.5 sm:ml-1';
+                  ? '-ml-3 sm:-ml-4'
+                  : 'ml-1';
 
               return (
                 <div
                   key={card.id}
-                  className={`relative transition-all duration-200 hover:-translate-y-3 sm:hover:-translate-y-4 hover:z-30 ${overlapClass}`}
+                  className={`relative transition-all duration-200 hover:-translate-y-4 hover:z-30 cursor-pointer ${overlapClass}`}
                 >
                   <CardView
                     card={card}
@@ -363,7 +459,7 @@ export const GamePage: React.FC = () => {
 
           {/* Player Seat Summary at bottom */}
           {myPlayer && (
-            <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-slate-300 font-semibold bg-slate-900/90 px-3 py-0.5 rounded-full border border-slate-700/80 shadow mt-1">
+            <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-slate-300 font-semibold bg-slate-900/90 px-3 py-1 rounded-full border border-slate-700/80 shadow mt-1">
               <span className="text-amber-400 font-bold">{myPlayer.username} (Du)</span>
               <span className="text-slate-600">•</span>
               <span className="flex items-center gap-1">
