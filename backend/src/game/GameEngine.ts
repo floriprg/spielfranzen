@@ -256,7 +256,7 @@ export class GameEngine {
           username: player.username,
           action: 'raise',
           bidValue: val,
-          text: `${player.username} reizt auf ${val}`,
+          text: `${player.username} bietet auf ${val}`,
         });
 
         // Turn goes to Halter to hold or pass

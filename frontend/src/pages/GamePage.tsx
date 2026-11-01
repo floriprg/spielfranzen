@@ -290,7 +290,7 @@ export const GamePage: React.FC = () => {
         </div>
 
         {/* Center: Trick Play or Bidding Controls (strictly contained) */}
-        <div className="flex-1 min-h-0 flex items-center justify-center my-auto py-0.5 overflow-hidden">
+        <div className="flex-1 min-h-0 flex items-center justify-center my-auto py-0.5 relative">
           {phase === 'BIDDING' ? (
             <BiddingControls
               biddingState={biddingState}

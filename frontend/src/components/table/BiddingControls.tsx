@@ -1,5 +1,6 @@
 import { BiddingState } from '@spielfranzen/shared';
-import React, { useState } from 'react';
+import { Check, ChevronDown } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface BiddingControlsProps {
   biddingState: BiddingState;
@@ -16,15 +17,53 @@ export const BiddingControls: React.FC<BiddingControlsProps> = ({
 }) => {
   const { phase, currentBid, holderSeat, challengerSeat } = biddingState;
   const [customBid, setCustomBid] = useState<number>(currentBid + 1);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isHolder = mySeatIndex === holderSeat;
   const isChallenger = mySeatIndex === challengerSeat;
+
+  // Available bids from currentBid + 1 up to 12
+  const availableBids = Array.from(
+    { length: Math.max(0, 12 - currentBid) },
+    (_, i) => currentBid + 1 + i,
+  );
+
+  // Keep customBid valid whenever currentBid changes
+  useEffect(() => {
+    if (customBid <= currentBid || !availableBids.includes(customBid)) {
+      setCustomBid(currentBid + 1 <= 12 ? currentBid + 1 : 12);
+    }
+  }, [currentBid, customBid, availableBids]);
+
+  // Close dropdown on outside click or escape key
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isDropdownOpen]);
 
   return (
     <div className="bg-slate-900/95 border border-amber-600/40 rounded-2xl p-2.5 sm:p-3 shadow-xl backdrop-blur-md max-w-md mx-auto w-full">
       <div className="text-center mb-2">
         <h3 className="text-amber-400 font-bold font-serif-vintage tracking-wide text-xs sm:text-sm">
-          Das Bieten / Reizen
+          Das Bieten
         </h3>
         <p className="text-[11px] text-slate-300 mt-0.5">
           {currentBid === 0
@@ -63,38 +102,91 @@ export const BiddingControls: React.FC<BiddingControlsProps> = ({
             {phase === 'DUEL' && isChallenger && (
               <>
                 <button
-                  onClick={() => onBid('raise', currentBid + 1)}
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    onBid('raise', currentBid + 1);
+                  }}
                   className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-slate-950 font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer"
                 >
-                  Reizen auf {currentBid + 1}
+                  Bieten auf {currentBid + 1}
                 </button>
 
-                {currentBid + 2 <= 12 && (
-                  <div className="flex items-center gap-1">
-                    <select
-                      value={customBid}
-                      onChange={(e) => setCustomBid(Number(e.target.value))}
-                      className="bg-slate-800 border border-slate-600 text-slate-100 rounded px-2 py-1 text-xs cursor-pointer"
-                    >
-                      {Array.from({ length: 12 - currentBid }, (_, i) => currentBid + 1 + i).map(
-                        (val) => (
-                          <option key={val} value={val}>
-                            Direkt auf {val}
-                          </option>
-                        ),
-                      )}
-                    </select>
-                    <button
-                      onClick={() => onBid('raise', customBid)}
-                      className="px-2.5 py-1 rounded bg-amber-700 hover:bg-amber-600 text-white font-medium text-xs transition-all cursor-pointer"
-                    >
-                      Bieten
-                    </button>
+                {availableBids.length > 0 && (
+                  <div className="relative inline-flex items-center" ref={dropdownRef}>
+                    <div className="flex items-stretch rounded-lg border border-amber-600/50 bg-slate-900/90 overflow-hidden focus-within:ring-1 focus-within:ring-amber-500 shadow">
+                      {/* Dropdown Toggle */}
+                      <button
+                        type="button"
+                        onClick={() => setIsDropdownOpen((prev) => !prev)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-200 hover:bg-slate-800 transition-colors cursor-pointer"
+                        title="Höheres Gebot auswählen"
+                      >
+                        <span>Direkt auf {customBid}</span>
+                        <ChevronDown
+                          className={`w-3.5 h-3.5 text-amber-400 transition-transform duration-200 ${
+                            isDropdownOpen ? 'rotate-180' : ''
+                          }`}
+                        />
+                      </button>
+
+                      {/* Divider */}
+                      <div className="w-[1px] bg-amber-600/40" />
+
+                      {/* Action Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          onBid('raise', customBid);
+                        }}
+                        className="px-3 py-1.5 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-slate-950 font-bold text-xs transition-all active:scale-95 cursor-pointer"
+                        title={`Auf ${customBid} bieten`}
+                      >
+                        Bieten
+                      </button>
+                    </div>
+
+                    {/* Custom Dropdown Menu Popover */}
+                    {isDropdownOpen && (
+                      <div className="absolute top-full mt-1.5 left-0 z-50 w-44 bg-slate-900/98 backdrop-blur-xl border border-amber-500/50 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                        <div className="px-3 py-1 text-[10px] font-bold text-amber-400 uppercase tracking-wider border-b border-amber-500/20 bg-slate-950/70">
+                          Gebot wählen
+                        </div>
+                        <div className="max-h-48 overflow-y-auto py-1 divide-y divide-slate-800/40">
+                          {availableBids.map((val) => {
+                            const isSelected = customBid === val;
+                            return (
+                              <button
+                                key={val}
+                                type="button"
+                                onClick={() => {
+                                  setCustomBid(val);
+                                  setIsDropdownOpen(false);
+                                }}
+                                className={`w-full flex items-center justify-between px-3 py-1.5 text-xs text-left transition-colors cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-amber-500/25 text-amber-300 font-bold border-l-2 border-amber-400'
+                                    : 'text-slate-200 hover:bg-slate-800 hover:text-amber-200'
+                                }`}
+                              >
+                                <span>Direkt auf {val}</span>
+                                {isSelected && (
+                                  <Check className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 <button
-                  onClick={() => onBid('pass')}
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    onBid('pass');
+                  }}
                   className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs border border-slate-600 shadow-md transition-all active:scale-95 cursor-pointer"
                 >
                   Weiter (Passen)
