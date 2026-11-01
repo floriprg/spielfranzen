@@ -1,5 +1,5 @@
 import { Card } from '@spielfranzen/shared';
-import React from 'react';
+import React, { useState } from 'react';
 import { SuitIcon } from './SuitIcon.js';
 
 interface CardViewProps {
@@ -21,10 +21,12 @@ export const CardView: React.FC<CardViewProps> = ({
   className = '',
   showPoints = true,
 }) => {
+  const [imgError, setImgError] = useState(false);
+
   const sizeClasses = {
-    sm: 'w-16 h-24 text-xs',
-    md: 'w-24 h-36 text-sm',
-    lg: 'w-28 h-44 text-base',
+    sm: 'w-14 aspect-[256/480] text-xs',
+    md: 'w-20 sm:w-22 aspect-[256/480] text-sm',
+    lg: 'w-26 sm:w-28 aspect-[256/480] text-base',
   }[size];
 
   const suitTextColor: Record<string, string> = {
@@ -35,83 +37,76 @@ export const CardView: React.FC<CardViewProps> = ({
   };
 
   const isWeli = card.id === 'SCHELL_WELI' || card.rank === 1;
-
-  // Render rank label (Ass -> A, König -> K, Ober -> O, Unter -> U, 10 -> 10, etc.)
   const rankLabel = isWeli ? 'W' : card.shortName;
 
   return (
     <div
       onClick={isLegal ? onClick : undefined}
       className={`
-        relative rounded-lg bg-gradient-to-b from-stone-50 to-stone-100 
-        border-2 select-none transition-all duration-200 cursor-pointer flex flex-col justify-between p-1.5
+        relative rounded-md select-none transition-all duration-200 cursor-pointer overflow-hidden
         ${sizeClasses}
         ${
           isSelected
-            ? '-translate-y-4 shadow-card-hover ring-4 ring-amber-400 border-amber-500 z-20'
+            ? '-translate-y-4 shadow-2xl ring-4 ring-amber-400 border-2 border-amber-500 z-30'
             : isLegal
-            ? 'shadow-card hover:-translate-y-2 hover:shadow-card-hover border-stone-300 hover:border-amber-400'
-            : 'opacity-40 grayscale cursor-not-allowed border-stone-400/50'
+            ? 'shadow-card hover:-translate-y-2 hover:shadow-card-hover border border-stone-300/80 hover:border-amber-400/90'
+            : 'opacity-40 grayscale contrast-75 cursor-not-allowed border border-stone-500/40'
         }
         ${className}
       `}
       title={`${card.name} (${card.points} Augen)${!isLegal ? ' - Nicht regelkonform' : ''}`}
     >
-      {/* Top Left Index */}
-      <div className="flex flex-col items-center leading-none">
-        <span
-          className={`font-black font-serif-vintage ${
-            isWeli ? 'text-amber-600' : suitTextColor[card.suit]
-          }`}
-        >
-          {rankLabel}
-        </span>
-        <SuitIcon suit={card.suit} size={size === 'sm' ? 12 : 16} />
-      </div>
+      {/* Authentic South Tyrolean Card Image */}
+      {!imgError ? (
+        <div className="w-full h-full relative bg-stone-100">
+          <img
+            src={`/cards/${card.id}.webp`}
+            alt={card.name}
+            onError={() => setImgError(true)}
+            className="w-full h-full object-cover pointer-events-none rounded-md"
+            loading="eager"
+          />
 
-      {/* Center Motif Artwork */}
-      <div className="flex-1 flex flex-col items-center justify-center relative">
-        {isWeli ? (
-          <div className="text-center">
-            <span className="text-xl font-black text-amber-600 tracking-wider font-serif-vintage block">
-              WELI
-            </span>
-            <div className="flex justify-center gap-0.5 mt-0.5">
-              <span className="text-amber-500 text-xs">⭐</span>
-              <SuitIcon suit="SCHELL" size={16} />
-              <span className="text-amber-500 text-xs">⭐</span>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center">
-            <SuitIcon suit={card.suit} size={size === 'sm' ? 22 : size === 'md' ? 32 : 40} />
-            {card.rank >= 5 && card.rank <= 7 && (
-              <span className="text-[10px] font-bold text-stone-600 font-serif-vintage uppercase tracking-tight mt-0.5">
-                {card.rank === 7 ? '👑 König' : card.rank === 6 ? '🗡️ Ober' : '🛡️ Unter'}
+          {/* Points / Augen Badge for scoring clarity */}
+          {showPoints && card.points > 0 && size !== 'sm' && (
+            <div className="absolute bottom-1 right-1 pointer-events-none">
+              <span className="text-[10px] font-bold px-1.5 py-0.5 bg-amber-950/85 text-amber-300 border border-amber-500/70 rounded shadow-sm backdrop-blur-[2px]">
+                {card.points} {card.points === 1 ? 'Auge' : 'Augen'}
               </span>
-            )}
+            </div>
+          )}
+
+          {/* Weli special indicator badge */}
+          {isWeli && size !== 'sm' && (
+            <div className="absolute top-1 right-1 pointer-events-none">
+              <span className="text-[9px] font-extrabold px-1 py-0.2 bg-amber-600/90 text-white border border-amber-300 rounded shadow-sm">
+                WELI
+              </span>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Fallback CSS card in case of loading error */
+        <div className="w-full h-full bg-gradient-to-b from-stone-50 to-stone-100 flex flex-col justify-between p-1.5 border-2 border-stone-300">
+          <div className="flex flex-col items-center leading-none">
+            <span className={`font-black ${isWeli ? 'text-amber-600' : suitTextColor[card.suit]}`}>
+              {rankLabel}
+            </span>
+            <SuitIcon suit={card.suit} size={size === 'sm' ? 12 : 16} />
           </div>
-        )}
 
-        {/* Eyes / Points badge */}
-        {showPoints && card.points > 0 && size !== 'sm' && (
-          <span className="absolute bottom-0 text-[10px] font-semibold px-1 py-0.2 bg-amber-100 text-amber-900 border border-amber-300 rounded shadow-xs">
-            {card.points} Augen
-          </span>
-        )}
-      </div>
+          <div className="flex-1 flex flex-col items-center justify-center relative">
+            <SuitIcon suit={card.suit} size={size === 'sm' ? 20 : 30} />
+          </div>
 
-      {/* Bottom Right Inverted Index */}
-      <div className="flex flex-col items-center leading-none rotate-180">
-        <span
-          className={`font-black font-serif-vintage ${
-            isWeli ? 'text-amber-600' : suitTextColor[card.suit]
-          }`}
-        >
-          {rankLabel}
-        </span>
-        <SuitIcon suit={card.suit} size={size === 'sm' ? 12 : 16} />
-      </div>
+          <div className="flex flex-col items-center leading-none rotate-180">
+            <span className={`font-black ${isWeli ? 'text-amber-600' : suitTextColor[card.suit]}`}>
+              {rankLabel}
+            </span>
+            <SuitIcon suit={card.suit} size={size === 'sm' ? 12 : 16} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

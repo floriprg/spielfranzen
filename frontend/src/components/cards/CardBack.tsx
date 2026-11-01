@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface CardBackProps {
   className?: string;
@@ -6,32 +6,33 @@ interface CardBackProps {
 }
 
 export const CardBack: React.FC<CardBackProps> = ({ className = '', size = 'md' }) => {
+  const [imgError, setImgError] = useState(false);
+
   const sizeClasses = {
-    sm: 'w-16 h-24',
-    md: 'w-24 h-36',
-    lg: 'w-28 h-44',
+    sm: 'w-14 aspect-[256/480]',
+    md: 'w-20 sm:w-22 aspect-[256/480]',
+    lg: 'w-26 sm:w-28 aspect-[256/480]',
   }[size];
 
   return (
     <div
-      className={`relative rounded-lg overflow-hidden border-2 border-amber-300 shadow-card bg-slate-900 select-none ${sizeClasses} ${className}`}
+      className={`relative rounded-md overflow-hidden border border-amber-900/50 shadow-md select-none bg-stone-900 flex items-center justify-center ${sizeClasses} ${className}`}
     >
-      {/* Bavarian blue-and-white rhomboid / diamond pattern */}
-      <svg className="w-full h-full opacity-80" viewBox="0 0 100 150" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <pattern id="bavarian-rhombus" width="20" height="20" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <rect width="10" height="20" fill="#0284c7" />
-            <rect x="10" width="10" height="20" fill="#f8fafc" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#bavarian-rhombus)" />
-        {/* Inner gold frame */}
-        <rect x="4" y="4" width="92" height="142" rx="4" fill="none" stroke="#d97706" strokeWidth="2" opacity="0.9" />
-        <circle cx="50" cy="75" r="16" fill="#0f172a" stroke="#d97706" strokeWidth="2" />
-        <text x="50" y="80" textAnchor="middle" fill="#f59e0b" fontSize="16" fontWeight="bold">
-          F
-        </text>
-      </svg>
+      {!imgError ? (
+        <img
+          src="/cards/CARD_BACK.webp"
+          alt="Card Back"
+          onError={() => setImgError(true)}
+          className="w-full h-full object-cover pointer-events-none rounded-md"
+          loading="eager"
+        />
+      ) : (
+        <div className="w-full h-full bg-gradient-to-br from-red-900 to-amber-950 flex items-center justify-center border border-amber-600/50">
+          <div className="w-8 h-8 rounded-full border-2 border-amber-400 flex items-center justify-center text-amber-300 font-bold text-sm">
+            F
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -118,8 +118,8 @@ export const PlayerSeatView: React.FC<PlayerSeatViewProps> = ({
 
       {/* Card Count for opponent */}
       {!isMe && (
-        <div className="mt-2 flex items-center gap-1">
-          <CardBack size="sm" className="w-6 h-9" />
+        <div className="mt-2 flex items-center gap-1.5">
+          <CardBack size="sm" className="w-5 !aspect-[256/480]" />
           <span className="text-xs font-bold text-slate-300">{player.handCount} Karten</span>
         </div>
       )}
