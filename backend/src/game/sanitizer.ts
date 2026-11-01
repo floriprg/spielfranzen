@@ -84,12 +84,13 @@ export function sanitizeGameStateForPlayer(
     myHand = sortCards(state.hands[mySeatIndex], trumpSuit);
   }
 
-  // Talon visibility: Only if declarer is inspecting/picking talon
+  // Talon visibility: ONLY if declarer has chosen to take/reveal the talon!
   let talonCards: Card[] | null = null;
   if (
     mySeatIndex !== null &&
     state.declarerSeat === mySeatIndex &&
     state.phase === 'TALON_AND_DECLARATION' &&
+    state.talonRevealed &&
     !state.talonTaken
   ) {
     // Declarer can see talon
@@ -124,6 +125,7 @@ export function sanitizeGameStateForPlayer(
     gameMode: state.gameMode,
     minMode: state.minMode,
     talonTaken: state.talonTaken,
+    talonRevealed: state.talonRevealed || false,
     mySeatIndex,
     players: sanitizedPlayers,
     myHand,

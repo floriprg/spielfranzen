@@ -219,6 +219,7 @@ export interface FullGameState {
   gameMode: GameMode | null;
   minMode: GameMode | null;
   talonTaken: boolean;
+  talonRevealed?: boolean;
   players: [PlayerSeatState, PlayerSeatState, PlayerSeatState];
   hands: [Card[], Card[], Card[]]; // 10 cards each
   talon: Card[]; // 3 cards
@@ -260,6 +261,7 @@ export interface SanitizedGameState {
   gameMode: GameMode | null;
   minMode: GameMode | null;
   talonTaken: boolean;
+  talonRevealed?: boolean;
   mySeatIndex: number | null; // Seat index of the requesting player (or null for spectators)
   players: [SanitizedPlayerSeat, SanitizedPlayerSeat, SanitizedPlayerSeat];
   myHand: Card[]; // Only the requesting player's hand!
@@ -334,9 +336,9 @@ export interface ClientToServerEvents {
   }) => void;
   'game:talon_action': (payload: {
     matchId: string;
-    action: 'take_talon' | 'declare_hand';
+    action: 'take_talon' | 'declare_hand' | 'discard_and_declare';
     discardedCardIds?: string[];
-    selectedMode: number;
+    selectedMode?: number;
   }) => void;
   'game:play_card': (payload: { matchId: string; cardId: string }) => void;
   'game:next_round': (payload: { matchId: string }) => void;

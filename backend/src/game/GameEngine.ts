@@ -128,6 +128,7 @@ export class GameEngine {
     state.gameMode = null;
     state.minMode = null;
     state.talonTaken = false;
+    state.talonRevealed = false;
     state.hands = [sortCards(hand0), sortCards(hand1), sortCards(hand2)];
     state.talon = talon;
     state.discardedCards = [];
@@ -389,6 +390,7 @@ export class GameEngine {
 
     state.phase = 'TALON_AND_DECLARATION';
     state.currentTurnSeat = declarerSeat;
+    state.talonRevealed = false;
 
     state.biddingState.history.push({
       seatIndex: declarerSeat,
@@ -407,7 +409,7 @@ export class GameEngine {
   public static handleTalonAction(
     state: FullGameState,
     seatIndex: number,
-    action: 'take_talon' | 'declare_hand',
+    action: 'take_talon' | 'declare_hand' | 'discard_and_declare',
     discardedCardIds?: string[],
     selectedMode?: number,
   ): FullGameState {
@@ -431,6 +433,7 @@ export class GameEngine {
 
       state.gameMode = selectedMode as GameMode;
       state.talonTaken = false;
+      state.talonRevealed = false;
 
       // Start Trick Play
       state.phase = 'TRICK_PLAY';
@@ -439,8 +442,17 @@ export class GameEngine {
       return state;
     }
 
-    // Option 2: Take talon
-    if (action === 'take_talon') {
+    // Option 2: Step 1 - Take/Reveal Talon (declarer decides to play with talon)
+    if (action === 'take_talon' && (!discardedCardIds || discardedCardIds.length === 0)) {
+      if (minMode >= 11) {
+        throw new Error('Taking talon is not permitted when bidding reached 11 or 12 (Handspiel mandatory).');
+      }
+      state.talonRevealed = true;
+      return state;
+    }
+
+    // Option 3: Step 2 - Discard 3 cards and declare mode (or combined take_talon with discards)
+    if (action === 'discard_and_declare' || (action === 'take_talon' && discardedCardIds)) {
       if (minMode >= 11) {
         throw new Error('Taking talon is not permitted when bidding reached 11 or 12 (Handspiel mandatory).');
       }
@@ -450,6 +462,8 @@ export class GameEngine {
       if (!discardedCardIds || discardedCardIds.length !== 3) {
         throw new Error('Declarer must discard exactly 3 cards.');
       }
+
+      state.talonRevealed = true;
 
       // Combine hand (10 cards) + talon (3 cards) = 13 cards
       const declarerHand = [...state.hands[seatIndex]!, ...state.talon];
@@ -484,7 +498,7 @@ export class GameEngine {
       return state;
     }
 
-    throw new Error(`Invalid talon action ${action}`);
+    throw new Error(`Invalid talon action: ${action}`);
   }
 
   /**

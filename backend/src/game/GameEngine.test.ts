@@ -116,7 +116,7 @@ test('4. Bidding State Machine: All pass redeals without consuming round', () =>
   assert.strictEqual(state.phase, 'BIDDING');
 });
 
-test('5. Talon & Declaration Phase: Picking talon, discarding 3, selecting mode', () => {
+test('5. Talon & Declaration Phase: Decision before reveal, then discard or handspiel', () => {
   const players = [
     { userId: 'u1', username: 'P1', isBot: false },
     { userId: 'u2', username: 'P2', isBot: false },
@@ -127,15 +127,35 @@ test('5. Talon & Declaration Phase: Picking talon, discarding 3, selecting mode'
   state.phase = 'TALON_AND_DECLARATION';
   state.declarerSeat = 0;
   state.minMode = 5;
+  state.talonRevealed = false;
 
   assert.strictEqual(state.hands[0]!.length, 10);
   assert.strictEqual(state.talon.length, 3);
 
-  // Declarer discards 3 cards from the 13
+  // Before decision: Sanitizer MUST NOT reveal talon cards to anyone, including declarer!
+  const sanitizedBefore = sanitizeGameStateForPlayer(state, 'u1');
+  assert.strictEqual(sanitizedBefore.talonCards, null, 'Talon must remain hidden before declarer takes it');
+  assert.strictEqual(sanitizedBefore.talonRevealed, false);
+
+  // Step 1: Declarer decides to take talon ('take_talon' without discards)
+  GameEngine.handleTalonAction(state, 0, 'take_talon');
+  assert.strictEqual(state.talonRevealed, true);
+  assert.strictEqual(state.phase, 'TALON_AND_DECLARATION', 'Still in declaration phase waiting for discards');
+
+  // Now sanitized state for declarer HAS the talon cards!
+  const sanitizedAfter = sanitizeGameStateForPlayer(state, 'u1');
+  assert.strictEqual(sanitizedAfter.talonCards?.length, 3, 'Declarer now sees the 3 talon cards');
+  assert.strictEqual(sanitizedAfter.talonRevealed, true);
+
+  // But for opponent (u2), talonCards is STILL null!
+  const sanitizedOpponent = sanitizeGameStateForPlayer(state, 'u2');
+  assert.strictEqual(sanitizedOpponent.talonCards, null, 'Opponents must never see talon');
+
+  // Step 2: Declarer discards 3 cards from the 13 and declares mode 6
   const available13 = [...state.hands[0]!, ...state.talon];
   const discards = [available13[0]!.id, available13[1]!.id, available13[2]!.id];
 
-  GameEngine.handleTalonAction(state, 0, 'take_talon', discards, 6); // Mode 6 (Laub)
+  GameEngine.handleTalonAction(state, 0, 'discard_and_declare', discards, 6); // Mode 6 (Laub)
 
   assert.strictEqual(state.hands[0]!.length, 10, 'Hand must be 10 cards after discarding');
   assert.strictEqual(state.discardedCards.length, 3);

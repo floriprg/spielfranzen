@@ -24,7 +24,7 @@ interface GameStateStore {
   disconnectSocket: () => void;
   sendBid: (action: 'open' | 'raise' | 'hold' | 'pass', bidValue?: number) => void;
   sendTalonAction: (
-    action: 'take_talon' | 'declare_hand',
+    action: 'take_talon' | 'declare_hand' | 'discard_and_declare',
     discardedCardIds?: string[],
     selectedMode?: number,
   ) => void;

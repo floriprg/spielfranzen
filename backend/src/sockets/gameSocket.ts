@@ -477,7 +477,7 @@ export class GameSocketHandler {
     socket: Socket,
     matchId: string,
     userId: string,
-    action: 'take_talon' | 'declare_hand',
+    action: 'take_talon' | 'declare_hand' | 'discard_and_declare',
     discardedCardIds?: string[],
     selectedMode?: number,
   ): Promise<void> {
