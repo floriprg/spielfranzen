@@ -132,10 +132,12 @@ export class GameSocketHandler {
             this.userSockets.delete(userId);
             // Mark user offline in active matches
             for (const [matchId, state] of this.activeMatches.entries()) {
-              const seatIdx = state.players.findIndex((p) => p.userId === userId);
-              if (seatIdx !== -1) {
-                state.players[seatIdx]!.isOnline = false;
-                this.syncStateToMatch(matchId, state);
+              if (state && Array.isArray(state.players)) {
+                const seatIdx = state.players.findIndex((p) => p && p.userId === userId);
+                if (seatIdx !== -1 && state.players[seatIdx]) {
+                  state.players[seatIdx]!.isOnline = false;
+                  this.syncStateToMatch(matchId, state);
+                }
               }
             }
           }

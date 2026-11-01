@@ -1,18 +1,33 @@
 version: '3.8'
 
 services:
-  postgres:
+  db:
     image: postgres:16-alpine
-    container_name: spielfranzen-postgres
-    restart: always
+    container_name: spielfranzen-db
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: postgrespassword
       POSTGRES_DB: spielfranzen
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
+
+  app:
+    build: .
+    container_name: spielfranzen-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:postgrespassword@db:5432/spielfranzen?schema=public
+      JWT_SECRET: spielfranzen_production_secret_key_change_me
+      CORS_ORIGIN: "*"
+    depends_on:
+      - db
 
 volumes:
-  postgres_data:
+  pgdata:
