@@ -167,17 +167,26 @@ export class GameSocketHandler {
     if (!match) return null;
 
     if (match.liveGameState) {
-      const state = match.liveGameState as unknown as FullGameState;
-      if (state && !state.timer) {
-        state.timer = {
-          config: { enabled: true, turnTimeLimit: 60, totalTimeBank: 300 },
-          turnStartedAt: null,
-          turnDuration: 60,
-          playerBanks: [300, 300, 300],
-        };
+      const parsed = match.liveGameState as any;
+      if (
+        parsed &&
+        Array.isArray(parsed.players) &&
+        parsed.players.length === 3 &&
+        parsed.phase &&
+        Array.isArray(parsed.hands)
+      ) {
+        const state = parsed as FullGameState;
+        if (!state.timer) {
+          state.timer = {
+            config: { enabled: true, turnTimeLimit: 60, totalTimeBank: 300 },
+            turnStartedAt: null,
+            turnDuration: 60,
+            playerBanks: [300, 300, 300],
+          };
+        }
+        this.activeMatches.set(matchId, state);
+        return state;
       }
-      this.activeMatches.set(matchId, state);
-      return state;
     }
 
     return null;
@@ -475,11 +484,11 @@ export class GameSocketHandler {
       }
     }
 
-    if (!state) return;
+    if (!state || !Array.isArray(state.players)) return;
 
     // Set player online status
-    const seatIdx = state.players.findIndex((p) => p.userId === userId);
-    if (seatIdx !== -1) {
+    const seatIdx = state.players.findIndex((p) => p && p.userId === userId);
+    if (seatIdx !== -1 && state.players[seatIdx]) {
       state.players[seatIdx]!.isOnline = true;
     }
 
@@ -500,9 +509,9 @@ export class GameSocketHandler {
     bidValue?: number,
   ): Promise<void> {
     const state = await this.getOrLoadMatchState(matchId);
-    if (!state) throw new Error('Spiel nicht gefunden.');
+    if (!state || !Array.isArray(state.players)) throw new Error('Spiel nicht gefunden.');
 
-    const seatIdx = state.players.findIndex((p) => p.userId === userId);
+    const seatIdx = state.players.findIndex((p) => p && p.userId === userId);
     if (seatIdx === -1) throw new Error('Du bist kein Mitspieler in diesem Raum.');
 
     this.deductTurnTime(state, seatIdx);
@@ -526,9 +535,9 @@ export class GameSocketHandler {
     selectedMode?: number,
   ): Promise<void> {
     const state = await this.getOrLoadMatchState(matchId);
-    if (!state) throw new Error('Spiel nicht gefunden.');
+    if (!state || !Array.isArray(state.players)) throw new Error('Spiel nicht gefunden.');
 
-    const seatIdx = state.players.findIndex((p) => p.userId === userId);
+    const seatIdx = state.players.findIndex((p) => p && p.userId === userId);
     if (seatIdx === -1) throw new Error('Du bist kein Mitspieler in diesem Raum.');
 
     this.deductTurnTime(state, seatIdx);
@@ -550,9 +559,9 @@ export class GameSocketHandler {
     cardId: string,
   ): Promise<void> {
     const state = await this.getOrLoadMatchState(matchId);
-    if (!state) throw new Error('Spiel nicht gefunden.');
+    if (!state || !Array.isArray(state.players)) throw new Error('Spiel nicht gefunden.');
 
-    const seatIdx = state.players.findIndex((p) => p.userId === userId);
+    const seatIdx = state.players.findIndex((p) => p && p.userId === userId);
     if (seatIdx === -1) throw new Error('Du bist kein Mitspieler in diesem Raum.');
 
     if (state.currentTrick.length >= 3) {
@@ -696,7 +705,9 @@ export class GameSocketHandler {
             where: { matchId },
           });
 
-          const seat = state.players.findIndex((p) => p.userId === r.userId);
+          const seat = Array.isArray(state.players)
+            ? state.players.findIndex((p) => p && p.userId === r.userId)
+            : -1;
           const soloRounds = rounds.filter((rnd) => rnd.declarerSeat === seat);
           const soloWon = soloRounds.filter((rnd) => rnd.declarerWon).length;
 

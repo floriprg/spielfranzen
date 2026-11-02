@@ -29,8 +29,8 @@ export function getLegalCardIds(hand, currentTrick, gameMode) {
 }
 export function sanitizeGameStateForPlayer(state, userId) {
     let mySeatIndex = null;
-    if (userId) {
-        const seat = state.players.findIndex((p) => p.userId === userId);
+    if (userId && Array.isArray(state?.players)) {
+        const seat = state.players.findIndex((p) => p && p.userId === userId);
         if (seat !== -1) {
             mySeatIndex = seat;
         }

@@ -49,8 +49,8 @@ export function sanitizeGameStateForPlayer(
 ): SanitizedGameState {
   let mySeatIndex: number | null = null;
 
-  if (userId) {
-    const seat = state.players.findIndex((p) => p.userId === userId);
+  if (userId && Array.isArray(state?.players)) {
+    const seat = state.players.findIndex((p) => p && p.userId === userId);
     if (seat !== -1) {
       mySeatIndex = seat;
     }

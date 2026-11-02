@@ -133,17 +133,24 @@ export class GameSocketHandler {
         if (!match)
             return null;
         if (match.liveGameState) {
-            const state = match.liveGameState;
-            if (state && !state.timer) {
-                state.timer = {
-                    config: { enabled: true, turnTimeLimit: 60, totalTimeBank: 300 },
-                    turnStartedAt: null,
-                    turnDuration: 60,
-                    playerBanks: [300, 300, 300],
-                };
+            const parsed = match.liveGameState;
+            if (parsed &&
+                Array.isArray(parsed.players) &&
+                parsed.players.length === 3 &&
+                parsed.phase &&
+                Array.isArray(parsed.hands)) {
+                const state = parsed;
+                if (!state.timer) {
+                    state.timer = {
+                        config: { enabled: true, turnTimeLimit: 60, totalTimeBank: 300 },
+                        turnStartedAt: null,
+                        turnDuration: 60,
+                        playerBanks: [300, 300, 300],
+                    };
+                }
+                this.activeMatches.set(matchId, state);
+                return state;
             }
-            this.activeMatches.set(matchId, state);
-            return state;
         }
         return null;
     }
@@ -422,11 +429,11 @@ export class GameSocketHandler {
                 return;
             }
         }
-        if (!state)
+        if (!state || !Array.isArray(state.players))
             return;
         // Set player online status
-        const seatIdx = state.players.findIndex((p) => p.userId === userId);
-        if (seatIdx !== -1) {
+        const seatIdx = state.players.findIndex((p) => p && p.userId === userId);
+        if (seatIdx !== -1 && state.players[seatIdx]) {
             state.players[seatIdx].isOnline = true;
         }
         this.syncStateToMatch(matchId, state);
@@ -438,9 +445,9 @@ export class GameSocketHandler {
      */
     async handlePlayerBid(socket, matchId, userId, action, bidValue) {
         const state = await this.getOrLoadMatchState(matchId);
-        if (!state)
+        if (!state || !Array.isArray(state.players))
             throw new Error('Spiel nicht gefunden.');
-        const seatIdx = state.players.findIndex((p) => p.userId === userId);
+        const seatIdx = state.players.findIndex((p) => p && p.userId === userId);
         if (seatIdx === -1)
             throw new Error('Du bist kein Mitspieler in diesem Raum.');
         this.deductTurnTime(state, seatIdx);
@@ -455,9 +462,9 @@ export class GameSocketHandler {
      */
     async handlePlayerTalonAction(socket, matchId, userId, action, discardedCardIds, selectedMode) {
         const state = await this.getOrLoadMatchState(matchId);
-        if (!state)
+        if (!state || !Array.isArray(state.players))
             throw new Error('Spiel nicht gefunden.');
-        const seatIdx = state.players.findIndex((p) => p.userId === userId);
+        const seatIdx = state.players.findIndex((p) => p && p.userId === userId);
         if (seatIdx === -1)
             throw new Error('Du bist kein Mitspieler in diesem Raum.');
         this.deductTurnTime(state, seatIdx);
@@ -472,9 +479,9 @@ export class GameSocketHandler {
      */
     async handlePlayerPlayCard(socket, matchId, userId, cardId) {
         const state = await this.getOrLoadMatchState(matchId);
-        if (!state)
+        if (!state || !Array.isArray(state.players))
             throw new Error('Spiel nicht gefunden.');
-        const seatIdx = state.players.findIndex((p) => p.userId === userId);
+        const seatIdx = state.players.findIndex((p) => p && p.userId === userId);
         if (seatIdx === -1)
             throw new Error('Du bist kein Mitspieler in diesem Raum.');
         if (state.currentTrick.length >= 3) {
@@ -596,7 +603,9 @@ export class GameSocketHandler {
                     const rounds = await prisma.matchRound.findMany({
                         where: { matchId },
                     });
-                    const seat = state.players.findIndex((p) => p.userId === r.userId);
+                    const seat = Array.isArray(state.players)
+                        ? state.players.findIndex((p) => p && p.userId === r.userId)
+                        : -1;
                     const soloRounds = rounds.filter((rnd) => rnd.declarerSeat === seat);
                     const soloWon = soloRounds.filter((rnd) => rnd.declarerWon).length;
                     // Update User permanent statistics & ELO
