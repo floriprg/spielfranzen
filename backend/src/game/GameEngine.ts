@@ -524,10 +524,6 @@ export class GameEngine {
       state.talonTaken = true;
       state.gameMode = selectedMode as GameMode;
 
-      // In color games (5..8), discarded card points count for declarer
-      if (selectedMode >= 5 && selectedMode <= 8) {
-        state.declarerCardPoints = discardedCards.reduce((sum, c) => sum + c.points, 0);
-      }
 
       // Transition to Trick Play: Declarer plays first card
       state.phase = 'TRICK_PLAY';
