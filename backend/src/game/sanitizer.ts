@@ -118,6 +118,8 @@ export function sanitizeGameStateForPlayer(
     code: state.code,
     status: state.status,
     isPrivate: state.isPrivate,
+    chatEnabled: state.chatEnabled ?? true,
+    chatMessages: state.chatMessages || [],
     totalRounds: state.totalRounds,
     currentRound: state.currentRound,
     phase: state.phase,

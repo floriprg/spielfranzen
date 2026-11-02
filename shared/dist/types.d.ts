@@ -104,6 +104,9 @@ export interface FullGameState {
     matchId: string;
     code: string;
     status: MatchStatus;
+    isPrivate?: boolean;
+    chatEnabled?: boolean;
+    chatMessages?: ChatMessage[];
     totalRounds: number;
     currentRound: number;
     phase: GamePhase;
@@ -144,6 +147,9 @@ export interface SanitizedGameState {
     matchId: string;
     code: string;
     status: MatchStatus;
+    isPrivate?: boolean;
+    chatEnabled?: boolean;
+    chatMessages?: ChatMessage[];
     totalRounds: number;
     currentRound: number;
     phase: GamePhase;
@@ -222,6 +228,7 @@ export interface ServerToClientEvents {
         seatIndex: number;
         isOnline: boolean;
     }) => void;
+    'chat:new_message': (payload: ChatMessage) => void;
 }
 export interface ClientToServerEvents {
     'game:join_match': (payload: {
@@ -253,6 +260,10 @@ export interface ClientToServerEvents {
         matchId: string;
         seatIndex: number;
     }) => void;
+    'chat:send_message': (payload: {
+        matchId: string;
+        text: string;
+    }) => void;
 }
 export interface RegisterRequest {
     username: string;
@@ -276,12 +287,23 @@ export interface AuthResponse {
     token: string;
     user: UserProfile;
 }
+export interface ChatMessage {
+    id: string;
+    matchId: string;
+    senderId: string;
+    senderName: string;
+    senderSeat: number;
+    isBot?: boolean;
+    text: string;
+    createdAt: number;
+}
 export interface CreateMatchRequest {
     totalRounds: number;
     isPrivate: boolean;
     timerEnabled?: boolean;
     turnTimeLimit?: number;
     totalTimeBank?: number;
+    chatEnabled?: boolean;
 }
 export interface BotStrategyWeights {
     name?: string;

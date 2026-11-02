@@ -225,6 +225,8 @@ export interface FullGameState {
   code: string;
   status: MatchStatus;
   isPrivate?: boolean;
+  chatEnabled?: boolean;
+  chatMessages?: ChatMessage[];
   totalRounds: number;
   currentRound: number;
   phase: GamePhase;
@@ -269,6 +271,8 @@ export interface SanitizedGameState {
   code: string;
   status: MatchStatus;
   isPrivate?: boolean;
+  chatEnabled?: boolean;
+  chatMessages?: ChatMessage[];
   totalRounds: number;
   currentRound: number;
   phase: GamePhase;
@@ -345,6 +349,7 @@ export interface ServerToClientEvents {
   'game:match_completed': (payload: MatchResult) => void;
   'game:error': (payload: { message: string }) => void;
   'match:connection_status': (payload: { seatIndex: number; isOnline: boolean }) => void;
+  'chat:new_message': (payload: ChatMessage) => void;
 }
 
 export interface ClientToServerEvents {
@@ -364,6 +369,7 @@ export interface ClientToServerEvents {
   'game:next_round': (payload: { matchId: string }) => void;
   'game:add_bot': (payload: { matchId: string; seatIndex: number }) => void;
   'game:remove_bot': (payload: { matchId: string; seatIndex: number }) => void;
+  'chat:send_message': (payload: { matchId: string; text: string }) => void;
 }
 
 // REST API Request / Response Types
@@ -393,12 +399,24 @@ export interface AuthResponse {
   user: UserProfile;
 }
 
+export interface ChatMessage {
+  id: string;
+  matchId: string;
+  senderId: string;
+  senderName: string;
+  senderSeat: number; // 0, 1, 2 or -1
+  isBot?: boolean;
+  text: string;
+  createdAt: number;
+}
+
 export interface CreateMatchRequest {
   totalRounds: number;
   isPrivate: boolean;
   timerEnabled?: boolean;
   turnTimeLimit?: number;
   totalTimeBank?: number;
+  chatEnabled?: boolean;
 }
 
 // Bot Strategy & Evolutionary Self-Play Types

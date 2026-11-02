@@ -196,19 +196,36 @@ authRouter.post('/google', async (req, res) => {
                 where: { email: { equals: email, mode: 'insensitive' } },
             });
             if (user) {
+                // Upgrade username if it was previously truncated to 15 chars
+                let updatedUsername = user.username;
+                if (user.username.length <= 15 && name) {
+                    const prospective = name.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 20);
+                    if (prospective.length > user.username.length && prospective.startsWith(user.username)) {
+                        const conflict = await prisma.user.findFirst({
+                            where: {
+                                username: { equals: prospective, mode: 'insensitive' },
+                                NOT: { id: user.id },
+                            },
+                        });
+                        if (!conflict) {
+                            updatedUsername = prospective;
+                        }
+                    }
+                }
                 user = await prisma.user.update({
                     where: { id: user.id },
                     data: {
                         googleId,
+                        username: updatedUsername,
                         avatarUrl: user.avatarUrl || picture,
                     },
                 });
             }
             else {
-                // Create new user with unique username derived from name
-                let cleanName = name.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 15);
+                // Create new user with unique username derived from name (up to 20 chars allowed by schema)
+                let cleanName = name.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 20);
                 if (!cleanName || cleanName.length < 3) {
-                    cleanName = email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 15);
+                    cleanName = email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 20);
                 }
                 if (cleanName.length < 3) {
                     cleanName = `Spieler_${Math.floor(100 + Math.random() * 900)}`;
@@ -218,7 +235,7 @@ authRouter.post('/google', async (req, res) => {
                 while (await prisma.user.findFirst({
                     where: { username: { equals: username, mode: 'insensitive' } },
                 })) {
-                    username = `${cleanName.slice(0, 13)}_${counter}`;
+                    username = `${cleanName.slice(0, 16)}_${counter}`;
                     counter++;
                 }
                 user = await prisma.user.create({

@@ -18,6 +18,7 @@ const createMatchSchema = z.object({
     timerEnabled: z.boolean().default(true),
     turnTimeLimit: z.number().int().min(10).max(600).default(60),
     totalTimeBank: z.number().int().min(30).max(3600).default(300),
+    chatEnabled: z.boolean().default(true),
 });
 // GET /api/matches (List open public lobbies)
 matchesRouter.get('/', authenticateToken, async (req, res) => {
@@ -106,7 +107,7 @@ matchesRouter.post('/', authenticateToken, async (req, res) => {
             res.status(400).json({ error: parseResult.error.errors[0]?.message });
             return;
         }
-        const { totalRounds, isPrivate, timerEnabled, turnTimeLimit, totalTimeBank } = parseResult.data;
+        const { totalRounds, isPrivate, timerEnabled, turnTimeLimit, totalTimeBank, chatEnabled } = parseResult.data;
         const timerConfig = {
             enabled: timerEnabled,
             turnTimeLimit,
@@ -127,6 +128,7 @@ matchesRouter.post('/', authenticateToken, async (req, res) => {
                 currentRound: 1,
                 liveGameState: {
                     timerConfig,
+                    chatEnabled,
                 },
                 participants: {
                     create: {

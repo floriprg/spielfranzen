@@ -1,11 +1,12 @@
 import { GAME_MODE_INFO, GameMode } from '@spielfranzen/shared';
-import { Bot, Check, Clock, Copy, Crown, Globe, Lock, Play, Shield, Sliders, Users } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { Bot, Check, Clock, Copy, Crown, Globe, Lock, MessageSquare, Play, Shield, Sliders, Users } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CardView } from '../components/cards/CardView.js';
 import { SuitIcon } from '../components/cards/SuitIcon.js';
 import { formatSecondsMMSS, useTurnTimer } from '../components/common/useTurnTimer.js';
 import { BiddingControls } from '../components/table/BiddingControls.js';
+import { ChatDrawer } from '../components/table/ChatDrawer.js';
 import { GameInfoModal } from '../components/table/GameInfoModal.js';
 import { MatchCompletedModal } from '../components/table/MatchCompletedModal.js';
 import { PlayerSeatView } from '../components/table/PlayerSeatView.js';
@@ -30,6 +31,7 @@ export const GamePage: React.FC = () => {
     nextRound,
     addBot,
     removeBot,
+    sendChatMessage,
     error,
     clearError,
   } = useGameStore();
@@ -38,6 +40,17 @@ export const GamePage: React.FC = () => {
   const [showRoundSummary, setShowRoundSummary] = useState(false);
   const [showMatchCompleted, setShowMatchCompleted] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const prevMsgCountRef = useRef(0);
+
+  useEffect(() => {
+    const currentMsgs = gameState?.chatMessages || [];
+    if (!isChatOpen && currentMsgs.length > prevMsgCountRef.current) {
+      setUnreadCount((prev) => prev + (currentMsgs.length - prevMsgCountRef.current));
+    }
+    prevMsgCountRef.current = currentMsgs.length;
+  }, [gameState?.chatMessages, isChatOpen]);
 
   useEffect(() => {
     if (matchId) {
@@ -202,20 +215,31 @@ export const GamePage: React.FC = () => {
                   )}
                 </span>
               </div>
-              <div className="col-span-2 p-2.5 rounded-xl bg-slate-900 border border-slate-800/80">
-                <span className="text-[10px] text-slate-400 block mb-0.5">Zeitlimit (Timer):</span>
-                <span className="font-bold text-slate-200 flex items-center gap-1.5">
+              <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800/80">
+                <span className="text-[10px] text-slate-400 block mb-0.5">Zeitlimit:</span>
+                <span
+                  className="font-bold text-slate-200 flex items-center gap-1.5 truncate"
+                  title={
+                    gameState.timer?.config?.enabled
+                      ? `${gameState.timer.config.turnTimeLimit}s Zug / ${Math.round(gameState.timer.config.totalTimeBank / 60)}m Bank`
+                      : 'Deaktiviert'
+                  }
+                >
                   {gameState.timer?.config?.enabled ? (
                     <>
-                      <Clock className="w-3.5 h-3.5 text-amber-400" />
-                      <span>
-                        {gameState.timer.config.turnTimeLimit}s pro Zug •{' '}
-                        {Math.round(gameState.timer.config.totalTimeBank / 60)} Min Zeitbank
-                      </span>
+                      <Clock className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                      <span>{gameState.timer.config.turnTimeLimit}s</span>
                     </>
                   ) : (
-                    <span className="text-slate-400">Deaktiviert (Ohne Zeitlimit)</span>
+                    <span className="text-slate-400">Aus</span>
                   )}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800/80">
+                <span className="text-[10px] text-slate-400 block mb-0.5">In-Game Chat:</span>
+                <span className="font-bold text-slate-200 flex items-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                  <span>{gameState.chatEnabled !== false ? 'Aktiv' : 'Aus'}</span>
                 </span>
               </div>
             </div>
@@ -318,6 +342,24 @@ export const GamePage: React.FC = () => {
           </div>
         </div>
 
+        {/* Floating Chat Trigger Button */}
+        <button
+          onClick={() => {
+            setIsChatOpen(true);
+            setUnreadCount(0);
+          }}
+          className="fixed bottom-4 right-4 z-40 p-3 rounded-full bg-slate-900/90 hover:bg-slate-800 border-2 border-amber-500/80 text-amber-300 hover:text-amber-200 shadow-xl backdrop-blur-sm transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center"
+          title="Chat öffnen"
+          aria-label="Chat öffnen"
+        >
+          <MessageSquare className="w-5 h-5" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-rose-600 text-white font-black text-[10px] min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center border-2 border-slate-950 animate-bounce">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </button>
+
         {/* Game Info & Settings Modal for Waiting Room */}
         <GameInfoModal
           isOpen={showInfoModal}
@@ -325,6 +367,17 @@ export const GamePage: React.FC = () => {
           gameState={gameState}
           copiedCode={copiedCode}
           onCopyCode={handleCopyCode}
+        />
+
+        {/* In-Game Chat Drawer for Waiting Room */}
+        <ChatDrawer
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          messages={gameState.chatMessages || []}
+          onSendMessage={sendChatMessage}
+          chatEnabled={gameState.chatEnabled}
+          currentUserId={user?.id}
+          mySeatIndex={mySeatIndex}
         />
       </div>
     );
@@ -371,6 +424,23 @@ export const GamePage: React.FC = () => {
           >
             <Sliders className="w-3 h-3 text-amber-400" />
             <span className="hidden sm:inline">Spielinfo</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setIsChatOpen(true);
+              setUnreadCount(0);
+            }}
+            className="relative flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-amber-300 text-[11px] font-semibold transition-colors cursor-pointer shadow-sm"
+            title="Chat öffnen"
+          >
+            <MessageSquare className="w-3 h-3 text-amber-400" />
+            <span className="hidden sm:inline">Chat</span>
+            {unreadCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white font-black text-[9px] min-w-[15px] h-[15px] px-1 rounded-full flex items-center justify-center animate-pulse">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </button>
         </div>
 
@@ -668,6 +738,35 @@ export const GamePage: React.FC = () => {
         gameState={gameState}
         copiedCode={copiedCode}
         onCopyCode={handleCopyCode}
+      />
+
+      {/* Floating Chat Trigger Button */}
+      <button
+        onClick={() => {
+          setIsChatOpen(true);
+          setUnreadCount(0);
+        }}
+        className="fixed bottom-3 right-3 sm:bottom-4 sm:right-4 z-40 p-2.5 sm:p-3 rounded-full bg-slate-900/90 hover:bg-slate-800 border-2 border-amber-500/80 text-amber-300 hover:text-amber-200 shadow-xl backdrop-blur-sm transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center"
+        title="Chat öffnen"
+        aria-label="Chat öffnen"
+      >
+        <MessageSquare className="w-5 h-5" />
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-rose-600 text-white font-black text-[10px] min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center border-2 border-slate-950 animate-bounce">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {/* In-Game Chat Drawer */}
+      <ChatDrawer
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        messages={gameState.chatMessages || []}
+        onSendMessage={sendChatMessage}
+        chatEnabled={gameState.chatEnabled}
+        currentUserId={user?.id}
+        mySeatIndex={mySeatIndex}
       />
     </div>
   );

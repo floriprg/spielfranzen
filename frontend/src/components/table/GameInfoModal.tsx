@@ -9,6 +9,7 @@ import {
   HelpCircle,
   Info,
   Lock,
+  MessageSquare,
   RotateCcw,
   Shield,
   Sliders,
@@ -244,6 +245,30 @@ export const GameInfoModal: React.FC<GameInfoModalProps> = ({
                     Bei Ablauf der Zeit wird automatisch ein zufälliger, regelkonformer Zug ausgeführt.
                   </p>
                 )}
+              </div>
+
+              {/* Chat Status Card */}
+              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                    <MessageSquare className="w-3 h-3 text-amber-400" />
+                    In-Game Chat
+                  </span>
+                  <span
+                    className={`px-2 py-0.2 rounded-full text-[10px] font-bold ${
+                      gameState.chatEnabled !== false
+                        ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/50'
+                        : 'bg-rose-950/80 text-rose-400 border border-rose-500/50'
+                    }`}
+                  >
+                    {gameState.chatEnabled !== false ? 'Aktiviert' : 'Deaktiviert'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  {gameState.chatEnabled !== false
+                    ? 'Mitspieler können über den Chat-Button Nachrichten schreiben.'
+                    : 'Der Chat wurde vom Host für dieses Match ausgeschaltet.'}
+                </p>
               </div>
             </div>
           )}

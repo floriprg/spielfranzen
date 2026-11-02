@@ -1,4 +1,5 @@
 import {
+  ChatMessage,
   ClientToServerEvents,
   FullGameState,
   MatchResult,
@@ -8,6 +9,7 @@ import {
   ServerToClientEvents,
   Trick,
 } from '@spielfranzen/shared';
+import crypto from 'crypto';
 import { Server, Socket } from 'socket.io';
 import { prisma } from '../db/prisma.js';
 import { BotEngine } from '../game/BotEngine.js';
@@ -123,6 +125,15 @@ export class GameSocketHandler {
         }
       });
 
+      // Handle sending in-game chat message
+      socket.on('chat:send_message', async ({ matchId, text }) => {
+        try {
+          await this.handleSendChatMessage(socket, matchId, userId, text);
+        } catch (err: any) {
+          socket.emit('game:error', { message: err.message || 'Fehler beim Senden der Chat-Nachricht.' });
+        }
+      });
+
       // Handle disconnect
       socket.on('disconnect', async () => {
         const sockets = this.userSockets.get(userId);
@@ -178,6 +189,12 @@ export class GameSocketHandler {
         const state = parsed as FullGameState;
         if (match.isPrivate !== undefined) {
           state.isPrivate = match.isPrivate;
+        }
+        if (state.chatEnabled === undefined) {
+          state.chatEnabled = (match.liveGameState as any)?.chatEnabled ?? true;
+        }
+        if (!state.chatMessages) {
+          state.chatMessages = (match.liveGameState as any)?.chatMessages || [];
         }
         if (state.phase === 'ROUND_SUMMARY' || state.phase === 'MATCH_COMPLETED') {
           // If the match was in summary, the trick must be cleared so clients can view summary
@@ -377,11 +394,15 @@ export class GameSocketHandler {
             totalTimeBank: 300,
           };
 
+        const chatEnabled = (match.liveGameState as any)?.chatEnabled ?? true;
+
         const waitingState: SanitizedGameState = {
           matchId: match.id,
           code: match.code,
           status: 'WAITING',
           isPrivate: match.isPrivate,
+          chatEnabled,
+          chatMessages: (match.liveGameState as any)?.chatMessages || [],
           totalRounds: match.totalRounds,
           currentRound: match.currentRound,
           phase: 'WAITING_FOR_PLAYERS',
@@ -487,8 +508,10 @@ export class GameSocketHandler {
         const timerConfig =
           (match.liveGameState as any)?.timerConfig ??
           (match.liveGameState as any)?.timer?.config;
-        state = GameEngine.createInitialState(match.id, match.code, match.totalRounds, players, timerConfig);
+        const chatEnabled = (match.liveGameState as any)?.chatEnabled ?? true;
+        state = GameEngine.createInitialState(match.id, match.code, match.totalRounds, players, timerConfig, chatEnabled);
         state.isPrivate = match.isPrivate;
+        state.chatMessages = (match.liveGameState as any)?.chatMessages || [];
         this.activeMatches.set(matchId, state);
         await this.persistMatchState(state);
         this.startTurnTimer(matchId, state);
@@ -838,14 +861,17 @@ export class GameSocketHandler {
       const timerConfig =
         (updatedMatch.liveGameState as any)?.timerConfig ??
         (updatedMatch.liveGameState as any)?.timer?.config;
+      const chatEnabled = (updatedMatch.liveGameState as any)?.chatEnabled ?? true;
       const state = GameEngine.createInitialState(
         updatedMatch.id,
         updatedMatch.code,
         updatedMatch.totalRounds,
         players,
         timerConfig,
+        chatEnabled,
       );
       state.isPrivate = updatedMatch.isPrivate;
+      state.chatMessages = (updatedMatch.liveGameState as any)?.chatMessages || [];
       this.activeMatches.set(matchId, state);
       await this.persistMatchState(state);
       this.syncStateToMatch(matchId, state);
@@ -1124,5 +1150,103 @@ export class GameSocketHandler {
 
       await this.processTrickPlayResult(matchId, result);
     }
+  }
+
+  /**
+   * Handles sending a real-time chat message in a match.
+   */
+  private async handleSendChatMessage(
+    socket: Socket,
+    matchId: string,
+    userId: string,
+    rawText: string,
+  ): Promise<void> {
+    if (!rawText || typeof rawText !== 'string') return;
+    const text = rawText.trim();
+    if (!text || text.length > 300) return;
+
+    // 1. Check if match is already active in memory or DB
+    const state = await this.getOrLoadMatchState(matchId);
+    if (state) {
+      if (state.chatEnabled === false) {
+        throw new Error('Der Chat ist in diesem Spiel deaktiviert.');
+      }
+      const player = state.players.find((p) => p && p.userId === userId);
+      if (!player) {
+        throw new Error('Du bist kein Mitspieler in diesem Raum.');
+      }
+
+      const message: ChatMessage = {
+        id: crypto.randomUUID(),
+        matchId,
+        senderId: userId,
+        senderName: player.username,
+        senderSeat: player.seatIndex,
+        isBot: false,
+        text,
+        createdAt: Date.now(),
+      };
+
+      if (!state.chatMessages) {
+        state.chatMessages = [];
+      }
+      state.chatMessages.push(message);
+      if (state.chatMessages.length > 50) {
+        state.chatMessages = state.chatMessages.slice(-50);
+      }
+
+      await this.persistMatchState(state);
+      this.io.to(`match:${matchId}`).emit('chat:new_message', message);
+      return;
+    }
+
+    // 2. If match is still WAITING (before 3 players filled)
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      include: {
+        participants: {
+          include: { user: true },
+        },
+      },
+    });
+    if (!match) return;
+
+    const chatEnabled = (match.liveGameState as any)?.chatEnabled ?? true;
+    if (chatEnabled === false) {
+      throw new Error('Der Chat ist in diesem Spiel deaktiviert.');
+    }
+
+    const participant = match.participants.find((p) => p.userId === userId);
+    if (!participant) {
+      throw new Error('Du bist kein Mitspieler in diesem Raum.');
+    }
+
+    const message: ChatMessage = {
+      id: crypto.randomUUID(),
+      matchId,
+      senderId: userId,
+      senderName: participant.user.username,
+      senderSeat: participant.seatIndex,
+      isBot: false,
+      text,
+      createdAt: Date.now(),
+    };
+
+    const currentLgs = (match.liveGameState as any) || {};
+    const currentMsgs: ChatMessage[] = currentLgs.chatMessages || [];
+    currentMsgs.push(message);
+    const trimmedMsgs = currentMsgs.slice(-50);
+
+    await prisma.match.update({
+      where: { id: matchId },
+      data: {
+        liveGameState: {
+          ...currentLgs,
+          chatMessages: trimmedMsgs,
+        },
+      },
+    });
+
+    this.io.to(`match:${matchId}`).emit('chat:new_message', message);
   }
 }

@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { prisma } from '../db/prisma.js';
 import { BotEngine } from '../game/BotEngine.js';
 import { GameEngine } from '../game/GameEngine.js';
@@ -92,6 +93,15 @@ export class GameSocketHandler {
                     socket.emit('game:error', { message: err.message || 'Fehler beim Entfernen des Bots.' });
                 }
             });
+            // Handle sending in-game chat message
+            socket.on('chat:send_message', async ({ matchId, text }) => {
+                try {
+                    await this.handleSendChatMessage(socket, matchId, userId, text);
+                }
+                catch (err) {
+                    socket.emit('game:error', { message: err.message || 'Fehler beim Senden der Chat-Nachricht.' });
+                }
+            });
             // Handle disconnect
             socket.on('disconnect', async () => {
                 const sockets = this.userSockets.get(userId);
@@ -140,6 +150,19 @@ export class GameSocketHandler {
                 parsed.phase &&
                 Array.isArray(parsed.hands)) {
                 const state = parsed;
+                if (match.isPrivate !== undefined) {
+                    state.isPrivate = match.isPrivate;
+                }
+                if (state.chatEnabled === undefined) {
+                    state.chatEnabled = match.liveGameState?.chatEnabled ?? true;
+                }
+                if (!state.chatMessages) {
+                    state.chatMessages = match.liveGameState?.chatMessages || [];
+                }
+                if (state.phase === 'ROUND_SUMMARY' || state.phase === 'MATCH_COMPLETED') {
+                    // If the match was in summary, the trick must be cleared so clients can view summary
+                    state.currentTrick = [];
+                }
                 if (!state.timer) {
                     state.timer = {
                         config: { enabled: true, turnTimeLimit: 60, totalTimeBank: 300 },
@@ -315,10 +338,20 @@ export class GameSocketHandler {
                 const uid = clientSocket.data.user.userId;
                 const participant = match.participants.find((p) => p.userId === uid);
                 const mySeatIndex = participant ? participant.seatIndex : null;
+                const timerConfig = match.liveGameState?.timerConfig ??
+                    match.liveGameState?.timer?.config ?? {
+                    enabled: true,
+                    turnTimeLimit: 60,
+                    totalTimeBank: 300,
+                };
+                const chatEnabled = match.liveGameState?.chatEnabled ?? true;
                 const waitingState = {
                     matchId: match.id,
                     code: match.code,
                     status: 'WAITING',
+                    isPrivate: match.isPrivate,
+                    chatEnabled,
+                    chatMessages: match.liveGameState?.chatMessages || [],
                     totalRounds: match.totalRounds,
                     currentRound: match.currentRound,
                     phase: 'WAITING_FOR_PLAYERS',
@@ -351,14 +384,10 @@ export class GameSocketHandler {
                     matchResult: null,
                     legalCardIdsToPlay: [],
                     timer: {
-                        config: {
-                            enabled: true,
-                            turnTimeLimit: 60,
-                            totalTimeBank: 300,
-                        },
-                        playerBanks: [300, 300, 300],
+                        config: timerConfig,
+                        playerBanks: [timerConfig.totalTimeBank, timerConfig.totalTimeBank, timerConfig.totalTimeBank],
                         turnStartedAt: null,
-                        turnDuration: 60,
+                        turnDuration: timerConfig.turnTimeLimit,
                     },
                 };
                 clientSocket.emit('game:state_sync', waitingState);
@@ -417,8 +446,12 @@ export class GameSocketHandler {
                     username: p.isBot ? p.botName || 'Bot' : p.user.username,
                     isBot: p.isBot,
                 }));
-                const timerConfig = match.liveGameState?.timerConfig;
-                state = GameEngine.createInitialState(match.id, match.code, match.totalRounds, players, timerConfig);
+                const timerConfig = match.liveGameState?.timerConfig ??
+                    match.liveGameState?.timer?.config;
+                const chatEnabled = match.liveGameState?.chatEnabled ?? true;
+                state = GameEngine.createInitialState(match.id, match.code, match.totalRounds, players, timerConfig, chatEnabled);
+                state.isPrivate = match.isPrivate;
+                state.chatMessages = match.liveGameState?.chatMessages || [];
                 this.activeMatches.set(matchId, state);
                 await this.persistMatchState(state);
                 this.startTurnTimer(matchId, state);
@@ -566,6 +599,8 @@ export class GameSocketHandler {
         if (state.phase === 'MATCH_COMPLETED' && state.matchResult) {
             await this.handleMatchCompletion(matchId, state, state.matchResult);
         }
+        // Persist final round summary state to DB so currentTrick is cleared on reload
+        await this.persistMatchState(state);
         this.syncStateToMatch(matchId, state);
     }
     /**
@@ -695,8 +730,12 @@ export class GameSocketHandler {
                 username: p.isBot ? p.botName || 'Bot' : p.user.username,
                 isBot: p.isBot,
             }));
-            const timerConfig = updatedMatch.liveGameState?.timerConfig;
-            const state = GameEngine.createInitialState(updatedMatch.id, updatedMatch.code, updatedMatch.totalRounds, players, timerConfig);
+            const timerConfig = updatedMatch.liveGameState?.timerConfig ??
+                updatedMatch.liveGameState?.timer?.config;
+            const chatEnabled = updatedMatch.liveGameState?.chatEnabled ?? true;
+            const state = GameEngine.createInitialState(updatedMatch.id, updatedMatch.code, updatedMatch.totalRounds, players, timerConfig, chatEnabled);
+            state.isPrivate = updatedMatch.isPrivate;
+            state.chatMessages = updatedMatch.liveGameState?.chatMessages || [];
             this.activeMatches.set(matchId, state);
             await this.persistMatchState(state);
             this.syncStateToMatch(matchId, state);
@@ -747,13 +786,8 @@ export class GameSocketHandler {
             clearTimeout(this.botTimers.get(matchId));
             this.botTimers.delete(matchId);
         }
-        // In Trick Play: 3 seconds pause before laying down a card (as requested by user)
-        // In other phases (Bidding, Talon): realistic 1.2s - 2.0s thinking time
-        const delay = state.phase === 'TRICK_PLAY'
-            ? 3000
-            : state.phase === 'TALON_AND_DECLARATION'
-                ? 2000
-                : 1200;
+        // Realistic 1 second thinking time for Bots across all phases (Trick Play, Bidding, Talon)
+        const delay = 1000;
         const timer = setTimeout(async () => {
             try {
                 const liveState = this.activeMatches.get(matchId);
@@ -861,7 +895,8 @@ export class GameSocketHandler {
         }
         const bankRemaining = state.timer.playerBanks[activeSeat] ?? state.timer.config.totalTimeBank;
         const maxTurnLimit = state.timer.config.turnTimeLimit;
-        const turnDuration = Math.max(0, Math.min(maxTurnLimit, bankRemaining));
+        // Guarantee at least 15s per turn so players are NEVER rushed with 0s to make a move
+        const turnDuration = Math.max(15, Math.min(maxTurnLimit, bankRemaining));
         state.timer.turnDuration = turnDuration;
         state.timer.turnStartedAt = Date.now();
         // Broadcast the new turn timer to clients immediately so they see the clock start ticking!
@@ -944,6 +979,90 @@ export class GameSocketHandler {
             const result = GameEngine.handlePlayCard(state, seatIndex, randomCard.id);
             await this.processTrickPlayResult(matchId, result);
         }
+    }
+    /**
+     * Handles sending a real-time chat message in a match.
+     */
+    async handleSendChatMessage(socket, matchId, userId, rawText) {
+        if (!rawText || typeof rawText !== 'string')
+            return;
+        const text = rawText.trim();
+        if (!text || text.length > 300)
+            return;
+        // 1. Check if match is already active in memory or DB
+        const state = await this.getOrLoadMatchState(matchId);
+        if (state) {
+            if (state.chatEnabled === false) {
+                throw new Error('Der Chat ist in diesem Spiel deaktiviert.');
+            }
+            const player = state.players.find((p) => p && p.userId === userId);
+            if (!player) {
+                throw new Error('Du bist kein Mitspieler in diesem Raum.');
+            }
+            const message = {
+                id: crypto.randomUUID(),
+                matchId,
+                senderId: userId,
+                senderName: player.username,
+                senderSeat: player.seatIndex,
+                isBot: false,
+                text,
+                createdAt: Date.now(),
+            };
+            if (!state.chatMessages) {
+                state.chatMessages = [];
+            }
+            state.chatMessages.push(message);
+            if (state.chatMessages.length > 50) {
+                state.chatMessages = state.chatMessages.slice(-50);
+            }
+            await this.persistMatchState(state);
+            this.io.to(`match:${matchId}`).emit('chat:new_message', message);
+            return;
+        }
+        // 2. If match is still WAITING (before 3 players filled)
+        const match = await prisma.match.findUnique({
+            where: { id: matchId },
+            include: {
+                participants: {
+                    include: { user: true },
+                },
+            },
+        });
+        if (!match)
+            return;
+        const chatEnabled = match.liveGameState?.chatEnabled ?? true;
+        if (chatEnabled === false) {
+            throw new Error('Der Chat ist in diesem Spiel deaktiviert.');
+        }
+        const participant = match.participants.find((p) => p.userId === userId);
+        if (!participant) {
+            throw new Error('Du bist kein Mitspieler in diesem Raum.');
+        }
+        const message = {
+            id: crypto.randomUUID(),
+            matchId,
+            senderId: userId,
+            senderName: participant.user.username,
+            senderSeat: participant.seatIndex,
+            isBot: false,
+            text,
+            createdAt: Date.now(),
+        };
+        const currentLgs = match.liveGameState || {};
+        const currentMsgs = currentLgs.chatMessages || [];
+        currentMsgs.push(message);
+        const trimmedMsgs = currentMsgs.slice(-50);
+        await prisma.match.update({
+            where: { id: matchId },
+            data: {
+                liveGameState: {
+                    ...currentLgs,
+                    chatMessages: trimmedMsgs,
+                },
+            },
+        });
+        this.io.to(`match:${matchId}`).emit('chat:new_message', message);
     }
 }
 //# sourceMappingURL=gameSocket.js.map

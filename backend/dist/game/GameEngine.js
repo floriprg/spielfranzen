@@ -5,7 +5,7 @@ export class GameEngine {
     /**
      * Initializes a new match state with 3 seated players.
      */
-    static createInitialState(matchId, code, totalRounds, players, timerConfig) {
+    static createInitialState(matchId, code, totalRounds, players, timerConfig, chatEnabled) {
         if (players.length !== 3) {
             throw new Error('A Franzen match requires exactly 3 players.');
         }
@@ -55,6 +55,8 @@ export class GameEngine {
             matchId,
             code,
             status: 'IN_PROGRESS',
+            chatEnabled: chatEnabled ?? true,
+            chatMessages: [],
             totalRounds,
             currentRound: 1,
             phase: 'DEALING',
@@ -113,6 +115,14 @@ export class GameEngine {
             p.role = 'NONE';
             p.tricksWon = 0;
             p.cardPointsWon = 0;
+        }
+        // Refresh depleted time banks for the new round so players always have time
+        if (state.timer && state.timer.config?.enabled) {
+            for (let i = 0; i < state.timer.playerBanks.length; i++) {
+                if ((state.timer.playerBanks[i] ?? 0) < 60) {
+                    state.timer.playerBanks[i] = Math.min(state.timer.config.totalTimeBank, (state.timer.playerBanks[i] ?? 0) + 60);
+                }
+            }
         }
         state.phase = 'BIDDING';
         state.declarerSeat = null;

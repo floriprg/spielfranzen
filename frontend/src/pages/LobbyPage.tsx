@@ -1,5 +1,5 @@
 import { MatchListItem } from '@spielfranzen/shared';
-import { ArrowRight, Bot, Clock, Key, Lock, Play, Plus, RefreshCw, Users } from 'lucide-react';
+import { ArrowRight, Bot, Clock, Key, Lock, MessageSquare, Play, Plus, RefreshCw, Users } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
@@ -29,6 +29,7 @@ export const LobbyPage: React.FC = () => {
   const [timerEnabled, setTimerEnabled] = useState<boolean>(true);
   const [turnTimeLimit, setTurnTimeLimit] = useState<number>(60);
   const [totalTimeBank, setTotalTimeBank] = useState<number>(300);
+  const [chatEnabled, setChatEnabled] = useState<boolean>(true);
   const [isCreating, setIsCreating] = useState<boolean>(false);
 
   const fetchLobbiesAndCurrent = async () => {
@@ -60,6 +61,7 @@ export const LobbyPage: React.FC = () => {
         timerEnabled,
         turnTimeLimit,
         totalTimeBank,
+        chatEnabled,
       });
       navigate(`/game/${match.id}`);
     } catch (err: any) {
@@ -391,6 +393,32 @@ export const LobbyPage: React.FC = () => {
                     Ohne Zeitbegrenzung: Spieler können beliebig lange überlegen.
                   </p>
                 )}
+              </div>
+
+              {/* Chat Option */}
+              <div className="pt-2 border-t border-slate-800">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={chatEnabled}
+                      onChange={(e) => setChatEnabled(e.target.checked)}
+                      className="w-4 h-4 rounded text-amber-500 focus:ring-amber-500 bg-slate-950 border-slate-700"
+                    />
+                    <div className="flex items-center gap-1.5">
+                      <MessageSquare className="w-4 h-4 text-amber-400" />
+                      <span>In-Game Chat aktivieren</span>
+                    </div>
+                  </label>
+                  <span className="text-[10px] text-amber-400/80 font-mono">
+                    {chatEnabled ? 'Aktiv' : 'Deaktiviert'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 pl-6 mt-1">
+                  {chatEnabled
+                    ? 'Mitspieler können während des Spiels Nachrichten austauschen.'
+                    : 'Chat wird für dieses Match vollständig ausgeschaltet.'}
+                </p>
               </div>
 
               <div>

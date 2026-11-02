@@ -1,4 +1,5 @@
 import {
+  ChatMessage,
   ClientToServerEvents,
   MatchResult,
   RoundResult,
@@ -32,6 +33,7 @@ interface GameStateStore {
   nextRound: () => void;
   addBot: (seatIndex: number) => void;
   removeBot: (seatIndex: number) => void;
+  sendChatMessage: (text: string) => void;
   clearError: () => void;
 }
 
@@ -119,6 +121,21 @@ export const useGameStore = create<GameStateStore>((set, get) => ({
       set({ error: message });
     });
 
+    socket.on('chat:new_message', (msg: ChatMessage) => {
+      const current = get().gameState;
+      if (current) {
+        const msgs = current.chatMessages || [];
+        if (!msgs.some((m) => m.id === msg.id)) {
+          set({
+            gameState: {
+              ...current,
+              chatMessages: [...msgs, msg],
+            },
+          });
+        }
+      }
+    });
+
     set({ socket, activeMatchId: matchId });
   },
 
@@ -169,5 +186,11 @@ export const useGameStore = create<GameStateStore>((set, get) => ({
     const { socket, activeMatchId } = get();
     if (!socket || !activeMatchId) return;
     socket.emit('game:remove_bot', { matchId: activeMatchId, seatIndex });
+  },
+
+  sendChatMessage: (text: string) => {
+    const { socket, activeMatchId } = get();
+    if (!socket || !activeMatchId || !text.trim()) return;
+    socket.emit('chat:send_message', { matchId: activeMatchId, text: text.trim() });
   },
 }));

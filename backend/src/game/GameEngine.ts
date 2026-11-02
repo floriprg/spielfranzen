@@ -22,6 +22,7 @@ export class GameEngine {
     totalRounds: number,
     players: { userId: string; username: string; isBot: boolean }[],
     timerConfig?: Partial<GameTimerConfig>,
+    chatEnabled?: boolean,
   ): FullGameState {
     if (players.length !== 3) {
       throw new Error('A Franzen match requires exactly 3 players.');
@@ -76,6 +77,8 @@ export class GameEngine {
       matchId,
       code,
       status: 'IN_PROGRESS',
+      chatEnabled: chatEnabled ?? true,
+      chatMessages: [],
       totalRounds,
       currentRound: 1,
       phase: 'DEALING',

@@ -265,3 +265,38 @@ test('9. Sanitizer: Anti-Cheat Hand Stripping', () => {
   // Hidden talon is null
   assert.strictEqual(sanitizedForP1.talonCards, null);
 });
+
+test('10. Chat Feature: chatEnabled flag and chatMessages forwarding', () => {
+  const players = [
+    { userId: 'u1', username: 'P1', isBot: false },
+    { userId: 'u2', username: 'P2', isBot: false },
+    { userId: 'u3', username: 'P3', isBot: false },
+  ];
+
+  // Test with chat enabled (default)
+  const stateEnabled = GameEngine.createInitialState('match-chat-1', 'CHAT1', 5, players, undefined, true);
+  assert.strictEqual(stateEnabled.chatEnabled, true);
+  assert.deepStrictEqual(stateEnabled.chatMessages, []);
+
+  stateEnabled.chatMessages.push({
+    id: 'msg-1',
+    matchId: 'match-chat-1',
+    senderId: 'u1',
+    senderName: 'P1',
+    senderSeat: 0,
+    isBot: false,
+    text: 'Hallo zusammen!',
+    createdAt: Date.now(),
+  });
+
+  const sanitizedEnabled = sanitizeGameStateForPlayer(stateEnabled, 'u1');
+  assert.strictEqual(sanitizedEnabled.chatEnabled, true);
+  assert.strictEqual(sanitizedEnabled.chatMessages?.length, 1);
+  assert.strictEqual(sanitizedEnabled.chatMessages?.[0]?.text, 'Hallo zusammen!');
+
+  // Test with chat disabled
+  const stateDisabled = GameEngine.createInitialState('match-chat-2', 'CHAT2', 5, players, undefined, false);
+  assert.strictEqual(stateDisabled.chatEnabled, false);
+  const sanitizedDisabled = sanitizeGameStateForPlayer(stateDisabled, 'u2');
+  assert.strictEqual(sanitizedDisabled.chatEnabled, false);
+});
