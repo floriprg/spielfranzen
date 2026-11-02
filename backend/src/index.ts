@@ -35,7 +35,7 @@ app.use('/api/matches', matchesRouter);
 app.use('/api/leaderboard', leaderboardRouter);
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (req: express.Request, res: express.Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
@@ -50,7 +50,7 @@ const distPath = candidatePaths.find((p) => fs.existsSync(p));
 if (distPath) {
   console.log(`📦 Serving static frontend from: ${distPath}`);
   app.use(express.static(distPath));
-  app.get('*', (req, res, next) => {
+  app.get('*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) {
       return next();
     }

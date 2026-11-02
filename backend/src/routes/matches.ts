@@ -1,6 +1,6 @@
 import { MatchListItem } from '@spielfranzen/shared';
 import crypto from 'crypto';
-import { Router } from 'express';
+import { Request, Response, Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db/prisma.js';
 import { authenticateToken } from '../middleware/auth.js';
@@ -25,7 +25,7 @@ const createMatchSchema = z.object({
 });
 
 // GET /api/matches (List open public lobbies)
-matchesRouter.get('/', authenticateToken, async (req, res): Promise<void> => {
+matchesRouter.get('/', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     const matches = await prisma.match.findMany({
       where: {
@@ -64,7 +64,7 @@ matchesRouter.get('/', authenticateToken, async (req, res): Promise<void> => {
 });
 
 // GET /api/matches/current (Find active match for user - essential for reconnect)
-matchesRouter.get('/current', authenticateToken, async (req, res): Promise<void> => {
+matchesRouter.get('/current', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({ error: 'Nicht authentifiziert.' });
@@ -105,7 +105,7 @@ matchesRouter.get('/current', authenticateToken, async (req, res): Promise<void>
 });
 
 // POST /api/matches (Create match)
-matchesRouter.post('/', authenticateToken, async (req, res): Promise<void> => {
+matchesRouter.post('/', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({ error: 'Nicht authentifiziert.' });
@@ -166,7 +166,7 @@ matchesRouter.post('/', authenticateToken, async (req, res): Promise<void> => {
 });
 
 // GET /api/matches/:id (Get match details)
-matchesRouter.get('/:id', authenticateToken, async (req, res): Promise<void> => {
+matchesRouter.get('/:id', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     const rawId = req.params.id;
     const id = Array.isArray(rawId) ? rawId[0] : rawId;
@@ -205,7 +205,7 @@ matchesRouter.get('/:id', authenticateToken, async (req, res): Promise<void> => 
 });
 
 // POST /api/matches/join-by-code
-matchesRouter.post('/join-by-code', authenticateToken, async (req, res): Promise<void> => {
+matchesRouter.post('/join-by-code', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({ error: 'Nicht authentifiziert.' });

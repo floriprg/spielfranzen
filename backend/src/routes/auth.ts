@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import { Router } from 'express';
+import { Request, Response, Router } from 'express';
 import { OAuth2Client } from 'google-auth-library';
 import { z } from 'zod';
 import { config } from '../config/env.js';
@@ -26,7 +26,7 @@ const loginSchema = z.object({
 });
 
 // POST /api/auth/register
-authRouter.post('/register', async (req, res): Promise<void> => {
+authRouter.post('/register', async (req: Request, res: Response): Promise<void> => {
   try {
     const parseResult = registerSchema.safeParse(req.body);
     if (!parseResult.success) {
@@ -90,7 +90,7 @@ authRouter.post('/register', async (req, res): Promise<void> => {
 });
 
 // POST /api/auth/login
-authRouter.post('/login', async (req, res): Promise<void> => {
+authRouter.post('/login', async (req: Request, res: Response): Promise<void> => {
   try {
     const parseResult = loginSchema.safeParse(req.body);
     if (!parseResult.success) {
@@ -156,7 +156,7 @@ authRouter.post('/login', async (req, res): Promise<void> => {
 });
 
 // POST /api/auth/google
-authRouter.post('/google', async (req, res): Promise<void> => {
+authRouter.post('/google', async (req: Request, res: Response): Promise<void> => {
   try {
     const { credential, mockGoogleUser } = req.body;
 
@@ -293,7 +293,7 @@ authRouter.post('/google', async (req, res): Promise<void> => {
 });
 
 // GET /api/auth/me
-authRouter.get('/me', authenticateToken, async (req, res): Promise<void> => {
+authRouter.get('/me', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({ error: 'Nicht authentifiziert.' });

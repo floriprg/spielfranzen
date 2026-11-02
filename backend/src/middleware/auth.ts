@@ -22,11 +22,11 @@ export function generateToken(payload: AuthUserPayload): string {
   return jwt.sign(payload, config.jwtSecret, { expiresIn: '7d' });
 }
 
-export async function authenticateToken(
+export function authenticateToken(
   req: Request,
   res: Response,
   next: NextFunction,
-): Promise<void> {
+): void {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
 

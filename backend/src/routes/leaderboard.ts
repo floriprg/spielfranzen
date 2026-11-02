@@ -1,11 +1,11 @@
 import { LeaderboardEntry } from '@spielfranzen/shared';
-import { Router } from 'express';
+import { Request, Response, Router } from 'express';
 import { prisma } from '../db/prisma.js';
 
 export const leaderboardRouter = Router();
 
 // GET /api/leaderboard
-leaderboardRouter.get('/', async (req, res): Promise<void> => {
+leaderboardRouter.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
     const { sortBy = 'lifetimeScore' } = req.query;
 

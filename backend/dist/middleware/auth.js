@@ -3,7 +3,7 @@ import { config } from '../config/env.js';
 export function generateToken(payload) {
     return jwt.sign(payload, config.jwtSecret, { expiresIn: '7d' });
 }
-export async function authenticateToken(req, res, next) {
+export function authenticateToken(req, res, next) {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
     if (!token) {
