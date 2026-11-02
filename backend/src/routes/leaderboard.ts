@@ -58,9 +58,14 @@ leaderboardRouter.get('/', async (req: Request, res: Response): Promise<void> =>
 });
 
 // GET /api/users/:username (User profile + recent matches)
-leaderboardRouter.get('/users/:username', async (req, res): Promise<void> => {
+leaderboardRouter.get('/users/:username', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { username } = req.params;
+    const rawUsername = req.params.username;
+    const username = Array.isArray(rawUsername) ? rawUsername[0] : rawUsername;
+    if (!username) {
+      res.status(400).json({ error: 'Benutzername erforderlich.' });
+      return;
+    }
 
     const user = await prisma.user.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
