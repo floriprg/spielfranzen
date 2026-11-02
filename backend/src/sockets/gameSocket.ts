@@ -476,7 +476,9 @@ export class GameSocketHandler {
           isBot: p.isBot,
         }));
 
-        const timerConfig = (match.liveGameState as any)?.timerConfig;
+        const timerConfig =
+          (match.liveGameState as any)?.timerConfig ??
+          (match.liveGameState as any)?.timer?.config;
         state = GameEngine.createInitialState(match.id, match.code, match.totalRounds, players, timerConfig);
         this.activeMatches.set(matchId, state);
         await this.persistMatchState(state);
@@ -824,7 +826,9 @@ export class GameSocketHandler {
         isBot: p.isBot,
       }));
 
-      const timerConfig = (updatedMatch.liveGameState as any)?.timerConfig;
+      const timerConfig =
+        (updatedMatch.liveGameState as any)?.timerConfig ??
+        (updatedMatch.liveGameState as any)?.timer?.config;
       const state = GameEngine.createInitialState(
         updatedMatch.id,
         updatedMatch.code,
@@ -1019,7 +1023,8 @@ export class GameSocketHandler {
 
     const bankRemaining = state.timer.playerBanks[activeSeat] ?? state.timer.config.totalTimeBank;
     const maxTurnLimit = state.timer.config.turnTimeLimit;
-    const turnDuration = Math.max(0, Math.min(maxTurnLimit, bankRemaining));
+    // Guarantee at least 15s per turn so players are NEVER rushed with 0s to make a move
+    const turnDuration = Math.max(15, Math.min(maxTurnLimit, bankRemaining));
 
     state.timer.turnDuration = turnDuration;
     state.timer.turnStartedAt = Date.now();

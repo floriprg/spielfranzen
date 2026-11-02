@@ -141,6 +141,18 @@ export class GameEngine {
       p.cardPointsWon = 0;
     }
 
+    // Refresh depleted time banks for the new round so players always have time
+    if (state.timer && state.timer.config?.enabled) {
+      for (let i = 0; i < state.timer.playerBanks.length; i++) {
+        if ((state.timer.playerBanks[i] ?? 0) < 60) {
+          state.timer.playerBanks[i] = Math.min(
+            state.timer.config.totalTimeBank,
+            (state.timer.playerBanks[i] ?? 0) + 60,
+          );
+        }
+      }
+    }
+
     state.phase = 'BIDDING';
     state.declarerSeat = null;
     state.gameMode = null;

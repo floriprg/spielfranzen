@@ -35,14 +35,16 @@ export function useTurnTimer(
     }
 
     const currentBank = timer.playerBanks?.[seatIndex] ?? timer.config.totalTimeBank;
+    const maxTurnLimit = timer.config.turnTimeLimit || 60;
 
+    // If it's not this player's turn or turnStartedAt is null (no active countdown running)
     if (!isCurrentTurn || timer.turnStartedAt === null) {
       return {
-        enabled: true,
-        turnSecondsRemaining: 0,
+        enabled: false, // Turn timer is not actively timing for this seat
+        turnSecondsRemaining: maxTurnLimit,
         bankSecondsRemaining: currentBank,
-        turnDuration: timer.turnDuration || timer.config.turnTimeLimit,
-        progressPercent: 0,
+        turnDuration: maxTurnLimit,
+        progressPercent: 100,
         isUrgent: false,
       };
     }
