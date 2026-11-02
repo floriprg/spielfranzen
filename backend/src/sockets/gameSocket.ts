@@ -176,6 +176,9 @@ export class GameSocketHandler {
         Array.isArray(parsed.hands)
       ) {
         const state = parsed as FullGameState;
+        if (match.isPrivate !== undefined) {
+          state.isPrivate = match.isPrivate;
+        }
         if (state.phase === 'ROUND_SUMMARY' || state.phase === 'MATCH_COMPLETED') {
           // If the match was in summary, the trick must be cleared so clients can view summary
           state.currentTrick = [];
@@ -366,10 +369,19 @@ export class GameSocketHandler {
         const participant = match.participants.find((p) => p.userId === uid);
         const mySeatIndex = participant ? participant.seatIndex : null;
 
+        const timerConfig =
+          (match.liveGameState as any)?.timerConfig ??
+          (match.liveGameState as any)?.timer?.config ?? {
+            enabled: true,
+            turnTimeLimit: 60,
+            totalTimeBank: 300,
+          };
+
         const waitingState: SanitizedGameState = {
           matchId: match.id,
           code: match.code,
           status: 'WAITING',
+          isPrivate: match.isPrivate,
           totalRounds: match.totalRounds,
           currentRound: match.currentRound,
           phase: 'WAITING_FOR_PLAYERS',
@@ -402,14 +414,10 @@ export class GameSocketHandler {
           matchResult: null,
           legalCardIdsToPlay: [],
           timer: {
-            config: {
-              enabled: true,
-              turnTimeLimit: 60,
-              totalTimeBank: 300,
-            },
-            playerBanks: [300, 300, 300],
+            config: timerConfig,
+            playerBanks: [timerConfig.totalTimeBank, timerConfig.totalTimeBank, timerConfig.totalTimeBank],
             turnStartedAt: null,
-            turnDuration: 60,
+            turnDuration: timerConfig.turnTimeLimit,
           },
         };
 
@@ -480,6 +488,7 @@ export class GameSocketHandler {
           (match.liveGameState as any)?.timerConfig ??
           (match.liveGameState as any)?.timer?.config;
         state = GameEngine.createInitialState(match.id, match.code, match.totalRounds, players, timerConfig);
+        state.isPrivate = match.isPrivate;
         this.activeMatches.set(matchId, state);
         await this.persistMatchState(state);
         this.startTurnTimer(matchId, state);
@@ -836,6 +845,7 @@ export class GameSocketHandler {
         players,
         timerConfig,
       );
+      state.isPrivate = updatedMatch.isPrivate;
       this.activeMatches.set(matchId, state);
       await this.persistMatchState(state);
       this.syncStateToMatch(matchId, state);

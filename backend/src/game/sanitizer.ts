@@ -117,6 +117,7 @@ export function sanitizeGameStateForPlayer(
     matchId: state.matchId,
     code: state.code,
     status: state.status,
+    isPrivate: state.isPrivate,
     totalRounds: state.totalRounds,
     currentRound: state.currentRound,
     phase: state.phase,

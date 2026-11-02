@@ -224,6 +224,7 @@ export interface FullGameState {
   matchId: string;
   code: string;
   status: MatchStatus;
+  isPrivate?: boolean;
   totalRounds: number;
   currentRound: number;
   phase: GamePhase;
@@ -267,6 +268,7 @@ export interface SanitizedGameState {
   matchId: string;
   code: string;
   status: MatchStatus;
+  isPrivate?: boolean;
   totalRounds: number;
   currentRound: number;
   phase: GamePhase;
