@@ -1,15 +1,15 @@
 {
-  "name": "Champion Gen 2 (🥈 Aggressive Trump Hunter)",
+  "name": "Champion Gen 2 (Gen2_V3)",
   "generation": 2,
   "colorGameMinTrumpCount": 4,
   "colorGameMinPower": 22,
-  "bettlMaxDangerousCards": 3,
+  "bettlMaxDangerousCards": 2,
   "bettlMinLowCards": 5,
-  "mordMinAces": 3,
+  "mordMinAces": 2,
   "mordMinMasters": 5,
-  "trumpLeadTendency": 1.6,
-  "smearAggression": 1.4,
-  "discardTrumpRetention": 2,
+  "trumpLeadTendency": 1.8,
+  "smearAggression": 1.12,
+  "discardTrumpRetention": 2.21,
   "discardBlankSuitBonus": 22,
-  "secondPlayerTakeLeadAggression": 1.16
+  "secondPlayerTakeLeadAggression": 1.27
 }
