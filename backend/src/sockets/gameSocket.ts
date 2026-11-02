@@ -895,14 +895,8 @@ export class GameSocketHandler {
       this.botTimers.delete(matchId);
     }
 
-    // In Trick Play: 3 seconds pause before laying down a card (as requested by user)
-    // In other phases (Bidding, Talon): realistic 1.2s - 2.0s thinking time
-    const delay =
-      state.phase === 'TRICK_PLAY'
-        ? 3000
-        : state.phase === 'TALON_AND_DECLARATION'
-        ? 2000
-        : 1200;
+    // Realistic 1 second thinking time for Bots across all phases (Trick Play, Bidding, Talon)
+    const delay = 1000;
 
     const timer = setTimeout(async () => {
       try {
