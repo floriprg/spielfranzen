@@ -72,8 +72,10 @@ export const Navbar: React.FC = () => {
                   user.username.slice(0, 1).toUpperCase()
                 )}
               </div>
-              <div className="flex flex-col text-left text-xs">
-                <span className="font-bold text-slate-100 leading-tight">{user.username}</span>
+              <div className="flex flex-col text-left text-xs min-w-0">
+                <span className="font-bold text-slate-100 leading-tight truncate max-w-[170px] sm:max-w-[240px]" title={user.username}>
+                  {user.username}
+                </span>
                 <span className="text-[10px] text-amber-400 font-medium hidden sm:inline">
                   {user.eloRating} ELO • {user.lifetimeScore} Pkt
                 </span>

@@ -90,8 +90,8 @@ export const PlayerSeatView: React.FC<PlayerSeatViewProps> = ({
         </div>
 
         {/* Name and Info */}
-        <div className="text-left leading-tight truncate flex-1 min-w-0">
-          <div className="font-semibold text-xs text-slate-100 truncate">
+        <div className="text-left leading-tight truncate flex-1 min-w-0" title={displayName}>
+          <div className="font-semibold text-[11px] sm:text-xs text-slate-100 truncate">
             {displayName} {isMe && '(Du)'}
           </div>
 

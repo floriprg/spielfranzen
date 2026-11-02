@@ -202,8 +202,8 @@ export const GamePage: React.FC = () => {
                       {sIndex + 1}
                     </div>
                     <div className="text-left">
-                      <div className="font-bold text-slate-100 flex items-center gap-1.5">
-                        <span>
+                      <div className="font-bold text-slate-100 flex items-center gap-1.5 min-w-0">
+                        <span className="truncate max-w-[190px] sm:max-w-[280px]" title={p.username}>
                           {isTaken ? (
                             <>
                               {p.username} {p.isBot && '(Bot)'} {isMe && '(Du)'}
@@ -367,7 +367,7 @@ export const GamePage: React.FC = () => {
               isDealer={dealerSeat === opponentLeft.seatIndex}
               isMe={false}
               timer={gameState.timer}
-              className="flex-1 max-w-[165px] sm:max-w-[210px]"
+              className="flex-1 max-w-[200px] sm:max-w-[250px]"
             />
           )}
 
@@ -378,7 +378,7 @@ export const GamePage: React.FC = () => {
               isDealer={dealerSeat === opponentRight.seatIndex}
               isMe={false}
               timer={gameState.timer}
-              className="flex-1 max-w-[165px] sm:max-w-[210px]"
+              className="flex-1 max-w-[200px] sm:max-w-[250px]"
             />
           )}
         </div>
@@ -477,7 +477,9 @@ export const GamePage: React.FC = () => {
           {/* Player Seat Summary at bottom */}
           {myPlayer && (
             <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-slate-300 font-semibold bg-slate-900/90 px-3 py-1 rounded-full border border-slate-700/80 shadow mt-1">
-              <span className="text-amber-400 font-bold">{myPlayer.username} (Du)</span>
+              <span className="text-amber-400 font-bold truncate max-w-[200px] sm:max-w-[300px]" title={myPlayer.username}>
+                {myPlayer.username} (Du)
+              </span>
               <span className="text-slate-600">•</span>
               <span className="flex items-center gap-1">
                 Rolle:{' '}

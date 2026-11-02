@@ -118,7 +118,8 @@ export const TrickArea: React.FC<TrickAreaProps> = ({
           </div>
 
           <span
-            className={`text-[9px] sm:text-[10px] font-semibold mt-1 px-1.5 py-0.2 rounded-full border shadow transition-all truncate max-w-[80px] sm:max-w-[100px] ${
+            title={player?.username}
+            className={`text-[9px] sm:text-[10px] font-semibold mt-1 px-1.5 py-0.2 rounded-full border shadow transition-all truncate max-w-[125px] sm:max-w-[160px] ${
               isWinner
                 ? 'text-amber-300 bg-slate-900 border-amber-400/80 font-bold'
                 : 'text-amber-200/90 bg-slate-900/80 border-amber-500/20'
@@ -151,7 +152,10 @@ export const TrickArea: React.FC<TrickAreaProps> = ({
           )}
         </div>
 
-        <span className="text-[9px] sm:text-[10px] text-emerald-400/60 font-medium mt-1 truncate max-w-[80px] sm:max-w-[100px]">
+        <span
+          title={player?.username}
+          className="text-[9px] sm:text-[10px] text-emerald-400/60 font-medium mt-1 truncate max-w-[125px] sm:max-w-[160px]"
+        >
           {isMe ? `${player?.username || 'Du'} (Du)` : player?.username || 'Spieler'}
         </span>
       </div>

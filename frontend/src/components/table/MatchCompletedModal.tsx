@@ -26,7 +26,7 @@ export const MatchCompletedModal: React.FC<MatchCompletedModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-      <div className="bg-slate-900 border-2 border-amber-500 rounded-2xl max-w-lg w-full p-6 shadow-2xl text-center">
+      <div className="bg-slate-900 border-2 border-amber-500 rounded-2xl max-w-xl w-full p-6 shadow-2xl text-center">
         <div className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-3 bg-amber-950/80 border-2 border-amber-400 animate-bounce">
           <Trophy className="w-10 h-10 text-amber-400" />
         </div>
@@ -79,15 +79,20 @@ export const MatchCompletedModal: React.FC<MatchCompletedModalProps> = ({
                   >
                     <Icon className="w-4 h-4" />
                   </div>
-                  <div className="text-left">
-                    <div className="font-bold text-sm text-slate-100 flex items-center gap-1.5">
-                      <span className={isMe ? 'text-amber-300 font-extrabold' : ''}>{r.username}</span>
+                  <div className="text-left min-w-0 flex-1 mr-2">
+                    <div className="font-bold text-sm text-slate-100 flex items-center gap-1.5 min-w-0">
+                      <span
+                        className={`truncate max-w-[200px] sm:max-w-[270px] ${isMe ? 'text-amber-300 font-extrabold' : ''}`}
+                        title={r.username}
+                      >
+                        {r.username}
+                      </span>
                       {isMe && (
-                        <span className="text-[10px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 shadow-sm">
+                        <span className="text-[10px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 shadow-sm flex-shrink-0">
                           Du
                         </span>
                       )}
-                      {r.isBot && <span className="text-xs text-slate-400 font-normal">(Bot)</span>}
+                      {r.isBot && <span className="text-xs text-slate-400 font-normal flex-shrink-0">(Bot)</span>}
                     </div>
                     <div className="text-xs text-slate-400">
                       ELO: {r.eloDelta >= 0 ? `+${r.eloDelta}` : r.eloDelta} (Neu: {r.eloAfter})

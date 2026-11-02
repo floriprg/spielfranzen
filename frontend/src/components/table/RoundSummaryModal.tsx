@@ -72,7 +72,7 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <div className="bg-slate-900 border-2 border-amber-500 rounded-2xl max-w-lg w-full p-6 shadow-2xl text-center">
+      <div className="bg-slate-900 border-2 border-amber-500 rounded-2xl max-w-xl w-full p-6 shadow-2xl text-center">
         {/* Header Icon */}
         <div
           className={`inline-flex items-center justify-center w-16 h-16 rounded-full mb-3 border-2 ${
@@ -144,24 +144,29 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
               return (
                 <div
                   key={p.seatIndex}
-                  className={`flex items-center justify-between text-sm py-2 px-2.5 rounded-lg transition-all ${
+                  className={`flex items-center justify-between text-xs sm:text-sm py-2 px-3 rounded-lg transition-all ${
                     isMe
                       ? 'bg-amber-500/15 border border-amber-500/50 shadow-inner'
                       : 'border-b border-slate-800/60 last:border-0'
                   }`}
                 >
-                  <span className="font-medium text-slate-200 flex items-center gap-1.5">
-                    <span className={isMe ? 'font-bold text-amber-300' : ''}>{p.username}</span>
+                  <span className="font-medium text-slate-200 flex items-center gap-1.5 min-w-0 flex-1 mr-2">
+                    <span
+                      className={`truncate max-w-[200px] sm:max-w-[270px] ${isMe ? 'font-bold text-amber-300' : ''}`}
+                      title={p.username}
+                    >
+                      {p.username}
+                    </span>
                     {isMe && (
-                      <span className="text-[10px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 shadow-sm">
+                      <span className="text-[10px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 shadow-sm flex-shrink-0">
                         Du
                       </span>
                     )}
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-slate-400 flex-shrink-0">
                       {isDec ? '(Alleinspieler)' : '(Gegner)'}
                     </span>
                   </span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <span
                       className={`font-black ${
                         delta > 0
