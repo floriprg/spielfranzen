@@ -134,7 +134,7 @@ export const TrickArea: React.FC<TrickAreaProps> = ({
     return (
       <div className="flex flex-col items-center">
         <div
-          className={`w-11 sm:w-13 aspect-[256/480] rounded-lg border-2 border-dashed transition-all flex flex-col items-center justify-center p-1 ${
+          className={`w-[44px] sm:w-[50px] aspect-[256/480] max-h-[94px] flex-shrink-0 rounded-lg border-2 border-dashed transition-all flex flex-col items-center justify-center p-1 ${
             isTurn
               ? 'border-amber-400/90 bg-amber-950/30 shadow-[0_0_14px_rgba(251,191,36,0.4)] animate-pulse'
               : 'border-emerald-700/35 bg-emerald-950/20'

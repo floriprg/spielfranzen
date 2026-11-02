@@ -24,10 +24,10 @@ export const CardView: React.FC<CardViewProps> = ({
   const [imgError, setImgError] = useState(false);
 
   const sizeClasses = {
-    xs: 'w-9 sm:w-11 aspect-[256/480] text-[9px]',
-    sm: 'w-11 sm:w-13 aspect-[256/480] text-[10px]',
-    md: 'w-13 sm:w-15 md:w-18 aspect-[256/480] text-xs',
-    lg: 'w-18 sm:w-22 md:w-26 aspect-[256/480] text-sm',
+    xs: 'w-[32px] sm:w-[36px] aspect-[256/480] max-h-[68px] text-[9px] flex-shrink-0',
+    sm: 'w-[44px] sm:w-[50px] aspect-[256/480] max-h-[94px] text-[10px] flex-shrink-0',
+    md: 'w-[44px] sm:w-[56px] md:w-[68px] aspect-[256/480] max-h-[83px] sm:max-h-[105px] md:max-h-[128px] text-xs flex-shrink-0',
+    lg: 'w-[72px] sm:w-[84px] md:w-[96px] aspect-[256/480] max-h-[180px] text-sm flex-shrink-0',
   }[size];
 
   const suitTextColor: Record<string, string> = {

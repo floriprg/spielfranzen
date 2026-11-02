@@ -9,9 +9,9 @@ export const CardBack: React.FC<CardBackProps> = ({ className = '', size = 'md' 
   const [imgError, setImgError] = useState(false);
 
   const sizeClasses = {
-    sm: 'w-14 aspect-[256/480]',
-    md: 'w-20 sm:w-22 aspect-[256/480]',
-    lg: 'w-26 sm:w-28 aspect-[256/480]',
+    sm: 'w-[40px] sm:w-[46px] aspect-[256/480] max-h-[86px] flex-shrink-0',
+    md: 'w-[48px] sm:w-[56px] md:w-[68px] aspect-[256/480] max-h-[128px] flex-shrink-0',
+    lg: 'w-[72px] sm:w-[84px] md:w-[96px] aspect-[256/480] max-h-[180px] flex-shrink-0',
   }[size];
 
   return (

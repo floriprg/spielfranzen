@@ -401,104 +401,8 @@ export const GamePage: React.FC = () => {
             </div>
           )}
 
-          {/* Mobile Hand (Two staggered rows when > 5 cards, single row when <= 5 cards) */}
-          <div className="flex sm:hidden flex-col items-center w-full px-1 pt-1 pb-0.5">
-            {myHand.length > 5 ? (
-              <>
-                {/* Back Row */}
-                <div className="flex justify-center items-end -space-x-1.5">
-                  {myHand.slice(0, Math.ceil(myHand.length / 2)).map((card) => {
-                    const isLegal =
-                      phase !== 'TRICK_PLAY'
-                        ? true
-                        : !isMyTurn
-                        ? true
-                        : legalCardIdsToPlay.includes(card.id);
-                    return (
-                      <div
-                        key={card.id}
-                        className="relative transition-all duration-200 hover:-translate-y-3 hover:z-30 active:scale-95"
-                      >
-                        <CardView
-                          card={card}
-                          isLegal={isLegal}
-                          onClick={() => {
-                            if (isMyTurn && phase === 'TRICK_PLAY') {
-                              playCard(card.id);
-                            }
-                          }}
-                          size="sm"
-                          showPoints={!isBettlOrMord}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-                {/* Front Row (slightly overlapping top row vertically) */}
-                <div className="flex justify-center items-end -space-x-1.5 -mt-9 z-10">
-                  {myHand.slice(Math.ceil(myHand.length / 2)).map((card) => {
-                    const isLegal =
-                      phase !== 'TRICK_PLAY'
-                        ? true
-                        : !isMyTurn
-                        ? true
-                        : legalCardIdsToPlay.includes(card.id);
-                    return (
-                      <div
-                        key={card.id}
-                        className="relative transition-all duration-200 hover:-translate-y-3 hover:z-30 active:scale-95"
-                      >
-                        <CardView
-                          card={card}
-                          isLegal={isLegal}
-                          onClick={() => {
-                            if (isMyTurn && phase === 'TRICK_PLAY') {
-                              playCard(card.id);
-                            }
-                          }}
-                          size="sm"
-                          showPoints={!isBettlOrMord}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            ) : (
-              /* Single row on mobile when 5 or fewer cards */
-              <div className="flex justify-center items-end gap-1">
-                {myHand.map((card) => {
-                  const isLegal =
-                    phase !== 'TRICK_PLAY'
-                      ? true
-                      : !isMyTurn
-                      ? true
-                      : legalCardIdsToPlay.includes(card.id);
-                  return (
-                    <div
-                      key={card.id}
-                      className="relative transition-all duration-200 hover:-translate-y-3 hover:z-30 active:scale-95"
-                    >
-                      <CardView
-                        card={card}
-                        isLegal={isLegal}
-                        onClick={() => {
-                          if (isMyTurn && phase === 'TRICK_PLAY') {
-                            playCard(card.id);
-                          }
-                        }}
-                        size="md"
-                        showPoints={!isBettlOrMord}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Desktop Hand (Single row with fan overlap) */}
-          <div className="hidden sm:flex justify-center items-end px-2 pt-2 pb-1 max-w-full">
+          {/* Player Hand Cards - ALWAYS identical fixed size, never grows or shrinks */}
+          <div className="flex justify-center items-end px-2 pt-1.5 pb-1 max-w-full overflow-visible">
             {myHand.map((card, index) => {
               const isLegal =
                 phase !== 'TRICK_PLAY'
@@ -511,15 +415,15 @@ export const GamePage: React.FC = () => {
                 index === 0
                   ? ''
                   : myHand.length > 7
-                  ? '-ml-4 sm:-ml-5 md:-ml-6'
+                  ? '-ml-3.5 sm:-ml-5 md:-ml-6'
                   : myHand.length > 4
-                  ? '-ml-3 sm:-ml-4'
-                  : 'ml-1';
+                  ? '-ml-2 sm:-ml-3 md:-ml-4'
+                  : 'ml-1 sm:ml-2';
 
               return (
                 <div
                   key={card.id}
-                  className={`relative transition-all duration-200 hover:-translate-y-4 hover:z-30 cursor-pointer ${overlapClass}`}
+                  className={`relative transition-all duration-200 hover:-translate-y-4 hover:z-30 cursor-pointer flex-shrink-0 ${overlapClass}`}
                 >
                   <CardView
                     card={card}
