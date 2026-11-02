@@ -448,10 +448,10 @@ export const GamePage: React.FC = () => {
                 index === 0
                   ? ''
                   : myHand.length > 7
-                  ? '-ml-3.5 sm:-ml-5 md:-ml-6'
+                  ? '-ml-3.5 sm:-ml-2 md:-ml-2.5'
                   : myHand.length > 4
-                  ? '-ml-2 sm:-ml-3 md:-ml-4'
-                  : 'ml-1 sm:ml-2';
+                  ? '-ml-2 sm:-ml-0.5 md:ml-1'
+                  : 'ml-1 sm:ml-2 md:ml-2.5';
 
               return (
                 <div
