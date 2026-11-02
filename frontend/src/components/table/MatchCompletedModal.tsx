@@ -5,11 +5,18 @@ import { useNavigate } from 'react-router-dom';
 
 interface MatchCompletedModalProps {
   matchResult: MatchResult;
+  currentUserId?: string;
 }
 
-export const MatchCompletedModal: React.FC<MatchCompletedModalProps> = ({ matchResult }) => {
+export const MatchCompletedModal: React.FC<MatchCompletedModalProps> = ({
+  matchResult,
+  currentUserId,
+}) => {
   const navigate = useNavigate();
   const { rankings, totalRounds } = matchResult;
+
+  const myRankEntry = currentUserId ? rankings.find((r) => r.userId === currentUserId) : null;
+  const isWinner = myRankEntry ? myRankEntry.rank === 1 : false;
 
   const rankBadges = [
     { label: '1. Platz', color: 'from-amber-400 to-yellow-500 text-slate-950', icon: Crown },
@@ -25,10 +32,28 @@ export const MatchCompletedModal: React.FC<MatchCompletedModalProps> = ({ matchR
         </div>
 
         <h2 className="text-3xl font-bold font-serif-vintage text-amber-300">
-          Match Beendet!
+          {myRankEntry && isWinner
+            ? 'Glückwunsch! 🏆'
+            : 'Match Beendet!'}
         </h2>
-        <p className="text-sm text-slate-300 mt-1">
-          Alle {totalRounds} Runden wurden erfolgreich abgeschlossen.
+        <p className="text-sm font-semibold text-slate-200 mt-1">
+          {myRankEntry ? (
+            isWinner ? (
+              <span className="text-emerald-400 font-bold">
+                Du hast das Match gewonnen! 🎉 (1. Platz nach {totalRounds} Runden)
+              </span>
+            ) : myRankEntry.rank === 2 ? (
+              <span className="text-amber-200 font-bold">
+                Starke Partie! Du belegst den 2. Platz nach {totalRounds} Runden.
+              </span>
+            ) : (
+              <span className="text-slate-300">
+                Gutes Spiel! Du belegst den 3. Platz nach {totalRounds} Runden.
+              </span>
+            )
+          ) : (
+            `Alle ${totalRounds} Runden wurden erfolgreich abgeschlossen.`
+          )}
         </p>
 
         {/* Podium / Final Standings */}
@@ -36,11 +61,14 @@ export const MatchCompletedModal: React.FC<MatchCompletedModalProps> = ({ matchR
           {rankings.map((r, index) => {
             const badge = rankBadges[index] || rankBadges[2]!;
             const Icon = badge.icon;
+            const isMe = currentUserId && r.userId === currentUserId;
             return (
               <div
                 key={r.userId}
-                className={`flex items-center justify-between p-3 rounded-xl border ${
-                  index === 0
+                className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                  isMe
+                    ? 'bg-amber-500/15 border-amber-400/80 shadow-lg ring-1 ring-amber-400/50'
+                    : index === 0
                     ? 'bg-amber-950/50 border-amber-500/60 shadow-lg ring-1 ring-amber-400/40'
                     : 'bg-slate-950/60 border-slate-800'
                 }`}
@@ -52,8 +80,14 @@ export const MatchCompletedModal: React.FC<MatchCompletedModalProps> = ({ matchR
                     <Icon className="w-4 h-4" />
                   </div>
                   <div className="text-left">
-                    <div className="font-bold text-sm text-slate-100">
-                      {r.username} {r.isBot && '(Bot)'}
+                    <div className="font-bold text-sm text-slate-100 flex items-center gap-1.5">
+                      <span className={isMe ? 'text-amber-300 font-extrabold' : ''}>{r.username}</span>
+                      {isMe && (
+                        <span className="text-[10px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 shadow-sm">
+                          Du
+                        </span>
+                      )}
+                      {r.isBot && <span className="text-xs text-slate-400 font-normal">(Bot)</span>}
                     </div>
                     <div className="text-xs text-slate-400">
                       ELO: {r.eloDelta >= 0 ? `+${r.eloDelta}` : r.eloDelta} (Neu: {r.eloAfter})

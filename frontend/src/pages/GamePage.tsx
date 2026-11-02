@@ -575,12 +575,16 @@ export const GamePage: React.FC = () => {
           players={players}
           onNextRound={nextRound}
           isHost={players[0]?.userId === user?.id}
+          mySeatIndex={gameState?.mySeatIndex}
         />
       )}
 
       {/* Match Completed Modal: opens after 3.2s trick review or immediately on reload */}
       {showMatchCompleted && matchResult && (
-        <MatchCompletedModal matchResult={matchResult} />
+        <MatchCompletedModal
+          matchResult={matchResult}
+          currentUserId={user?.id}
+        />
       )}
     </div>
   );
