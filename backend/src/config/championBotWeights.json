@@ -1,14 +1,14 @@
 {
-  "name": "Champion Gen 2 (Gen2_V3)",
+  "name": "Champion Gen 2 (👑 Iron Defender)",
   "generation": 2,
   "colorGameMinTrumpCount": 5,
-  "colorGameMinPower": 22,
+  "colorGameMinPower": 28,
   "bettlMaxDangerousCards": 2,
   "bettlMinLowCards": 5,
   "mordMinAces": 2,
   "mordMinMasters": 5,
-  "trumpLeadTendency": 1.8,
-  "smearAggression": 1.57,
+  "trumpLeadTendency": 1.6,
+  "smearAggression": 1.5,
   "discardTrumpRetention": 2.21,
   "discardBlankSuitBonus": 22,
   "secondPlayerTakeLeadAggression": 1.4

@@ -176,6 +176,10 @@ export class GameSocketHandler {
         Array.isArray(parsed.hands)
       ) {
         const state = parsed as FullGameState;
+        if (state.phase === 'ROUND_SUMMARY' || state.phase === 'MATCH_COMPLETED') {
+          // If the match was in summary, the trick must be cleared so clients can view summary
+          state.currentTrick = [];
+        }
         if (!state.timer) {
           state.timer = {
             config: { enabled: true, turnTimeLimit: 60, totalTimeBank: 300 },
@@ -659,6 +663,8 @@ export class GameSocketHandler {
       await this.handleMatchCompletion(matchId, state, state.matchResult);
     }
 
+    // Persist final round summary state to DB so currentTrick is cleared on reload
+    await this.persistMatchState(state);
     this.syncStateToMatch(matchId, state);
   }
 

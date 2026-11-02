@@ -34,6 +34,8 @@ export const GamePage: React.FC = () => {
   } = useGameStore();
 
   const [copiedCode, setCopiedCode] = useState(false);
+  const [showRoundSummary, setShowRoundSummary] = useState(false);
+  const [showMatchCompleted, setShowMatchCompleted] = useState(false);
 
   useEffect(() => {
     if (matchId) {
@@ -43,6 +45,37 @@ export const GamePage: React.FC = () => {
       disconnectSocket();
     };
   }, [matchId]);
+
+  useEffect(() => {
+    if (gameState?.phase === 'ROUND_SUMMARY' && gameState.lastRoundResult) {
+      if (gameState.currentTrick.length === 3) {
+        const timer = setTimeout(() => {
+          setShowRoundSummary(true);
+        }, 3200);
+        return () => clearTimeout(timer);
+      } else {
+        setShowRoundSummary(true);
+      }
+    } else {
+      setShowRoundSummary(false);
+    }
+  }, [gameState?.phase, gameState?.lastRoundResult, gameState?.currentTrick?.length]);
+
+  useEffect(() => {
+    const isCompleted = gameState?.phase === 'MATCH_COMPLETED' || gameState?.status === 'COMPLETED';
+    if (isCompleted && gameState?.matchResult) {
+      if (gameState.currentTrick.length === 3) {
+        const timer = setTimeout(() => {
+          setShowMatchCompleted(true);
+        }, 3200);
+        return () => clearTimeout(timer);
+      } else {
+        setShowMatchCompleted(true);
+      }
+    } else {
+      setShowMatchCompleted(false);
+    }
+  }, [gameState?.phase, gameState?.status, gameState?.matchResult, gameState?.currentTrick?.length]);
 
   // Hook rules: Always call hooks unconditionally at the top level
   const mySeat = gameState?.mySeatIndex !== null && gameState?.mySeatIndex !== undefined ? gameState.mySeatIndex : 0;
@@ -535,8 +568,8 @@ export const GamePage: React.FC = () => {
         </div>
       )}
 
-      {/* Round Summary Modal: only opens after trick review (3 cards) completes */}
-      {phase === 'ROUND_SUMMARY' && lastRoundResult && currentTrick.length < 3 && (
+      {/* Round Summary Modal: opens after 3.2s trick review or immediately on reload */}
+      {showRoundSummary && lastRoundResult && (
         <RoundSummaryModal
           roundResult={lastRoundResult}
           players={players}
@@ -545,8 +578,8 @@ export const GamePage: React.FC = () => {
         />
       )}
 
-      {/* Match Completed Modal: only opens after trick review (3 cards) completes */}
-      {(phase === 'MATCH_COMPLETED' || status === 'COMPLETED') && matchResult && currentTrick.length < 3 && (
+      {/* Match Completed Modal: opens after 3.2s trick review or immediately on reload */}
+      {showMatchCompleted && matchResult && (
         <MatchCompletedModal matchResult={matchResult} />
       )}
     </div>

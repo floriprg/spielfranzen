@@ -227,7 +227,7 @@ export const TrickArea: React.FC<TrickAreaProps> = ({
               </div>
             ) : (
               <span className="text-[10px] sm:text-xs font-bold text-amber-300/80 tracking-widest uppercase mt-0.5">
-                Stich #{trickNumber || 1}
+                {trickNumber > 10 ? 'Letzter Stich (#10)' : `Stich #${trickNumber || 1}`}
               </span>
             )}
           </div>
