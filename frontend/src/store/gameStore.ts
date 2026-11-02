@@ -67,8 +67,13 @@ export const useGameStore = create<GameStateStore>((set, get) => ({
     });
 
     socket.on('connect', () => {
-      set({ isConnected: true, activeMatchId: matchId });
+      set({ isConnected: true, activeMatchId: matchId, error: null });
       socket.emit('game:join_match', { matchId });
+    });
+
+    socket.on('connect_error', (err) => {
+      console.error('Socket connect_error:', err);
+      set({ isConnected: false, error: err.message || 'Verbindung zum Spieltisch fehlgeschlagen.' });
     });
 
     socket.on('disconnect', () => {

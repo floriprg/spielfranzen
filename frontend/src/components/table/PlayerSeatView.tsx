@@ -24,6 +24,9 @@ export const PlayerSeatView: React.FC<PlayerSeatViewProps> = ({
   className = '',
 }) => {
   const timerResult = useTurnTimer(timer, player.seatIndex, isCurrentTurn);
+  const displayName = player.username || (player.userId ? 'Spieler' : 'Freier Platz');
+  const initials = (player.username || '').slice(0, 2).toUpperCase() || '?';
+
   return (
     <div
       className={`relative flex flex-col items-center p-2 rounded-xl backdrop-blur-md transition-all duration-300 shadow-md ${
@@ -73,23 +76,23 @@ export const PlayerSeatView: React.FC<PlayerSeatViewProps> = ({
             {player.isBot ? (
               <Bot className="w-4 h-4 text-amber-400" />
             ) : (
-              player.username.slice(0, 2).toUpperCase()
+              initials
             )}
           </div>
 
           {/* Connection status light */}
           <span
             className={`absolute bottom-0 right-0 w-2 h-2 rounded-full border border-slate-900 ${
-              player.isOnline ? 'bg-emerald-500' : 'bg-rose-500 animate-ping'
+              player.isOnline ? 'bg-emerald-500' : 'bg-slate-600'
             }`}
-            title={player.isOnline ? 'Online' : 'Verbindung getrennt'}
+            title={player.isOnline ? 'Online' : 'Nicht verbunden'}
           />
         </div>
 
         {/* Name and Info */}
         <div className="text-left leading-tight truncate flex-1 min-w-0">
           <div className="font-semibold text-xs text-slate-100 truncate">
-            {player.username} {isMe && '(Du)'}
+            {displayName} {isMe && '(Du)'}
           </div>
 
           <div className="flex items-center gap-1 text-[10px] text-slate-400 mt-0.5">

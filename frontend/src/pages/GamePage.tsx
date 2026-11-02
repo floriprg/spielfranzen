@@ -44,6 +44,26 @@ export const GamePage: React.FC = () => {
     };
   }, [matchId]);
 
+  // Hook rules: Always call hooks unconditionally at the top level
+  const mySeat = gameState?.mySeatIndex !== null && gameState?.mySeatIndex !== undefined ? gameState.mySeatIndex : 0;
+  const isMyTurn = gameState?.mySeatIndex !== null && gameState?.mySeatIndex !== undefined && gameState?.currentTurnSeat === gameState.mySeatIndex;
+  const isDeclarer = gameState?.mySeatIndex !== null && gameState?.mySeatIndex !== undefined && gameState?.declarerSeat === gameState.mySeatIndex;
+
+  const myTimer = useTurnTimer(gameState?.timer, mySeat, isMyTurn);
+  const declarerTimer = useTurnTimer(
+    gameState?.timer,
+    gameState?.declarerSeat ?? 0,
+    gameState?.phase === 'TALON_AND_DECLARATION',
+  );
+
+  const handleCopyCode = () => {
+    if (gameState?.code) {
+      navigator.clipboard.writeText(gameState.code);
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 2000);
+    }
+  };
+
   if (error && !gameState) {
     return (
       <div className="min-h-[calc(100vh-65px)] flex items-center justify-center flex-col gap-4 bg-slate-950 text-slate-200 p-4">
@@ -96,34 +116,136 @@ export const GamePage: React.FC = () => {
     legalCardIdsToPlay,
   } = gameState;
 
-  const isMyTurn = mySeatIndex !== null && currentTurnSeat === mySeatIndex;
-  const isDeclarer = mySeatIndex !== null && declarerSeat === mySeatIndex;
+  // Dedicated Waiting Room view when waiting for players
+  if (status === 'WAITING') {
+    return (
+      <div className="h-full flex-1 min-h-0 flex flex-col bg-slate-950 select-none overflow-y-auto p-4 sm:p-6 items-center justify-center">
+        <div className="bg-slate-900 border-2 border-amber-500/80 rounded-3xl max-w-md w-full p-6 sm:p-8 text-center shadow-2xl relative">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-600 to-yellow-500 text-slate-950 flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <Users className="w-8 h-8" />
+          </div>
+
+          <h2 className="text-2xl font-black font-serif-vintage bg-gradient-to-r from-amber-400 to-yellow-200 bg-clip-text text-transparent mb-1">
+            Warteraum
+          </h2>
+          <p className="text-xs text-slate-300 mb-6">
+            Teile den Raum-Code mit deinen Freunden oder fülle leere Plätze mit KI-Bots auf.
+          </p>
+
+          {/* Room Code Badge */}
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <button
+              onClick={handleCopyCode}
+              className="px-4 py-2 rounded-xl bg-slate-950 border border-amber-500/40 hover:border-amber-400 text-amber-400 font-mono text-base font-black transition-all flex items-center gap-2 cursor-pointer shadow-inner active:scale-95"
+              title="Code kopieren"
+            >
+              <span>#{code}</span>
+              {copiedCode ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+            </button>
+            <span className="text-xs text-slate-400 font-semibold">
+              ({totalRounds} Runden)
+            </span>
+          </div>
+
+          {/* 3 Seats List */}
+          <div className="space-y-3 mb-6">
+            {[0, 1, 2].map((sIndex) => {
+              const p = players[sIndex];
+              const isTaken = p && p.userId && p.userId !== '';
+              const isMe = isTaken && p.seatIndex === mySeatIndex;
+              return (
+                <div
+                  key={sIndex}
+                  className={`flex items-center justify-between p-3 rounded-2xl border text-xs transition-all ${
+                    isTaken
+                      ? isMe
+                        ? 'bg-amber-950/40 border-amber-500/60 shadow-sm'
+                        : 'bg-slate-950 border-slate-800'
+                      : 'bg-slate-950/50 border-dashed border-slate-800'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-7 h-7 rounded-full bg-slate-800 text-amber-400 font-black text-xs flex items-center justify-center shadow">
+                      {sIndex + 1}
+                    </div>
+                    <div className="text-left">
+                      <div className="font-bold text-slate-100 flex items-center gap-1.5">
+                        <span>
+                          {isTaken ? (
+                            <>
+                              {p.username} {p.isBot && '(Bot)'} {isMe && '(Du)'}
+                            </>
+                          ) : (
+                            <span className="text-slate-500 italic font-normal">Freier Platz</span>
+                          )}
+                        </span>
+                        {sIndex === 0 && (
+                          <span title="Host">
+                            <Crown className="w-3.5 h-3.5 text-amber-400" />
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        {isTaken ? (p.isBot ? 'KI-Gegner' : 'Spieler') : 'Wartet auf Beitritt...'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {!isTaken ? (
+                    <button
+                      onClick={() => addBot(sIndex)}
+                      className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/40 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                    >
+                      <Bot className="w-3.5 h-3.5" />
+                      <span>Bot hinzufügen</span>
+                    </button>
+                  ) : (
+                    p.isBot && (
+                      <button
+                        onClick={() => removeBot(sIndex)}
+                        className="text-xs text-rose-400 hover:text-rose-300 hover:underline cursor-pointer px-2 py-1"
+                      >
+                        Entfernen
+                      </button>
+                    )
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => navigate('/lobby')}
+              className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 transition-colors cursor-pointer"
+            >
+              Zurück zur Lobby
+            </button>
+            <button
+              onClick={handleCopyCode}
+              className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-slate-950 font-black text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              <span>{copiedCode ? 'Kopiert!' : 'Code kopieren'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const modeNum = gameMode !== null && gameMode !== undefined ? Number(gameMode) : null;
   const isBettlOrMord =
     modeNum === 9 || modeNum === 10 || modeNum === 11 || modeNum === 12;
 
   // Determine seating layout relative to current user:
   // Me is at bottom. Opponent 1 is left (me + 1) % 3, Opponent 2 is right (me + 2) % 3.
-  const mySeat = mySeatIndex !== null ? mySeatIndex : 0;
   const opponentLeftSeat = (mySeat + 1) % 3;
   const opponentRightSeat = (mySeat + 2) % 3;
 
   const opponentLeft = players[opponentLeftSeat];
   const opponentRight = players[opponentRightSeat];
   const myPlayer = players[mySeat];
-
-  const myTimer = useTurnTimer(gameState.timer, mySeat, isMyTurn);
-  const declarerTimer = useTurnTimer(
-    gameState.timer,
-    declarerSeat ?? 0,
-    phase === 'TALON_AND_DECLARATION',
-  );
-
-  const handleCopyCode = () => {
-    navigator.clipboard.writeText(code);
-    setCopiedCode(true);
-    setTimeout(() => setCopiedCode(false), 2000);
-  };
 
   const modeInfo = gameMode ? GAME_MODE_INFO[gameMode] : null;
 
@@ -202,78 +324,7 @@ export const GamePage: React.FC = () => {
       )}
 
       {/* Main Card Game Table - Zero Scroll Fit */}
-      <div className="flex-1 min-h-0 relative flex flex-col justify-between p-1.5 sm:p-2.5 bg-radial from-emerald-900 via-emerald-950 to-slate-950 shadow-felt border-2 sm:border-4 border-amber-950/70 overflow-hidden">
-        {/* Waiting Room Overlay if 3 players not yet ready */}
-        {status === 'WAITING' && (
-          <div className="absolute inset-0 z-30 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3">
-            <div className="bg-slate-900 border-2 border-amber-500 rounded-2xl max-w-sm w-full p-5 text-center shadow-2xl">
-              <Users className="w-10 h-10 text-amber-400 mx-auto mb-2" />
-              <h2 className="text-xl font-bold font-serif-vintage text-amber-300 mb-1">
-                Warte auf Mitspieler
-              </h2>
-              <p className="text-xs text-slate-300 mb-3">
-                Teile den Raum-Code <strong className="text-amber-400 font-mono">#{code}</strong>{' '}
-                oder füge Bots hinzu.
-              </p>
-
-              <div className="space-y-2 mb-4">
-                {[0, 1, 2].map((sIndex) => {
-                  const p = players[sIndex];
-                  const isTaken = p && p.userId && p.userId !== '';
-                  return (
-                    <div
-                      key={sIndex}
-                      className="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800 text-xs"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-slate-800 text-amber-400 font-bold text-xs flex items-center justify-center">
-                          {sIndex + 1}
-                        </div>
-                        <span className="font-semibold text-slate-200">
-                          {isTaken ? (
-                            <>
-                              {p.username} {p.isBot && '(Bot)'}
-                            </>
-                          ) : (
-                            <span className="text-slate-500 italic">Freier Platz</span>
-                          )}
-                        </span>
-                      </div>
-
-                      {!isTaken ? (
-                        <button
-                          onClick={() => addBot(sIndex)}
-                          className="px-2.5 py-1 rounded-lg bg-amber-600/30 hover:bg-amber-600 text-amber-300 hover:text-slate-950 border border-amber-500/40 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-                        >
-                          <Bot className="w-3 h-3" />
-                          <span>Bot hinzufügen</span>
-                        </button>
-                      ) : (
-                        p.isBot && (
-                          <button
-                            onClick={() => removeBot(sIndex)}
-                            className="text-xs text-rose-400 hover:text-rose-300 hover:underline cursor-pointer"
-                          >
-                            Entfernen
-                          </button>
-                        )
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <button
-                onClick={handleCopyCode}
-                className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-colors flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Copy className="w-3.5 h-3.5 text-amber-400" />
-                <span>{copiedCode ? 'Code kopiert!' : 'Raum-Code kopieren'}</span>
-              </button>
-            </div>
-          </div>
-        )}
-
+      <div className="flex-1 min-h-0 relative flex flex-col justify-between p-1.5 sm:p-2.5 bg-slate-950 shadow-felt border-2 sm:border-4 border-amber-950/70 overflow-hidden">
         {/* Top: Opponent Seats */}
         <div className="flex justify-between items-start max-w-4xl mx-auto w-full px-2 pt-0.5 flex-shrink-0 gap-2">
           {opponentLeft && (
