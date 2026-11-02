@@ -50,6 +50,9 @@ export function shuffleDeck(deck) {
     }
     return shuffled;
 }
+export function createShuffledDeck() {
+    return shuffleDeck(createDeck());
+}
 export function sortCards(cards, trumpSuit) {
     const suitOrder = {
         EICHEL: 0,

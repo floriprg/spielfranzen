@@ -283,3 +283,32 @@ export interface CreateMatchRequest {
     turnTimeLimit?: number;
     totalTimeBank?: number;
 }
+export interface BotStrategyWeights {
+    name?: string;
+    generation?: number;
+    colorGameMinTrumpCount: number;
+    colorGameMinPower: number;
+    bettlMaxDangerousCards: number;
+    bettlMinLowCards: number;
+    mordMinAces: number;
+    mordMinMasters: number;
+    trumpLeadTendency: number;
+    smearAggression: number;
+    discardTrumpRetention: number;
+    discardBlankSuitBonus: number;
+    secondPlayerTakeLeadAggression: number;
+}
+export interface BotTournamentResult {
+    generation: number;
+    totalGamesPlayed: number;
+    champion: BotStrategyWeights;
+    rankings: Array<{
+        botName: string;
+        wins: number;
+        pointsDelta: number;
+        winRate: number;
+        soloWinRate: number;
+        fitness: number;
+        weights: BotStrategyWeights;
+    }>;
+}

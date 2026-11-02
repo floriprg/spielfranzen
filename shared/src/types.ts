@@ -398,3 +398,35 @@ export interface CreateMatchRequest {
   turnTimeLimit?: number;
   totalTimeBank?: number;
 }
+
+// Bot Strategy & Evolutionary Self-Play Types
+export interface BotStrategyWeights {
+  name?: string;
+  generation?: number;
+  colorGameMinTrumpCount: number; // default: 4
+  colorGameMinPower: number; // default: 26
+  bettlMaxDangerousCards: number; // default: 3
+  bettlMinLowCards: number; // default: 5
+  mordMinAces: number; // default: 2
+  mordMinMasters: number; // default: 5
+  trumpLeadTendency: number; // default: 1.0 (weight for leading trump cards as declarer)
+  smearAggression: number; // default: 1.0 (weight for smearing high points to partner)
+  discardTrumpRetention: number; // default: 2.0 (preference to preserve trumps during discard)
+  discardBlankSuitBonus: number; // default: 15 (bonus for voiding a side suit)
+  secondPlayerTakeLeadAggression: number; // default: 1.0 (eagerness to win trick as 2nd player)
+}
+
+export interface BotTournamentResult {
+  generation: number;
+  totalGamesPlayed: number;
+  champion: BotStrategyWeights;
+  rankings: Array<{
+    botName: string;
+    wins: number;
+    pointsDelta: number;
+    winRate: number;
+    soloWinRate: number;
+    fitness: number;
+    weights: BotStrategyWeights;
+  }>;
+}

@@ -60,6 +60,10 @@ export function shuffleDeck(deck: Card[]): Card[] {
   return shuffled;
 }
 
+export function createShuffledDeck(): Card[] {
+  return shuffleDeck(createDeck());
+}
+
 export function sortCards(cards: Card[], trumpSuit?: Suit | null): Card[] {
   const suitOrder: Record<Suit, number> = {
     EICHEL: 0,
