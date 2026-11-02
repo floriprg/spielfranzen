@@ -370,6 +370,8 @@ export const GamePage: React.FC = () => {
               trickNumber={gameState.lastTrick ? gameState.lastTrick.trickNumber + 1 : 1}
               gameMode={gameMode}
               declarerSeat={declarerSeat}
+              mySeatIndex={mySeat}
+              currentTurnSeat={currentTurnSeat}
             />
           )}
         </div>

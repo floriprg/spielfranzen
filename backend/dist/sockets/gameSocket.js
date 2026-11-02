@@ -747,7 +747,13 @@ export class GameSocketHandler {
             clearTimeout(this.botTimers.get(matchId));
             this.botTimers.delete(matchId);
         }
-        const delay = 800 + Math.random() * 400; // 800ms - 1200ms natural reaction time
+        // In Trick Play: 3 seconds pause before laying down a card (as requested by user)
+        // In other phases (Bidding, Talon): realistic 1.2s - 2.0s thinking time
+        const delay = state.phase === 'TRICK_PLAY'
+            ? 3000
+            : state.phase === 'TALON_AND_DECLARATION'
+                ? 2000
+                : 1200;
         const timer = setTimeout(async () => {
             try {
                 const liveState = this.activeMatches.get(matchId);
