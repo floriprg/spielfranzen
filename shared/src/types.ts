@@ -434,6 +434,13 @@ export interface BotStrategyWeights {
   discardTrumpRetention: number; // default: 2.0 (preference to preserve trumps during discard)
   discardBlankSuitBonus: number; // default: 15 (bonus for voiding a side suit)
   secondPlayerTakeLeadAggression: number; // default: 1.0 (eagerness to win trick as 2nd player)
+
+  // Advanced mathematical & game-theoretic parameters from strategy paper:
+  vacuumBonusMultiplier?: number; // default: 0.8 (bonus for discarding points in vacuum trap)
+  bettlDangerThreshold?: number; // default: 18 (sum of D_Farbe below which Bettl is chosen)
+  doppelbettlDangerThreshold?: number; // default: 8 (sum of D_Farbe below which Doppelbettl is chosen)
+  mordMaxStopperHoles?: number; // default: 0 (or 1 with >= 8 top tricks)
+  explorationTemperature?: number; // default: 0.15 (stochastic temperature for non-deterministic AI play)
 }
 
 export interface BotTournamentResult {

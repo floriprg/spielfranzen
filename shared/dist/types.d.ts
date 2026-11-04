@@ -319,6 +319,11 @@ export interface BotStrategyWeights {
     discardTrumpRetention: number;
     discardBlankSuitBonus: number;
     secondPlayerTakeLeadAggression: number;
+    vacuumBonusMultiplier?: number;
+    bettlDangerThreshold?: number;
+    doppelbettlDangerThreshold?: number;
+    mordMaxStopperHoles?: number;
+    explorationTemperature?: number;
 }
 export interface BotTournamentResult {
     generation: number;

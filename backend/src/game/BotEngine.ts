@@ -10,6 +10,7 @@ import {
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createDeck } from './deck.js';
 import { GameEngine } from './GameEngine.js';
 import { getLegalCardIds } from './sanitizer.js';
 
@@ -27,23 +28,19 @@ export const DEFAULT_BOT_WEIGHTS: BotStrategyWeights = {
   discardTrumpRetention: 2.0,
   discardBlankSuitBonus: 15,
   secondPlayerTakeLeadAggression: 1.0,
+  vacuumBonusMultiplier: 0.8,
+  bettlDangerThreshold: 18,
+  doppelbettlDangerThreshold: 8,
+  mordMaxStopperHoles: 0,
+  explorationTemperature: 3.0,
 };
 
-interface SuitHandAnalysis {
-  suit: Suit;
-  count: number;
-  points: number;
-  hasAss: boolean;
-  has10: boolean;
-  hasKing: boolean;
-  hasOber: boolean;
-  hasUnter: boolean;
-  cards: Card[];
-  powerScore: number;
+export interface BotDeductions {
+  unseenCards: Card[];
+  isVoid: Record<number, Record<Suit, boolean>>;
 }
 
 interface HandEvaluation {
-  suitAnalyses: Record<Suit, SuitHandAnalysis>;
   bestTrumpSuit: Suit;
   bestTrumpMode: number;
   bestTrumpPower: number;
@@ -53,6 +50,8 @@ interface HandEvaluation {
   canDoppelmord: boolean;
   viableModes: Set<number>;
   maxViableBid: number;
+  bestExpectedValue: number;
+  bestMode: number;
 }
 
 export class BotEngine {
@@ -99,9 +98,425 @@ export class BotEngine {
     }
   }
 
+  public static getModeBasePoints(mode: number): number {
+    if (mode >= 5 && mode <= 8) return 100;
+    if (mode === 9) return 200;
+    if (mode === 10) return 300;
+    if (mode === 11) return 400;
+    if (mode === 12) return 600;
+    return 100;
+  }
+
   /**
-   * Generates an intelligent Bot decision for the bidding phase.
+   * Generates all 286 combinations of choosing 3 cards to discard out of 13.
+   * C(13, 3) = (13 * 12 * 11) / 6 = 286 combinations.
    */
+  public static getCombinations13Choose3(cards13: Card[]): [Card[], Card[]][] {
+    const result: [Card[], Card[]][] = [];
+    const n = cards13.length;
+    for (let i = 0; i < n - 2; i++) {
+      for (let j = i + 1; j < n - 1; j++) {
+        for (let k = j + 1; k < n; k++) {
+          const discard3 = [cards13[i]!, cards13[j]!, cards13[k]!];
+          const keep10 = cards13.filter((_, idx) => idx !== i && idx !== j && idx !== k);
+          result.push([keep10, discard3]);
+        }
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Non-deterministic move selection using Boltzmann Softmax distribution over candidate scores.
+   * Allows bots to explore variations while heavily preferring the mathematically optimal move.
+   */
+  public static sampleMoveWithTemperature(
+    candidates: { cardId: string; score: number }[],
+    temperature = 3.0,
+  ): string {
+    if (candidates.length === 0) throw new Error('No candidates to sample');
+    if (candidates.length === 1) return candidates[0]!.cardId;
+
+    // Purely deterministic if temperature is negligible
+    if (temperature <= 0.01) {
+      candidates.sort((a, b) => b.score - a.score);
+      return candidates[0]!.cardId;
+    }
+
+    const maxScore = Math.max(...candidates.map((c) => c.score));
+    const expScores = candidates.map((c) => ({
+      cardId: c.cardId,
+      weight: Math.exp(Math.min(50, Math.max(-50, (c.score - maxScore) / temperature))),
+    }));
+    const totalWeight = expScores.reduce((sum, c) => sum + c.weight, 0);
+
+    let rand = Math.random() * totalWeight;
+    for (const c of expScores) {
+      rand -= c.weight;
+      if (rand <= 0) return c.cardId;
+    }
+    return candidates[0]!.cardId;
+  }
+
+  // =========================================================================
+  // --- MATHEMATICAL EVALUATION FUNCTIONS (PDF SECTION 7.2) ---
+  // =========================================================================
+
+  /**
+   * Color Game Score S_Trumpf(Hand, Farbe) & Win Probability:
+   * - Trump card weight: 12 + rank * 1.5
+   * - Off-suit Ace: +14
+   * - Off-suit protected 10 (has Ace or >= 2 cards in suit): +9
+   * - Off-suit void (0 cards) with >= 4 trumps: +8
+   * - Vakuum-Check: >= 6 trumps & hand eyes < 25 => +0.8 * P_Talon for discarded points!
+   */
+  public static calculateColorScore(
+    hand10: Card[],
+    discard3: Card[],
+    trumpSuit: Suit,
+    weights: BotStrategyWeights = BotEngine.championWeights,
+  ): number {
+    const trumps = hand10.filter((c) => c.suit === trumpSuit);
+    const nonTrumps = hand10.filter((c) => c.suit !== trumpSuit);
+
+    let score = 0;
+
+    // 1. Trump base weights
+    for (const t of trumps) {
+      score += 12 + t.rank * 1.5;
+    }
+
+    // Additional trump bonus from weights
+    score += (trumps.length - 4) * (weights.colorGameMinPower ? 2.0 : 1.0);
+
+    // Penalty for discarding trumps in a color game (preserve trumps!)
+    const discardedTrumps = discard3.filter((c) => c.suit === trumpSuit).length;
+    score -= discardedTrumps * 35 * (weights.discardTrumpRetention || 2.0);
+
+    // 2. Off-suit analysis
+    const suits: Suit[] = ['EICHEL', 'LAUB', 'SCHELL', 'HERZ'];
+    const offSuits = suits.filter((s) => s !== trumpSuit);
+
+    for (const s of offSuits) {
+      const suitCards = nonTrumps.filter((c) => c.suit === s);
+      const hasAce = suitCards.some((c) => c.rank === 9);
+      const has10 = suitCards.some((c) => c.rank === 8);
+
+      if (hasAce) {
+        score += 14;
+      }
+      if (has10 && (hasAce || suitCards.length >= 3)) {
+        score += 9;
+      }
+      if (suitCards.length === 0 && trumps.length >= (weights.colorGameMinTrumpCount || 4)) {
+        score += (weights.discardBlankSuitBonus ? weights.discardBlankSuitBonus * 0.4 : 8);
+      }
+    }
+
+    // 3. Sonder-Heuristik "Vakuum-Check" (PDF Section 3 & 7.2)
+    // If bot has >= 6 trumps (incl. Ace or 10er) but few hand points (< 25),
+    // reward dumping high points into the talon to expand the vacuum interval!
+    const handPoints = hand10.reduce((sum, c) => sum + c.points, 0);
+    const hasHighTrump = trumps.some((c) => c.rank >= 8);
+    if (trumps.length >= 6 && hasHighTrump && handPoints < 25 && discard3.length === 3) {
+      const pTalon = discard3.reduce((sum, c) => sum + c.points, 0);
+      const multiplier = weights.vacuumBonusMultiplier ?? 0.8;
+      score += multiplier * pTalon;
+    }
+
+    return score;
+  }
+
+  public static calculateColorWinProb(
+    hand10: Card[],
+    discard3: Card[],
+    trumpSuit: Suit,
+    weights: BotStrategyWeights = BotEngine.championWeights,
+  ): number {
+    const score = BotEngine.calculateColorScore(hand10, discard3, trumpSuit, weights);
+    // Baseline score of 54 corresponds to ~50% win probability
+    const winProb = 1 / (1 + Math.exp(-0.065 * (score - 54)));
+    return Math.max(0.001, Math.min(0.999, winProb));
+  }
+
+  /**
+   * Bettl Danger Index D_Bettl(Hand) (PDF Section 4 & 7.2):
+   * For each suit:
+   * - 0 cards or {Weli, 7} => D_Farbe = 0
+   * - Lowest card c[0]: D_Farbe += lowerMissing(c[0]) * 9 - (k - 1) * 4
+   * - Higher cards c[i]: if missing lower > buffer => danger increases
+   * Bettl viable if sum(D_Farbe) < 18 (Doppelbettl < 8).
+   */
+  public static calculateBettlDanger(
+    hand10: Card[],
+    weights: BotStrategyWeights = BotEngine.championWeights,
+  ): number {
+    const suits: Suit[] = ['EICHEL', 'LAUB', 'SCHELL', 'HERZ'];
+    let totalDanger = 0;
+
+    for (const suit of suits) {
+      const cardsInSuit = hand10.filter((c) => c.suit === suit).sort((a, b) => a.rank - b.rank);
+      const k = cardsInSuit.length;
+      if (k === 0) continue; // Void is 100% immune (D = 0)
+
+      // If only Weli or Schell 7
+      if (suit === 'SCHELL' && k === 1 && cardsInSuit[0]!.rank === 1) {
+        continue; // Weli alone is rank 1, 0 danger!
+      }
+      if (k === 1 && cardsInSuit[0]!.rank === 2 && suit !== 'SCHELL') {
+        continue; // 7er alone in regular suit cannot be undercut!
+      }
+
+      // Lowest card
+      const c0 = cardsInSuit[0]!;
+      let lowerCardsPossible = 0;
+      if (suit === 'SCHELL') {
+        // Schell has ranks 1 (Weli), 2 (7), 3 (8), ...
+        if (c0.rank === 1) lowerCardsPossible = 0;
+        else if (c0.rank === 2) lowerCardsPossible = 1; // only Weli below
+        else lowerCardsPossible = c0.rank - 1;
+      } else {
+        // Standard suits have ranks 2 (7), 3 (8), 4 (9), ...
+        lowerCardsPossible = Math.max(0, c0.rank - 2);
+      }
+
+      const lowerInHand = cardsInSuit.filter((c) => c.rank < c0.rank).length;
+      const lowerMissing = Math.max(0, lowerCardsPossible - lowerInHand);
+
+      let dFarbe = Math.max(0, lowerMissing * 9 - (k - 1) * 4);
+
+      // Check subsequent cards if buffer is insufficient
+      for (let i = 1; i < k; i++) {
+        const ci = cardsInSuit[i]!;
+        let lowerTotal = 0;
+        if (suit === 'SCHELL') {
+          lowerTotal = ci.rank === 1 ? 0 : ci.rank === 2 ? 1 : ci.rank - 1;
+        } else {
+          lowerTotal = Math.max(0, ci.rank - 2);
+        }
+        const lowerOwned = cardsInSuit.filter((c) => c.rank < ci.rank).length;
+        const missing = Math.max(0, lowerTotal - lowerOwned);
+        const buffer = Math.max(0, k - 1 - i);
+        if (missing > buffer) {
+          dFarbe += (missing - buffer) * 6;
+        }
+      }
+
+      totalDanger += dFarbe;
+    }
+
+    return totalDanger;
+  }
+
+  public static calculateBettlWinProb(
+    hand10: Card[],
+    weights: BotStrategyWeights = BotEngine.championWeights,
+  ): number {
+    const danger = BotEngine.calculateBettlDanger(hand10, weights);
+    const threshold = weights.bettlDangerThreshold ?? 18;
+    // Sigmoid centered around threshold - 3
+    const winProb = 1 / (1 + Math.exp(0.24 * (danger - (threshold - 3))));
+    return Math.max(0.01, Math.min(0.99, winProb));
+  }
+
+  public static calculateDoppelbettlWinProb(
+    hand10: Card[],
+    weights: BotStrategyWeights = BotEngine.championWeights,
+  ): number {
+    const danger = BotEngine.calculateBettlDanger(hand10, weights);
+    const threshold = weights.doppelbettlDangerThreshold ?? 8;
+    const winProb = 1 / (1 + Math.exp(0.35 * (danger - (threshold - 2))));
+    return Math.max(0.01, Math.min(0.99, winProb));
+  }
+
+  /**
+   * Mord Control Check M_Mord(Hand) (PDF Section 6 & 7.2):
+   * Checks unbroken top-down chains in each suit and stopper holes.
+   */
+  public static calculateMordProbability(
+    hand10: Card[],
+    weights: BotStrategyWeights = BotEngine.championWeights,
+  ): number {
+    const suits: Suit[] = ['EICHEL', 'LAUB', 'SCHELL', 'HERZ'];
+    let stopperHoles = 0;
+    let topSafeTricks = 0;
+
+    for (const suit of suits) {
+      const cardsInSuit = hand10.filter((c) => c.suit === suit).sort((a, b) => b.rank - a.rank);
+      if (cardsInSuit.length === 0) continue;
+
+      // Top card must be Ass (rank 9)
+      if (cardsInSuit[0]!.rank !== 9) {
+        stopperHoles++;
+        continue;
+      }
+
+      topSafeTricks++;
+      let expectedRank = 8; // Expect 10er next
+      for (let i = 1; i < cardsInSuit.length; i++) {
+        if (cardsInSuit[i]!.rank === expectedRank) {
+          topSafeTricks++;
+          expectedRank--;
+        } else {
+          // Break in sequence before rest of suit
+          stopperHoles++;
+          break;
+        }
+      }
+    }
+
+    if (stopperHoles === 0 && topSafeTricks >= 6) {
+      return 0.96;
+    }
+    // Zwei-Farben-Squeeze (PDF Section 6.1): 1 stopper hole with >= 8 top tricks
+    if (stopperHoles <= (weights.mordMaxStopperHoles ?? 1) && topSafeTricks >= 8) {
+      return 0.65;
+    }
+
+    return 0.05;
+  }
+
+  public static calculateDoppelmordWinProb(
+    hand10: Card[],
+    weights: BotStrategyWeights = BotEngine.championWeights,
+  ): number {
+    const prob = BotEngine.calculateMordProbability(hand10, weights);
+    return prob >= 0.9 ? 0.98 : 0.02;
+  }
+
+  /**
+   * Win probability estimator across any mode (5..12).
+   */
+  public static estimateWinProbability(
+    keep10: Card[],
+    discard3: Card[],
+    mode: number,
+    weights: BotStrategyWeights = BotEngine.championWeights,
+  ): number {
+    if (mode >= 5 && mode <= 8) {
+      const trumpSuit = GAME_MODE_INFO[mode as GameMode]?.trumpSuit as Suit;
+      return BotEngine.calculateColorWinProb(keep10, discard3, trumpSuit, weights);
+    }
+    if (mode === 9) {
+      return BotEngine.calculateBettlWinProb(keep10, weights);
+    }
+    if (mode === 10) {
+      return BotEngine.calculateMordProbability(keep10, weights);
+    }
+    if (mode === 11) {
+      return BotEngine.calculateDoppelbettlWinProb(keep10, weights);
+    }
+    if (mode === 12) {
+      return BotEngine.calculateDoppelmordWinProb(keep10, weights);
+    }
+    return 0.1;
+  }
+
+  // =========================================================================
+  // --- EXACT 286 TALON COMBINATIONS OPTIMIZATION (PDF SECTION 7.1) ---
+  // =========================================================================
+
+  public static selectOptimalTalonAndMode(
+    cards13: Card[],
+    minMode: number,
+    weights: BotStrategyWeights = BotEngine.championWeights,
+  ): { selectedMode: number; discardedCardIds: string[] } {
+    const combinations = BotEngine.getCombinations13Choose3(cards13);
+    let bestExpectedPoints = -Infinity;
+    let bestMode = Math.max(5, minMode);
+    let bestDiscards: Card[] = combinations[0]![1];
+
+    for (const [keep10, discard3] of combinations) {
+      for (let mode = Math.max(5, minMode); mode <= 10; mode++) {
+        const winProb = BotEngine.estimateWinProbability(keep10, discard3, mode, weights);
+        const baseValue = BotEngine.getModeBasePoints(mode);
+        const expectedPoints = winProb * baseValue - (1 - winProb) * baseValue;
+
+        if (expectedPoints > bestExpectedPoints) {
+          bestExpectedPoints = expectedPoints;
+          bestMode = mode;
+          bestDiscards = discard3;
+        }
+      }
+    }
+
+    return {
+      selectedMode: bestMode,
+      discardedCardIds: bestDiscards.map((c) => c.id),
+    };
+  }
+
+  // =========================================================================
+  // --- REAL-TIME DEDUCTION ENGINE (PDF SECTION 7.3) ---
+  // =========================================================================
+
+  /**
+   * Tracks unseen cards and deduces which seats are void in which suits.
+   * Leverages strict Trumpfzwang inference: if a player failed to follow suit
+   * AND did not trump in a color game, they are definitely void in trumps too!
+   */
+  public static deduceGameState(state: FullGameState, seatIndex: number): BotDeductions {
+    const isVoid: Record<number, Record<Suit, boolean>> = {
+      0: { EICHEL: false, LAUB: false, SCHELL: false, HERZ: false },
+      1: { EICHEL: false, LAUB: false, SCHELL: false, HERZ: false },
+      2: { EICHEL: false, LAUB: false, SCHELL: false, HERZ: false },
+    };
+
+    const myHand = state.hands[seatIndex] || [];
+    const playedCardIds = new Set<string>();
+
+    const isColorGame = state.gameMode && state.gameMode >= 5 && state.gameMode <= 8;
+    const trumpSuit = isColorGame ? (GAME_MODE_INFO[state.gameMode!]?.trumpSuit as Suit) : undefined;
+
+    const allTricks = [...state.trickHistory];
+    if (state.currentTrick && state.currentTrick.length > 0) {
+      allTricks.push({
+        trickNumber: state.trickHistory.length + 1,
+        leadSeat: state.trickLeadSeat,
+        cards: [...state.currentTrick],
+        points: 0,
+      });
+    }
+
+    for (const trick of allTricks) {
+      if (trick.cards.length === 0) continue;
+      const leadSuit = trick.cards[0]!.card.suit;
+
+      for (let i = 0; i < trick.cards.length; i++) {
+        const play = trick.cards[i]!;
+        playedCardIds.add(play.card.id);
+
+        if (i > 0 && play.card.suit !== leadSuit) {
+          // Did not follow lead suit: void in leadSuit!
+          isVoid[play.seatIndex]![leadSuit] = true;
+
+          // Trumpfzwang deduction (PDF page 10):
+          // In color game, if player did not follow leadSuit AND did not trump,
+          // they are also 100% void in trumps!
+          if (isColorGame && trumpSuit && play.card.suit !== trumpSuit) {
+            isVoid[play.seatIndex]![trumpSuit] = true;
+          }
+        }
+      }
+    }
+
+    // Include discarded cards if bot is declarer
+    const knownIds = new Set<string>(playedCardIds);
+    for (const c of myHand) knownIds.add(c.id);
+    if (seatIndex === state.declarerSeat && state.discardedCards) {
+      for (const c of state.discardedCards) knownIds.add(c.id);
+    }
+
+    const deck = createDeck();
+    const unseenCards = deck.filter((c) => !knownIds.has(c.id));
+
+    return { unseenCards, isVoid };
+  }
+
+  // =========================================================================
+  // --- BIDDING DECISION WITH FUNDAMENTAL INEQUALITY (PDF SECTION 5) ---
+  // =========================================================================
+
   public static decideBidAction(
     state: FullGameState,
     seatIndex: number,
@@ -112,8 +527,10 @@ export class BotEngine {
     const evaluation = BotEngine.evaluateHand(hand, weights);
 
     if (biddingState.phase === 'OPENING') {
-      // Opening requires at least one viable mode (4 commits to playing at least mode 5..10)
-      if (evaluation.maxViableBid >= 4) {
+      // Opening: isolate opening threshold (p > 50% according to PDF Gleichung 35)
+      // Jitter for non-deterministic AI exploration:
+      const jitter = (Math.random() - 0.5) * 0.04;
+      if (evaluation.bestExpectedValue > 0 || evaluation.maxViableBid >= 4) {
         return { action: 'open', bidValue: 4 };
       }
       return { action: 'pass' };
@@ -122,7 +539,7 @@ export class BotEngine {
     if (biddingState.phase === 'DUEL') {
       const { holderSeat, challengerSeat, currentBid } = biddingState;
 
-      // Challenger turn
+      // Challenger turn: wants to raise to currentBid + 1
       if (seatIndex === challengerSeat) {
         const nextBid = currentBid + 1;
         if (nextBid <= 12 && BotEngine.canPlayAtLeast(evaluation, nextBid)) {
@@ -131,7 +548,7 @@ export class BotEngine {
         return { action: 'pass' };
       }
 
-      // Holder turn (Vorhand-Halte-Prinzip)
+      // Holder turn: can hold currentBid or pass
       if (seatIndex === holderSeat) {
         if (BotEngine.canPlayAtLeast(evaluation, currentBid)) {
           return { action: 'hold', bidValue: currentBid };
@@ -143,9 +560,10 @@ export class BotEngine {
     return { action: 'pass' };
   }
 
-  /**
-   * Generates an intelligent Bot decision for talon pickup and declaration.
-   */
+  // =========================================================================
+  // --- TALON DECISION (PDF SECTION 3 & 7.1) ---
+  // =========================================================================
+
   public static decideTalonAction(
     state: FullGameState,
     seatIndex: number,
@@ -157,30 +575,27 @@ export class BotEngine {
   } {
     const minMode = state.minMode || 5;
     const hand10 = state.hands[seatIndex]!;
-    const eval10 = BotEngine.evaluateHand(hand10, weights);
 
-    // If minMode is 11 or 12, Handspiel is mandatory by rule
+    // Mandatory Handspiel when bidding reached 11 or 12
     if (minMode >= 11) {
-      const mode = minMode === 12 || eval10.canDoppelmord ? 12 : 11;
-      return {
-        action: 'declare_hand',
-        selectedMode: mode,
-      };
+      const p12 = BotEngine.calculateDoppelmordWinProb(hand10, weights);
+      const selected = minMode === 12 || p12 >= 0.8 ? 12 : 11;
+      return { action: 'declare_hand', selectedMode: selected };
     }
 
-    // Check if the 10-card hand is already a near-perfect Handspiel (11 or 12)
-    if (eval10.canDoppelmord && minMode <= 12) {
+    // Check if initial 10 cards are already a safe Handspiel without talon (p >= 0.90)
+    const pDoppelmord = BotEngine.calculateDoppelmordWinProb(hand10, weights);
+    if (pDoppelmord >= 0.9 && minMode <= 12) {
       return { action: 'declare_hand', selectedMode: 12 };
     }
-    if (eval10.canDoppelbettl && minMode <= 11) {
+    const pDoppelbettl = BotEngine.calculateDoppelbettlWinProb(hand10, weights);
+    if (pDoppelbettl >= 0.88 && minMode <= 11) {
       return { action: 'declare_hand', selectedMode: 11 };
     }
 
-    // Otherwise, take talon and optimize the 13-card hand
+    // Take talon and optimize across all 286 combinations
     const full13 = [...hand10, ...state.talon];
-
-    // Evaluate best mode among available modes >= minMode
-    const bestChoice = BotEngine.evaluate13CardHand(full13, minMode, weights);
+    const bestChoice = BotEngine.selectOptimalTalonAndMode(full13, minMode, weights);
 
     return {
       action: 'take_talon',
@@ -189,9 +604,10 @@ export class BotEngine {
     };
   }
 
-  /**
-   * Generates an intelligent Bot decision for playing a card in Trick Play.
-   */
+  // =========================================================================
+  // --- TRICK PLAY DECISION MATRIX (PDF SECTION 7.4) ---
+  // =========================================================================
+
   public static decideCardToPlay(
     state: FullGameState,
     seatIndex: number,
@@ -209,30 +625,30 @@ export class BotEngine {
     const legalCards = hand.filter((c) => legalIds.includes(c.id));
     const mode = state.gameMode || 5;
     const isDeclarer = seatIndex === state.declarerSeat;
+    const deductions = BotEngine.deduceGameState(state, seatIndex);
 
-    // 1. Bettl & Doppelbettl (Modes 9 & 11: Declarer wants 0 tricks, Defenders want Declarer to win 1)
+    // 1. Bettl & Doppelbettl (Modes 9 & 11)
     if (mode === 9 || mode === 11) {
-      return BotEngine.decideBettlCard(state, seatIndex, isDeclarer, legalCards);
+      return BotEngine.decideBettlCard(state, seatIndex, isDeclarer, legalCards, deductions, weights);
     }
 
-    // 2. Mord & Doppelmord (Modes 10 & 12: Declarer wants all 10 tricks, Defenders want to win 1)
+    // 2. Mord & Doppelmord (Modes 10 & 12)
     if (mode === 10 || mode === 12) {
-      return BotEngine.decideMordCard(state, seatIndex, isDeclarer, legalCards);
+      return BotEngine.decideMordCard(state, seatIndex, isDeclarer, legalCards, deductions, weights);
     }
 
-    // 3. Color Games (Modes 5..8: Eichel, Laub, Schell, Herz - Target 66 points)
-    return BotEngine.decideColorCard(state, seatIndex, isDeclarer, legalCards, weights);
+    // 3. Color Games (Modes 5..8)
+    return BotEngine.decideColorCard(state, seatIndex, isDeclarer, legalCards, deductions, weights);
   }
 
-  // =========================================================================
-  // --- TRICK PLAY LOGIC: COLOR GAMES (5..8) ---
-  // =========================================================================
+  // --- COLOR GAME TRICK PLAY ---
 
   private static decideColorCard(
     state: FullGameState,
     seatIndex: number,
     isDeclarer: boolean,
     legalCards: Card[],
+    deductions: BotDeductions,
     weights: BotStrategyWeights = BotEngine.championWeights,
   ): string {
     const trumpSuit = GAME_MODE_INFO[state.gameMode as GameMode]?.trumpSuit as Suit;
@@ -241,591 +657,369 @@ export class BotEngine {
       ? -1
       : [0, 1, 2].find((s) => s !== seatIndex && s !== state.declarerSeat)!;
 
-    // --- CASE 1: THIRD PLAYER TO PLAY (trick.length === 2) ---
-    // Deterministic: Every legal card outcome can be simulated with 100% precision!
+    const scoredCandidates: { cardId: string; score: number }[] = [];
+
+    // --- POS 2: HINTERHAND (trick.length === 2) ---
     if (trick.length === 2) {
-      return BotEngine.decideThirdPlayerColorCard(
-        state,
-        seatIndex,
-        isDeclarer,
-        partnerSeat,
-        legalCards,
-        trumpSuit,
-        weights,
-      );
+      const mode = state.gameMode as GameMode;
+      for (const card of legalCards) {
+        const simulated = [...trick, { seatIndex, card }];
+        const winner = GameEngine.determineTrickWinner(simulated, mode);
+        const trickPoints = trick[0]!.card.points + trick[1]!.card.points + card.points;
+
+        let score = 0;
+        if (isDeclarer) {
+          if (winner === seatIndex) {
+            // Instant 66 win check
+            if (state.declarerCardPoints + trickPoints >= 66) {
+              score += 2000;
+            } else {
+              // Win cheaply, preserve trumps if possible
+              const isTrump = card.suit === trumpSuit ? 1 : 0;
+              score += 150 + trickPoints * 2 - isTrump * 30 - card.rank * 2;
+            }
+          } else {
+            // Defenders take trick: Wimmeln (dump 0 points!)
+            score += 100 - card.points * 10 - card.rank * 2;
+          }
+        } else {
+          // Defender
+          if (winner === partnerSeat) {
+            // Partner wins! Check instant win for defenders
+            if (state.defenderCardPoints + trickPoints >= 66) {
+              score += 2000;
+            } else {
+              // SCHMIEREN: feed points to partner!
+              score += 200 + card.points * 15 * (weights.smearAggression || 1.0) + card.rank * 2;
+            }
+          } else if (winner === seatIndex) {
+            // Bot beats declarer!
+            if (state.defenderCardPoints + trickPoints >= 66) {
+              score += 2000;
+            } else {
+              const isTrump = card.suit === trumpSuit ? 1 : 0;
+              score += 140 + trickPoints * 2 - isTrump * 20 - card.rank * 2;
+            }
+          } else {
+            // Declarer wins: Wimmeln (dump 0 points!)
+            score += 100 - card.points * 12 - card.rank * 2;
+          }
+        }
+        scoredCandidates.push({ cardId: card.id, score });
+      }
+      return BotEngine.sampleMoveWithTemperature(scoredCandidates, weights.explorationTemperature ?? 3.0);
     }
 
-    // --- CASE 2: SECOND PLAYER TO PLAY (trick.length === 1) ---
+    // --- POS 1: MITTELHAND (trick.length === 1) ---
     if (trick.length === 1) {
-      return BotEngine.decideSecondPlayerColorCard(
-        state,
-        seatIndex,
-        isDeclarer,
-        partnerSeat,
-        legalCards,
-        trumpSuit,
-        weights,
-      );
-    }
+      const lead = trick[0]!;
+      const leadCard = lead.card;
+      const leadSeat = lead.seatIndex;
 
-    // --- CASE 3: LEADING PLAYER (trick.length === 0) ---
-    return BotEngine.decideLeadColorCard(
-      state,
-      seatIndex,
-      isDeclarer,
-      legalCards,
-      trumpSuit,
-      weights,
-    );
-  }
+      for (const card of legalCards) {
+        let score = 50;
 
-  /**
-   * Third player in Color Game: Absolute certainty of trick winner and points.
-   */
-  private static decideThirdPlayerColorCard(
-    state: FullGameState,
-    seatIndex: number,
-    isDeclarer: boolean,
-    partnerSeat: number,
-    legalCards: Card[],
-    trumpSuit: Suit,
-    weights: BotStrategyWeights = BotEngine.championWeights,
-  ): string {
-    const trick = state.currentTrick;
-    const mode = state.gameMode as GameMode;
+        if (isDeclarer) {
+          // Declarer facing defender lead
+          const beatsLead =
+            (card.suit === trumpSuit && leadCard.suit !== trumpSuit) ||
+            (card.suit === leadCard.suit && card.rank > leadCard.rank);
 
-    // Evaluate each legal card
-    const candidates = legalCards.map((card) => {
-      const simulated = [...trick, { seatIndex, card }];
-      const winner = GameEngine.determineTrickWinner(simulated, mode);
-      const points = trick[0]!.card.points + trick[1]!.card.points + card.points;
-      return { card, winner, points };
-    });
-
-    if (isDeclarer) {
-      // Declarer: Try to win the trick, or dump lowest points
-      const winningCandidates = candidates.filter((c) => c.winner === seatIndex);
-
-      if (winningCandidates.length > 0) {
-        // Check if any winning card instantly terminates the round (>= 66 points)
-        const instantWin = winningCandidates.find(
-          (c) => state.declarerCardPoints + c.points >= 66,
-        );
-        if (instantWin) return instantWin.card.id;
-
-        // Otherwise pick the lowest rank/cost winning card to preserve high cards
-        winningCandidates.sort((a, b) => {
-          const aIsTrump = a.card.suit === trumpSuit ? 1 : 0;
-          const bIsTrump = b.card.suit === trumpSuit ? 1 : 0;
-          if (aIsTrump !== bIsTrump) return aIsTrump - bIsTrump; // Use non-trump winner first if possible
-          return a.card.rank - b.card.rank;
-        });
-        return winningCandidates[0]!.card.id;
-      }
-
-      // Declarer cannot win: Defenders will take this trick! Give them minimum points (0 points)
-      candidates.sort((a, b) => a.card.points - b.card.points || a.card.rank - b.card.rank);
-      return candidates[0]!.card.id;
-    }
-
-    // Defender:
-    // Partner winning?
-    const partnerWinning = candidates.filter((c) => c.winner === partnerSeat);
-    if (partnerWinning.length > 0) {
-      // Partner wins! Check if defenders can hit >= 66 instantly
-      const instantWin = partnerWinning.find(
-        (c) => state.defenderCardPoints + c.points >= 66,
-      );
-      if (instantWin) return instantWin.card.id;
-
-      // SCHMIEREN: Partner wins regardless! Feed maximum points into defenders' pool (10, Ass, König)
-      partnerWinning.sort((a, b) => b.card.points - a.card.points || b.card.rank - a.card.rank);
-      return partnerWinning[0]!.card.id;
-    }
-
-    // Can Bot win against Declarer?
-    const botWinning = candidates.filter((c) => c.winner === seatIndex);
-    if (botWinning.length > 0) {
-      // Check instant win
-      const instantWin = botWinning.find(
-        (c) => state.defenderCardPoints + c.points >= 66,
-      );
-      if (instantWin) return instantWin.card.id;
-
-      // Win as cheaply as possible
-      botWinning.sort((a, b) => {
-        const aIsTrump = a.card.suit === trumpSuit ? 1 : 0;
-        const bIsTrump = b.card.suit === trumpSuit ? 1 : 0;
-        if (aIsTrump !== bIsTrump) return aIsTrump - bIsTrump;
-        return a.card.rank - b.card.rank;
-      });
-      return botWinning[0]!.card.id;
-    }
-
-    // Neither Defender can win (Declarer wins the trick):
-    // WIMMELN: Play lowest points card (0-point cards: 7, 8, 9, Weli)
-    candidates.sort((a, b) => a.card.points - b.card.points || a.card.rank - b.card.rank);
-    return candidates[0]!.card.id;
-  }
-
-  /**
-   * Second player in Color Game.
-   */
-  private static decideSecondPlayerColorCard(
-    state: FullGameState,
-    seatIndex: number,
-    isDeclarer: boolean,
-    partnerSeat: number,
-    legalCards: Card[],
-    trumpSuit: Suit,
-    weights: BotStrategyWeights = BotEngine.championWeights,
-  ): string {
-    const lead = state.currentTrick[0]!;
-    const leadCard = lead.card;
-    const leadSeat = lead.seatIndex;
-    const followingSuit = legalCards.every((c) => c.suit === leadCard.suit);
-
-    if (isDeclarer) {
-      // Lead was played by a Defender. Other Defender is behind.
-      if (followingSuit) {
-        // Can we beat leadCard?
-        const winners = legalCards.filter((c) => c.rank > leadCard.rank);
-        if (winners.length > 0) {
-          // If lead card has high points (10 or Ass) or we can win cheaply, take it!
-          winners.sort((a, b) => a.rank - b.rank);
-          return winners[0]!.id;
+          if (beatsLead) {
+            if (leadCard.points >= 10) {
+              // High points in trick: take it!
+              score += 120 - card.rank * 2;
+            } else {
+              score += 70 - card.rank * 2;
+            }
+          } else {
+            // Cannot beat: play 0-point card
+            score += 80 - card.points * 8 - card.rank;
+          }
+        } else {
+          // Defender
+          if (leadSeat === partnerSeat) {
+            // Partner led! If partner led safe Ace, SCHMIERE!
+            if (leadCard.rank === 9 || (weights.smearAggression > 1.2 && leadCard.rank >= 7)) {
+              score += 150 + card.points * 12 * (weights.smearAggression || 1.0);
+            } else {
+              score += 50 - card.points * 5;
+            }
+          } else {
+            // Declarer led!
+            const beatsDeclarer =
+              (card.suit === trumpSuit && leadCard.suit !== trumpSuit) ||
+              (card.suit === leadCard.suit && card.rank > leadCard.rank);
+            if (beatsDeclarer) {
+              if (card.rank === 9) {
+                // Cover with Ace!
+                score += 140;
+              } else {
+                score += 110 - card.rank * 2;
+              }
+            } else {
+              // Wimmeln
+              score += 90 - card.points * 10 - card.rank;
+            }
+          }
         }
-        // Cannot beat: discard lowest card
-        legalCards.sort((a, b) => a.points - b.points || a.rank - b.rank);
-        return legalCards[0]!.id;
+        scoredCandidates.push({ cardId: card.id, score });
       }
-
-      // Trumping or Free card
-      const trumpCards = legalCards.filter((c) => c.suit === trumpSuit);
-      if (trumpCards.length > 0) {
-        // Trumping: pick lowest trump
-        trumpCards.sort((a, b) => a.rank - b.rank);
-        return trumpCards[0]!.id;
-      }
-
-      // Free card: dump lowest point card
-      legalCards.sort((a, b) => a.points - b.points || a.rank - b.rank);
-      return legalCards[0]!.id;
+      return BotEngine.sampleMoveWithTemperature(scoredCandidates, weights.explorationTemperature ?? 3.0);
     }
 
-    // Defender:
-    if (leadSeat === partnerSeat) {
-      // Lead was played by PARTNER!
-      // If partner led an Ass of a side suit or if smearAggression is high
-      if (
-        (leadCard.rank === 9 || (weights.smearAggression > 1.2 && leadCard.rank >= 7)) &&
-        leadCard.suit !== trumpSuit
-      ) {
-        // SCHMIEREN: If we can feed points safely, do so!
-        legalCards.sort((a, b) => b.points - a.points);
-        return legalCards[0]!.id;
-      }
+    // --- POS 0: ERSTAUSSPIELER (trick.length === 0) ---
+    const declarerSeat = state.declarerSeat!;
+    for (const card of legalCards) {
+      let score = 50;
 
-      // If partner led low card, try to win the trick to prevent declarer from getting it cheaply
-      const highCards = legalCards.filter((c) => c.rank >= 8); // Ass or 10
-      if (highCards.length > 0 && weights.secondPlayerTakeLeadAggression >= 0.8) {
-        highCards.sort((a, b) => b.rank - a.rank);
-        return highCards[0]!.id;
-      }
+      if (isDeclarer) {
+        // Declarer lead strategy (PDF page 10):
+        const def1 = (declarerSeat + 1) % 3;
+        const def2 = (declarerSeat + 2) % 3;
+        const defendersHaveTrump =
+          deductions.unseenCards.some((c) => c.suit === trumpSuit) &&
+          (!deductions.isVoid[def1]![trumpSuit] || !deductions.isVoid[def2]![trumpSuit]);
 
-      // Otherwise play low
-      legalCards.sort((a, b) => a.points - b.points || a.rank - b.rank);
-      return legalCards[0]!.id;
-    }
-
-    // Lead was played by DECLARER! Player behind us is PARTNER!
-    // Since player behind us is our teammate, we can safely play high without fear of partner eating it!
-    if (followingSuit) {
-      const beatsDeclarer = legalCards.filter((c) => c.rank > leadCard.rank);
-      if (beatsDeclarer.length > 0) {
-        // Win with lowest card that beats declarer
-        beatsDeclarer.sort((a, b) => a.rank - b.rank);
-        return beatsDeclarer[0]!.id;
-      }
-      // Cannot beat: Wimmeln (give 0 points)
-      legalCards.sort((a, b) => a.points - b.points || a.rank - b.rank);
-      return legalCards[0]!.id;
-    }
-
-    // Trumpfzwang: Must play trump
-    const trumps = legalCards.filter((c) => c.suit === trumpSuit);
-    if (trumps.length > 0) {
-      trumps.sort((a, b) => a.rank - b.rank);
-      return trumps[0]!.id;
-    }
-
-    // Free discard: Wimmeln
-    legalCards.sort((a, b) => a.points - b.points || a.rank - b.rank);
-    return legalCards[0]!.id;
-  }
-
-  /**
-   * Leading player in Color Game.
-   */
-  private static decideLeadColorCard(
-    state: FullGameState,
-    seatIndex: number,
-    isDeclarer: boolean,
-    legalCards: Card[],
-    trumpSuit: Suit,
-    weights: BotStrategyWeights = BotEngine.championWeights,
-  ): string {
-    const playedCards = BotEngine.getPlayedCards(state.trickHistory);
-
-    if (isDeclarer) {
-      // Declarer strategy:
-      // 1. Draw Trumps: Count remaining trumps with opponents
-      const myTrumps = legalCards.filter((c) => c.suit === trumpSuit);
-      const playedTrumps = playedCards.filter((c) => c.suit === trumpSuit).length;
-      const totalTrumpsInDeck = trumpSuit === 'SCHELL' ? 9 : 8;
-      const opponentTrumpsRemaining = totalTrumpsInDeck - playedTrumps - myTrumps.length;
-
-      if (opponentTrumpsRemaining > 0 && myTrumps.length > 0) {
-        // Check if we hold the highest remaining trump
-        const bossTrump = BotEngine.isBossCard(myTrumps[0]!, playedCards, legalCards);
-        // Sort trumps descending
-        myTrumps.sort((a, b) => b.rank - a.rank);
-        // If we hold top trump, lead it to draw opponents' trumps!
-        const thresholdRank = weights.trumpLeadTendency >= 1.2 ? 7 : 8;
-        if (myTrumps[0]!.rank >= thresholdRank || bossTrump) {
-          return myTrumps[0]!.id;
+        if (defendersHaveTrump) {
+          if (card.suit === trumpSuit) {
+            // Check Duck-Trumpf-Manöver: missing Ace and 10 of trumps
+            const myTrumps = legalCards.filter((c) => c.suit === trumpSuit);
+            const missingAceTen = !myTrumps.some((c) => c.rank >= 8);
+            if (missingAceTen && card.rank <= 3) {
+              score += 160; // Play low trump to force opponent Ace!
+            } else {
+              score += 120 + card.rank * 5; // Lead highest trump
+            }
+          } else {
+            score -= 30; // Trumps should be pulled first
+          }
+        } else {
+          // Defenders are trump-free: cash off-suit Aces and high cards!
+          if (card.suit !== trumpSuit) {
+            if (card.rank === 9) {
+              score += 150; // Cash Ace!
+            } else if (card.rank === 8) {
+              score += 110;
+            } else {
+              score += 60 - card.points * 3;
+            }
+          } else {
+            score += 40 + card.rank * 2;
+          }
+        }
+      } else {
+        // Defender lead strategy (PDF page 11):
+        const nextSeat = (seatIndex + 1) % 3;
+        if (nextSeat === declarerSeat) {
+          // Declarer is Pos 1 (right after us):
+          // Doppel-Schnitt: If declarer is void in suit & partner has trump, attack!
+          if (deductions.isVoid[declarerSeat]![card.suit] && !deductions.isVoid[partnerSeat]![trumpSuit]) {
+            score += 180;
+          } else if (card.rank === 8 && card.suit !== trumpSuit) {
+            // NEVER lead unprotected 10 into declarer!
+            score -= 300;
+          } else if (card.rank === 7 || card.rank === 6) {
+            score += 90; // Lead King or Ober
+          } else if (card.rank === 9 && card.suit !== trumpSuit) {
+            score += 80;
+          } else {
+            score += 40 - card.points * 2;
+          }
+        } else {
+          // Partner is Pos 1:
+          if (card.rank === 9 && card.suit !== trumpSuit) {
+            score += 140; // Lead safe Ace
+          } else {
+            score += 60 - card.points * 2;
+          }
         }
       }
-
-      // 2. Cash Side Aces: Leading a side Ass guarantees 11 points + trick
-      const sideAces = legalCards.filter((c) => c.suit !== trumpSuit && c.rank === 9);
-      if (sideAces.length > 0) {
-        return sideAces[0]!.id;
-      }
-
-      // 3. Lead established side boss cards (e.g. 10 if Ass is played)
-      const sideBossCards = legalCards.filter(
-        (c) => c.suit !== trumpSuit && BotEngine.isBossCard(c, playedCards, legalCards),
-      );
-      if (sideBossCards.length > 0) {
-        sideBossCards.sort((a, b) => b.points - a.points);
-        return sideBossCards[0]!.id;
-      }
-
-      // 4. Otherwise lead low non-trump card
-      const lowNonTrumps = legalCards.filter((c) => c.suit !== trumpSuit);
-      if (lowNonTrumps.length > 0) {
-        lowNonTrumps.sort((a, b) => a.points - b.points || a.rank - b.rank);
-        return lowNonTrumps[0]!.id;
-      }
-
-      // Only trumps left
-      legalCards.sort((a, b) => b.rank - a.rank);
-      return legalCards[0]!.id;
+      scoredCandidates.push({ cardId: card.id, score });
     }
-
-    // Defender strategy:
-    // 1. Cash side Aces
-    const sideAces = legalCards.filter((c) => c.suit !== trumpSuit && c.rank === 9);
-    if (sideAces.length > 0) {
-      return sideAces[0]!.id;
-    }
-
-    // 2. Do NOT lead trumps (unless no choice)
-    const nonTrumps = legalCards.filter((c) => c.suit !== trumpSuit);
-    if (nonTrumps.length > 0) {
-      // Lead low card (7, 8, 9) of an unplayed suit
-      const safeLeads = nonTrumps.filter((c) => c.points === 0);
-      if (safeLeads.length > 0) {
-        safeLeads.sort((a, b) => a.rank - b.rank);
-        return safeLeads[0]!.id;
-      }
-      nonTrumps.sort((a, b) => a.points - b.points || a.rank - b.rank);
-      return nonTrumps[0]!.id;
-    }
-
-    // Only trumps left
-    legalCards.sort((a, b) => a.rank - b.rank);
-    return legalCards[0]!.id;
+    return BotEngine.sampleMoveWithTemperature(scoredCandidates, weights.explorationTemperature ?? 3.0);
   }
 
-  // =========================================================================
-  // --- TRICK PLAY LOGIC: BETTL (MODES 9 & 11) ---
-  // =========================================================================
+  // --- BETTL TRICK PLAY (PDF SECTION 5 & 7.4) ---
 
   private static decideBettlCard(
     state: FullGameState,
     seatIndex: number,
     isDeclarer: boolean,
     legalCards: Card[],
+    deductions: BotDeductions,
+    weights: BotStrategyWeights = BotEngine.championWeights,
   ): string {
     const trick = state.currentTrick;
+    const scoredCandidates: { cardId: string; score: number }[] = [];
 
     if (isDeclarer) {
-      // Declarer MUST make 0 tricks!
+      // Declarer MUST avoid winning ANY trick
       if (trick.length === 0) {
-        // Leading: Lead lowest card, prefer long suit
-        legalCards.sort((a, b) => a.rank - b.rank);
-        return legalCards[0]!.id;
+        const trickNum = state.trickHistory.length + 1;
+        // Kamikaze-Eröffnungsanspiel (PDF page 6 & 11) for tricks 1-2:
+        if (trickNum <= 2) {
+          // Find suit with highest danger and lead unprotected middle card
+          for (const card of legalCards) {
+            let score = 50;
+            if (card.rank >= 4 && card.rank <= 7) {
+              score += 160; // Kamikaze lead: force opponents to overtrump now!
+            } else if (card.rank <= 3) {
+              score += 40; // Do not waste safe 7 early!
+            } else {
+              score += 20;
+            }
+            scoredCandidates.push({ cardId: card.id, score });
+          }
+        } else {
+          // Tricks 3+: Lead lowest card of longest safe suit
+          for (const card of legalCards) {
+            const score = 100 - card.rank * 10;
+            scoredCandidates.push({ cardId: card.id, score });
+          }
+        }
+        return BotEngine.sampleMoveWithTemperature(scoredCandidates, weights.explorationTemperature ?? 3.0);
       }
 
-      // Following: Lead suit is fixed
+      // Following in Bettl
       const leadSuit = trick[0]!.card.suit;
       const maxLeadRank = Math.max(
         ...trick.filter((t) => t.card.suit === leadSuit).map((t) => t.card.rank),
       );
 
-      // Safe cards are lower than current highest card of lead suit (cannot win trick)
-      const safeCards = legalCards.filter((c) => c.suit !== leadSuit || c.rank < maxLeadRank);
+      for (const card of legalCards) {
+        let score = 50;
+        const isSafe = card.suit !== leadSuit || card.rank < maxLeadRank;
 
-      if (safeCards.length > 0) {
-        if (trick.length === 2) {
-          // 3rd to play: Trick already won by someone else!
-          // Safely dump highest safe card!
-          safeCards.sort((a, b) => b.rank - a.rank);
-          return safeCards[0]!.id;
+        if (isSafe) {
+          if (trick.length === 2) {
+            // Pos 2: Someone else already won! Duck with highest possible safe card!
+            score += 200 + card.rank * 10;
+          } else {
+            // Pos 1: Duck as close to leadCard as possible
+            score += 180 - Math.abs(leadCardRankDifference(card, maxLeadRank));
+          }
+        } else {
+          // Forced to play higher card: play lowest possible
+          score -= 100 + card.rank * 10;
         }
-        // 2nd to play: Play lowest safe card to stay below 3rd player
-        safeCards.sort((a, b) => a.rank - b.rank);
-        return safeCards[0]!.id;
+        scoredCandidates.push({ cardId: card.id, score });
       }
-
-      // Forced to play higher card: play lowest possible
-      legalCards.sort((a, b) => a.rank - b.rank);
-      return legalCards[0]!.id;
+      return BotEngine.sampleMoveWithTemperature(scoredCandidates, weights.explorationTemperature ?? 3.0);
     }
 
-    // Defender: Wants Declarer to WIN a trick!
+    // Defender (Hunters) in Bettl: Goal is to make Declarer win a trick!
     const declarerSeat = state.declarerSeat!;
     const declarerPlay = trick.find((t) => t.seatIndex === declarerSeat);
 
-    if (declarerPlay) {
-      // Declarer has already played!
+    // Pos 2: If Declarer is currently winning the trick: DUCK UNCONDITIONALLY!
+    if (trick.length === 2 && declarerPlay) {
       const leadSuit = trick[0]!.card.suit;
       const decCard = declarerPlay.card;
+      const highestLeadRank = Math.max(
+        ...trick.filter((t) => t.card.suit === leadSuit).map((t) => t.card.rank),
+      );
 
-      if (decCard.suit === leadSuit) {
-        // Check if declarer is currently winning
-        const highestSoFar = Math.max(
-          ...trick.filter((t) => t.card.suit === leadSuit).map((t) => t.card.rank),
-        );
-
-        if (decCard.rank === highestSoFar) {
-          // Declarer is WINNING! Duck under Declarer!
-          const duckCards = legalCards.filter(
-            (c) => c.suit === leadSuit && c.rank < decCard.rank,
-          );
-          if (duckCards.length > 0) {
-            // Play highest card that is STILL lower than declarer's card!
-            duckCards.sort((a, b) => b.rank - a.rank);
-            return duckCards[0]!.id;
+      for (const card of legalCards) {
+        let score = 50;
+        if (decCard.suit === leadSuit && decCard.rank === highestLeadRank) {
+          // Declarer holds the trick!
+          if (card.suit === leadSuit && card.rank < decCard.rank) {
+            // Instant win for defenders!
+            score += 3000 + (decCard.rank - card.rank);
+          } else {
+            // Cannot duck under declarer
+            score -= 200 + card.rank * 10;
           }
+        } else {
+          // Declarer not winning
+          score += 100 - card.rank * 5;
         }
+        scoredCandidates.push({ cardId: card.id, score });
       }
+      return BotEngine.sampleMoveWithTemperature(scoredCandidates, weights.explorationTemperature ?? 3.0);
     }
 
-    // Declarer has not played yet or we cannot duck:
-    if (trick.length === 0) {
-      // Lead a low card to force declarer to play high
-      legalCards.sort((a, b) => a.rank - b.rank);
-      return legalCards[0]!.id;
+    // Pos 1: Mittelhand-Ducking (PDF page 7 & 11)
+    if (trick.length === 1 && declarerPlay) {
+      const leadCard = trick[0]!.card;
+      for (const card of legalCards) {
+        let score = 50;
+        if (card.suit === leadCard.suit && card.rank < leadCard.rank) {
+          // Duck under declarer!
+          score += 300 + card.rank * 10;
+        } else {
+          score -= 100;
+        }
+        scoredCandidates.push({ cardId: card.id, score });
+      }
+      return BotEngine.sampleMoveWithTemperature(scoredCandidates, weights.explorationTemperature ?? 3.0);
     }
 
-    legalCards.sort((a, b) => a.rank - b.rank);
-    return legalCards[0]!.id;
+    // Lead or partner lead in Bettl
+    const partnerSeat = [0, 1, 2].find((s) => s !== seatIndex && s !== declarerSeat)!;
+    for (const card of legalCards) {
+      let score = 50;
+      // Farb-Guillotine (PDF page 7): If partner is void, lead high card of that suit
+      if (deductions.isVoid[partnerSeat]![card.suit] && card.rank >= 7) {
+        score += 180;
+      } else if (card.rank >= 3 && card.rank <= 5) {
+        score += 110; // Middle card
+      } else {
+        score += 70 - card.rank * 2;
+      }
+      scoredCandidates.push({ cardId: card.id, score });
+    }
+    return BotEngine.sampleMoveWithTemperature(scoredCandidates, weights.explorationTemperature ?? 3.0);
   }
 
-  // =========================================================================
-  // --- TRICK PLAY LOGIC: MORD (MODES 10 & 12) ---
-  // =========================================================================
+  // --- MORD TRICK PLAY (PDF SECTION 6 & 7.4) ---
 
   private static decideMordCard(
     state: FullGameState,
     seatIndex: number,
     isDeclarer: boolean,
     legalCards: Card[],
+    deductions: BotDeductions,
+    weights: BotStrategyWeights = BotEngine.championWeights,
   ): string {
+    const trick = state.currentTrick;
+    const scoredCandidates: { cardId: string; score: number }[] = [];
+
     if (isDeclarer) {
-      // Declarer must win EVERY trick!
-      // Lead master cards (highest rank)
-      legalCards.sort((a, b) => b.rank - a.rank);
-      return legalCards[0]!.id;
+      // Declarer must win every trick! Play highest rank!
+      for (const card of legalCards) {
+        scoredCandidates.push({ cardId: card.id, score: card.rank * 10 });
+      }
+      return BotEngine.sampleMoveWithTemperature(scoredCandidates, weights.explorationTemperature ?? 3.0);
     }
 
     // Defender: Win ANY trick to defeat Mord immediately!
-    const trick = state.currentTrick;
     if (trick.length > 0) {
       const leadSuit = trick[0]!.card.suit;
       const highestRank = Math.max(
         ...trick.filter((t) => t.card.suit === leadSuit).map((t) => t.card.rank),
       );
-      const winners = legalCards.filter((c) => c.suit === leadSuit && c.rank > highestRank);
-      if (winners.length > 0) {
-        winners.sort((a, b) => b.rank - a.rank);
-        return winners[0]!.id;
-      }
-    }
-
-    legalCards.sort((a, b) => b.rank - a.rank);
-    return legalCards[0]!.id;
-  }
-
-  // =========================================================================
-  // --- TALON 13-CARD OPTIMIZATION ---
-  // =========================================================================
-
-  private static evaluate13CardHand(
-    cards13: Card[],
-    minMode: number,
-    weights: BotStrategyWeights = BotEngine.championWeights,
-  ): { selectedMode: number; discardedCardIds: string[] } {
-    // If minMode === 10: Declarer must play Mord (10)
-    if (minMode === 10) {
-      const weakCards = [...cards13].sort((a, b) => a.rank - b.rank);
-      return {
-        selectedMode: 10,
-        discardedCardIds: weakCards.slice(0, 3).map((c) => c.id),
-      };
-    }
-
-    // If minMode === 9: Declarer can play Bettl (9) or Mord (10)
-    if (minMode === 9) {
-      const aces = cards13.filter((c) => c.rank === 9).length;
-      if (aces >= 3) {
-        const weakCards = [...cards13].sort((a, b) => a.rank - b.rank);
-        return {
-          selectedMode: 10,
-          discardedCardIds: weakCards.slice(0, 3).map((c) => c.id),
-        };
-      }
-      const dangerousCards = [...cards13].sort((a, b) => b.rank - a.rank || b.points - a.points);
-      return {
-        selectedMode: 9,
-        discardedCardIds: dangerousCards.slice(0, 3).map((c) => c.id),
-      };
-    }
-
-    // minMode <= 8: Declarer can choose between Color games (>= minMode), Bettl (9), or Mord (10)
-    // 1. Check Bettl (Mode 9)
-    const dangerousCards = [...cards13].sort((a, b) => b.rank - a.rank || b.points - a.points);
-    const bettlDiscards = dangerousCards.slice(0, 3);
-    const remBettl10 = cards13.filter((c) => !bettlDiscards.some((d) => d.id === c.id));
-    const evalBettl = BotEngine.evaluateHand(remBettl10, weights);
-    if (evalBettl.canDoppelbettl) {
-      return {
-        selectedMode: 9,
-        discardedCardIds: bettlDiscards.map((c) => c.id),
-      };
-    }
-
-    // 2. Check Mord (Mode 10)
-    const weakCards = [...cards13].sort((a, b) => a.rank - b.rank);
-    const mordDiscards = weakCards.slice(0, 3);
-    const remMord10 = cards13.filter((c) => !mordDiscards.some((d) => d.id === c.id));
-    const evalMord = BotEngine.evaluateHand(remMord10, weights);
-    if (evalMord.canDoppelmord) {
-      return {
-        selectedMode: 10,
-        discardedCardIds: mordDiscards.map((c) => c.id),
-      };
-    }
-
-    // 3. Color Games: Evaluate best suit among 5..8 >= minMode
-    const suits: { suit: Suit; mode: number }[] = [
-      { suit: 'EICHEL', mode: 5 },
-      { suit: 'LAUB', mode: 6 },
-      { suit: 'SCHELL', mode: 7 },
-      { suit: 'HERZ', mode: 8 },
-    ];
-
-    const candidateSuits = suits.filter((s) => s.mode >= minMode);
-    if (candidateSuits.length === 0) {
-      // Fallback: Default to highest available color mode or minMode
-      candidateSuits.push({ suit: 'HERZ', mode: Math.max(5, Math.min(8, minMode)) });
-    }
-
-    let bestSuit = candidateSuits[0]!.suit;
-    let bestMode = candidateSuits[0]!.mode;
-    let bestScore = -1;
-    let bestDiscards: Card[] = [];
-
-    for (const cand of candidateSuits) {
-      const trumpCards = cards13.filter((c) => c.suit === cand.suit);
-      const nonTrumpCards = cards13.filter((c) => c.suit !== cand.suit);
-
-      const nonTrumpGrouped: Record<Suit, Card[]> = {
-        EICHEL: [],
-        LAUB: [],
-        SCHELL: [],
-        HERZ: [],
-      };
-      for (const c of nonTrumpCards) {
-        nonTrumpGrouped[c.suit].push(c);
-      }
-
-      // Sort non-trump cards by discard desirability:
-      // Priority 1: Keep side Aces!
-      // Priority 2: Bank unsafe 10s (10 without Ace)
-      // Priority 3: Bank high points safely
-      // Priority 4: Void short suits
-      const scoredDiscards = [...nonTrumpCards].sort((a, b) => {
-        const aIsAce = a.rank === 9 ? 1 : 0;
-        const bIsAce = b.rank === 9 ? 1 : 0;
-        if (aIsAce !== bIsAce) return aIsAce - bIsAce; // Keep Aces!
-
-        const aSuitHasAce = nonTrumpGrouped[a.suit].some((c) => c.rank === 9);
-        const bSuitHasAce = nonTrumpGrouped[b.suit].some((c) => c.rank === 9);
-        const aUnsafe10 = a.rank === 8 && !aSuitHasAce ? 1 : 0;
-        const bUnsafe10 = b.rank === 8 && !bSuitHasAce ? 1 : 0;
-        if (aUnsafe10 !== bUnsafe10) return bUnsafe10 - aUnsafe10;
-
-        if (a.points !== b.points) return b.points - a.points;
-
-        const aSuitLen = nonTrumpGrouped[a.suit].length;
-        const bSuitLen = nonTrumpGrouped[b.suit].length;
-        if (aSuitLen !== bSuitLen) return aSuitLen - bSuitLen;
-
-        return a.rank - b.rank;
-      });
-
-      const chosenDiscards = scoredDiscards.slice(0, 3);
-      if (chosenDiscards.length < 3) {
-        const trumpsSorted = [...trumpCards].sort((a, b) => a.rank - b.rank);
-        while (chosenDiscards.length < 3 && trumpsSorted.length > 0) {
-          chosenDiscards.push(trumpsSorted.shift()!);
+      for (const card of legalCards) {
+        let score = 50;
+        if (card.suit === leadSuit && card.rank > highestRank) {
+          score += 2000 + card.rank * 10; // Instant win for defenders!
+        } else {
+          score += card.rank * 5;
         }
+        scoredCandidates.push({ cardId: card.id, score });
       }
-
-      // Guarantee exactly 3 discards
-      while (chosenDiscards.length < 3) {
-        const remaining = cards13.filter((c) => !chosenDiscards.some((d) => d.id === c.id));
-        if (remaining.length === 0) break;
-        chosenDiscards.push(remaining[0]!);
-      }
-
-      const bankedPoints = chosenDiscards.reduce((sum, c) => sum + c.points, 0);
-      const trumpPower =
-        trumpCards.length * 6 +
-        (trumpCards.some((c) => c.rank === 9) ? 10 : 0) +
-        (trumpCards.some((c) => c.rank === 8) ? 8 : 0) +
-        bankedPoints;
-
-      if (trumpPower > bestScore) {
-        bestScore = trumpPower;
-        bestSuit = cand.suit;
-        bestMode = cand.mode;
-        bestDiscards = chosenDiscards;
-      }
+      return BotEngine.sampleMoveWithTemperature(scoredCandidates, weights.explorationTemperature ?? 3.0);
     }
 
-    return {
-      selectedMode: bestMode,
-      discardedCardIds: bestDiscards.map((c) => c.id),
-    };
+    for (const card of legalCards) {
+      scoredCandidates.push({ cardId: card.id, score: card.rank * 5 });
+    }
+    return BotEngine.sampleMoveWithTemperature(scoredCandidates, weights.explorationTemperature ?? 3.0);
   }
 
   // =========================================================================
-  // --- HAND EVALUATION & BIDDING HELPER ---
+  // --- HAND EVALUATION HELPER (FOR BIDDING) ---
   // =========================================================================
 
   public static evaluateHand(
@@ -833,8 +1027,6 @@ export class BotEngine {
     weights: BotStrategyWeights = BotEngine.championWeights,
   ): HandEvaluation {
     const suits: Suit[] = ['EICHEL', 'LAUB', 'SCHELL', 'HERZ'];
-    const suitAnalyses: Record<Suit, SuitHandAnalysis> = {} as any;
-
     const suitToMode: Record<Suit, number> = {
       EICHEL: 5,
       LAUB: 6,
@@ -845,92 +1037,64 @@ export class BotEngine {
     let bestTrumpSuit: Suit = 'EICHEL';
     let bestTrumpMode = 5;
     let bestTrumpPower = -1;
+    let bestExpectedValue = -Infinity;
+    let bestOverallMode = 5;
 
-    for (const suit of suits) {
-      const cards = hand.filter((c) => c.suit === suit);
-      const points = cards.reduce((sum, c) => sum + c.points, 0);
-      const hasAss = cards.some((c) => c.rank === 9);
-      const has10 = cards.some((c) => c.rank === 8);
-      const hasKing = cards.some((c) => c.rank === 7);
-      const hasOber = cards.some((c) => c.rank === 6);
-      const hasUnter = cards.some((c) => c.rank === 5);
-
-      // Power calculation: length + honors + points
-      const powerScore =
-        cards.length * 5 +
-        (hasAss ? 9 : 0) +
-        (has10 ? 7 : 0) +
-        (hasKing ? 3 : 0) +
-        points / 3;
-
-      suitAnalyses[suit] = {
-        suit,
-        count: cards.length,
-        points,
-        hasAss,
-        has10,
-        hasKing,
-        hasOber,
-        hasUnter,
-        cards,
-        powerScore,
-      };
-
-      if (powerScore > bestTrumpPower) {
-        bestTrumpPower = powerScore;
-        bestTrumpSuit = suit;
-        bestTrumpMode = suitToMode[suit];
-      }
-    }
-
-    // Bettl evaluation:
-    // Safe cards: rank <= 4 (7, 8, 9, Weli) or protected Unter
-    // Dangerous cards: Ass (9), 10er (8), King (7), or single Ober (6)
-    const dangerousCards = hand.filter((c) => {
-      if (c.rank >= 7) return true;
-      const count = suitAnalyses[c.suit].count;
-      if (c.rank === 6 && count <= 2) return true;
-      return false;
-    });
-
-    const canDoppelbettl =
-      hand.every((c) => c.rank <= 6) &&
-      hand.filter((c) => c.rank >= 5).every((c) => suitAnalyses[c.suit].count >= 3);
-
-    // Bettl with Talon allows discarding up to weights.bettlMaxDangerousCards dangerous cards
-    const canBettl =
-      dangerousCards.length <= weights.bettlMaxDangerousCards &&
-      hand.filter((c) => c.rank <= 4).length >= weights.bettlMinLowCards;
-
-    // Mord evaluation:
-    const acesCount = hand.filter((c) => c.rank === 9).length;
-    const tensCount = hand.filter((c) => c.rank === 8).length;
-    const mastersCount = hand.filter((c) => c.rank >= 8).length;
-
-    const canDoppelmord =
-      acesCount >= Math.max(3, weights.mordMinAces + 1) &&
-      mastersCount >= Math.max(7, weights.mordMinMasters + 2);
-    const canMord = acesCount >= weights.mordMinAces && mastersCount >= weights.mordMinMasters;
-
-    // Determine viable modes
     const viableModes = new Set<number>();
 
-    // Color games viable threshold
-    for (const [suit, analysis] of Object.entries(suitAnalyses)) {
-      const mode = suitToMode[suit as Suit];
-      // Viable color game based on weights:
+    // 1. Evaluate Color Games
+    for (const suit of suits) {
+      const mode = suitToMode[suit];
+      const prob = BotEngine.calculateColorWinProb(hand, [], suit, weights);
+      const score = BotEngine.calculateColorScore(hand, [], suit, weights);
+      const ev = (prob * 100) - ((1 - prob) * 100);
+
+      if (score > bestTrumpPower) {
+        bestTrumpPower = score;
+        bestTrumpSuit = suit;
+        bestTrumpMode = mode;
+      }
+
+      if (ev > bestExpectedValue) {
+        bestExpectedValue = ev;
+        bestOverallMode = mode;
+      }
+
+      const trumps = hand.filter((c) => c.suit === suit);
       if (
-        analysis.count >= weights.colorGameMinTrumpCount &&
-        (analysis.hasAss || analysis.has10 || analysis.powerScore >= weights.colorGameMinPower + 4) &&
-        analysis.powerScore >= weights.colorGameMinPower
+        trumps.length >= (weights.colorGameMinTrumpCount || 4) &&
+        score >= (weights.colorGameMinPower || 26)
       ) {
         viableModes.add(mode);
       }
     }
 
+    // 2. Evaluate Bettl & Doppelbettl
+    const bettlProb = BotEngine.calculateBettlWinProb(hand, weights);
+    const bettlEV = bettlProb * 200 - (1 - bettlProb) * 200;
+    const canBettl = bettlProb >= 0.55;
     if (canBettl) viableModes.add(9);
-    if (canMord) viableModes.add(10);
+    if (bettlEV > bestExpectedValue) {
+      bestExpectedValue = bettlEV;
+      bestOverallMode = 9;
+    }
+
+    const doppelbettlProb = BotEngine.calculateDoppelbettlWinProb(hand, weights);
+    const canDoppelbettl = doppelbettlProb >= 0.8;
     if (canDoppelbettl) viableModes.add(11);
+
+    // 3. Evaluate Mord & Doppelmord
+    const mordProb = BotEngine.calculateMordProbability(hand, weights);
+    const mordEV = mordProb * 300 - (1 - mordProb) * 300;
+    const canMord = mordProb >= 0.6;
+    if (canMord) viableModes.add(10);
+    if (mordEV > bestExpectedValue) {
+      bestExpectedValue = mordEV;
+      bestOverallMode = 10;
+    }
+
+    const doppelmordProb = BotEngine.calculateDoppelmordWinProb(hand, weights);
+    const canDoppelmord = doppelmordProb >= 0.85;
     if (canDoppelmord) viableModes.add(12);
 
     let maxViableBid = 0;
@@ -939,7 +1103,6 @@ export class BotEngine {
     }
 
     return {
-      suitAnalyses,
       bestTrumpSuit,
       bestTrumpMode,
       bestTrumpPower,
@@ -949,126 +1112,20 @@ export class BotEngine {
       canDoppelmord,
       viableModes,
       maxViableBid,
+      bestExpectedValue,
+      bestMode: bestOverallMode,
     };
   }
 
-  /**
-   * Checks whether the player can legally and sensibly play at or above the given bid.
-   */
   public static canPlayAtLeast(evaluations: HandEvaluation, targetBid: number): boolean {
     if (targetBid <= 4) return evaluations.maxViableBid >= 4;
-
-    // Target bid 5: Can play Eichel (5) or higher
-    if (targetBid === 5) {
-      return (
-        evaluations.viableModes.has(5) ||
-        evaluations.viableModes.has(6) ||
-        evaluations.viableModes.has(7) ||
-        evaluations.viableModes.has(8) ||
-        evaluations.viableModes.has(9) ||
-        evaluations.viableModes.has(10) ||
-        evaluations.viableModes.has(11) ||
-        evaluations.viableModes.has(12)
-      );
+    for (let m = targetBid; m <= 12; m++) {
+      if (evaluations.viableModes.has(m)) return true;
     }
-
-    // Target bid 6: Can play Laub (6) or higher
-    if (targetBid === 6) {
-      return (
-        evaluations.viableModes.has(6) ||
-        evaluations.viableModes.has(7) ||
-        evaluations.viableModes.has(8) ||
-        evaluations.viableModes.has(9) ||
-        evaluations.viableModes.has(10) ||
-        evaluations.viableModes.has(11) ||
-        evaluations.viableModes.has(12)
-      );
-    }
-
-    // Target bid 7: Can play Schell (7) or higher
-    if (targetBid === 7) {
-      return (
-        evaluations.viableModes.has(7) ||
-        evaluations.viableModes.has(8) ||
-        evaluations.viableModes.has(9) ||
-        evaluations.viableModes.has(10) ||
-        evaluations.viableModes.has(11) ||
-        evaluations.viableModes.has(12)
-      );
-    }
-
-    // Target bid 8: Can play Herz (8) or higher
-    if (targetBid === 8) {
-      return (
-        evaluations.viableModes.has(8) ||
-        evaluations.viableModes.has(9) ||
-        evaluations.viableModes.has(10) ||
-        evaluations.viableModes.has(11) ||
-        evaluations.viableModes.has(12)
-      );
-    }
-
-    // Target bid 9: Bettl or higher
-    if (targetBid === 9) {
-      return (
-        evaluations.viableModes.has(9) ||
-        evaluations.viableModes.has(10) ||
-        evaluations.viableModes.has(11) ||
-        evaluations.viableModes.has(12)
-      );
-    }
-
-    // Target bid 10: Mord or higher
-    if (targetBid === 10) {
-      return (
-        evaluations.viableModes.has(10) ||
-        evaluations.viableModes.has(11) ||
-        evaluations.viableModes.has(12)
-      );
-    }
-
-    // Target bid 11: Doppelbettl or higher
-    if (targetBid === 11) {
-      return evaluations.viableModes.has(11) || evaluations.viableModes.has(12);
-    }
-
-    // Target bid 12: Doppelmord
-    if (targetBid === 12) {
-      return evaluations.viableModes.has(12);
-    }
-
     return false;
   }
+}
 
-  // =========================================================================
-  // --- CARD MEMORY HELPERS ---
-  // =========================================================================
-
-  private static getPlayedCards(trickHistory: Trick[]): Card[] {
-    const list: Card[] = [];
-    for (const t of trickHistory) {
-      for (const item of t.cards) {
-        list.push(item.card);
-      }
-    }
-    return list;
-  }
-
-  /**
-   * Checks whether the given card is currently the highest remaining card in its suit.
-   */
-  private static isBossCard(card: Card, playedCards: Card[], myHand: Card[]): boolean {
-    // If rank is 9 (Ass), it's always the boss card
-    if (card.rank === 9) return true;
-
-    // Check if any higher card of the same suit is still unaccounted for
-    for (let r = (card.rank + 1) as any; r <= 9; r++) {
-      const higherPlayed = playedCards.some((c) => c.suit === card.suit && c.rank === r);
-      const higherInHand = myHand.some((c) => c.suit === card.suit && c.rank === r);
-      if (!higherPlayed && !higherInHand) {
-        return false;
-      }
-    }
-    return true;
-  }
+function leadCardRankDifference(card: Card, targetRank: number): number {
+  return card.rank - targetRank;
 }

@@ -1,15 +1,20 @@
 {
-  "name": "Champion Gen 2 (Gen2_V2)",
-  "generation": 2,
+  "name": "Champion Gen 3 (Gen3_V3)",
+  "generation": 3,
   "colorGameMinTrumpCount": 5,
   "colorGameMinPower": 28,
   "bettlMaxDangerousCards": 4,
   "bettlMinLowCards": 6,
   "mordMinAces": 2,
-  "mordMinMasters": 4,
-  "trumpLeadTendency": 1.5,
+  "mordMinMasters": 5,
+  "trumpLeadTendency": 1.76,
   "smearAggression": 1.5,
   "discardTrumpRetention": 2.8,
-  "discardBlankSuitBonus": 22,
-  "secondPlayerTakeLeadAggression": 1.48
+  "discardBlankSuitBonus": 17,
+  "secondPlayerTakeLeadAggression": 1.44,
+  "vacuumBonusMultiplier": 0.8,
+  "bettlDangerThreshold": 18,
+  "doppelbettlDangerThreshold": 8,
+  "mordMaxStopperHoles": 0,
+  "explorationTemperature": 1
 }

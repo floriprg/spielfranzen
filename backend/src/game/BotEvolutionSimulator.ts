@@ -161,6 +161,23 @@ export class BotEvolutionSimulator {
       clamp(jitter(base.secondPlayerTakeLeadAggression, 0.3), 0.5, 2.0).toFixed(2),
     );
 
+    // Advanced strategy parameters from paper
+    mutated.vacuumBonusMultiplier = Number(
+      clamp(jitter(base.vacuumBonusMultiplier ?? 0.8, 0.2), 0.3, 1.5).toFixed(2),
+    );
+    mutated.bettlDangerThreshold = Math.round(
+      clamp(jitter(base.bettlDangerThreshold ?? 18, 2), 12, 24),
+    );
+    mutated.doppelbettlDangerThreshold = Math.round(
+      clamp(jitter(base.doppelbettlDangerThreshold ?? 8, 2), 5, 12),
+    );
+    mutated.mordMaxStopperHoles = Math.round(
+      clamp(jitter(base.mordMaxStopperHoles ?? 0, 1), 0, 2),
+    );
+    mutated.explorationTemperature = Number(
+      clamp(jitter(base.explorationTemperature ?? 3.0, 0.5), 1.0, 6.0).toFixed(2),
+    );
+
     return mutated;
   }
 
@@ -186,6 +203,26 @@ export class BotEvolutionSimulator {
       secondPlayerTakeLeadAggression: pick(
         parentA.secondPlayerTakeLeadAggression,
         parentB.secondPlayerTakeLeadAggression,
+      ),
+      vacuumBonusMultiplier: pick(
+        parentA.vacuumBonusMultiplier ?? 0.8,
+        parentB.vacuumBonusMultiplier ?? 0.8,
+      ),
+      bettlDangerThreshold: pick(
+        parentA.bettlDangerThreshold ?? 18,
+        parentB.bettlDangerThreshold ?? 18,
+      ),
+      doppelbettlDangerThreshold: pick(
+        parentA.doppelbettlDangerThreshold ?? 8,
+        parentB.doppelbettlDangerThreshold ?? 8,
+      ),
+      mordMaxStopperHoles: pick(
+        parentA.mordMaxStopperHoles ?? 0,
+        parentB.mordMaxStopperHoles ?? 0,
+      ),
+      explorationTemperature: pick(
+        parentA.explorationTemperature ?? 0.15,
+        parentB.explorationTemperature ?? 0.15,
       ),
     };
   }
