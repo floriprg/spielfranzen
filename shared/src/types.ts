@@ -441,6 +441,11 @@ export interface BotStrategyWeights {
   doppelbettlDangerThreshold?: number; // default: 8 (sum of D_Farbe below which Doppelbettl is chosen)
   mordMaxStopperHoles?: number; // default: 0 (or 1 with >= 8 top tricks)
   explorationTemperature?: number; // default: 0.15 (stochastic temperature for non-deterministic AI play)
+
+  // Information Set Monte Carlo Tree Search (ISMCTS):
+  useISMCTS?: boolean; // default: true
+  ismctsIterations?: number; // default: 120 (iterations per search)
+  ismctsExploration?: number; // default: 0.75 (UCB1 exploration constant C)
 }
 
 export interface BotTournamentResult {

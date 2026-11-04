@@ -13,6 +13,7 @@ import { fileURLToPath } from 'url';
 import { createDeck } from './deck.js';
 import { GameEngine } from './GameEngine.js';
 import { getLegalCardIds } from './sanitizer.js';
+import { ISMCTSEngine } from './ISMCTS.js';
 
 export const DEFAULT_BOT_WEIGHTS: BotStrategyWeights = {
   name: 'Default Baseline',
@@ -33,6 +34,9 @@ export const DEFAULT_BOT_WEIGHTS: BotStrategyWeights = {
   doppelbettlDangerThreshold: 8,
   mordMaxStopperHoles: 0,
   explorationTemperature: 3.0,
+  useISMCTS: true,
+  ismctsIterations: 100,
+  ismctsExploration: 0.75,
 };
 
 export interface BotDeductions {
@@ -55,7 +59,7 @@ interface HandEvaluation {
 }
 
 export class BotEngine {
-  private static championWeights: BotStrategyWeights = BotEngine.loadChampionWeights();
+  public static championWeights: BotStrategyWeights = BotEngine.loadChampionWeights();
 
   public static getChampionWeights(): BotStrategyWeights {
     return { ...BotEngine.championWeights };
@@ -627,18 +631,32 @@ export class BotEngine {
     const isDeclarer = seatIndex === state.declarerSeat;
     const deductions = BotEngine.deduceGameState(state, seatIndex);
 
+    // Information Set Monte Carlo Tree Search (ISMCTS)
+    let ismctsMap: Map<string, number> | null = null;
+    if (weights.useISMCTS !== false) {
+      try {
+        const ismctsResult = ISMCTSEngine.search(state, seatIndex, weights);
+        ismctsMap = new Map();
+        for (const [cardId, stats] of ismctsResult.cardStats) {
+          ismctsMap.set(cardId, stats.mctsScore);
+        }
+      } catch (err) {
+        console.warn('ISMCTS search warning:', err);
+      }
+    }
+
     // 1. Bettl & Doppelbettl (Modes 9 & 11)
     if (mode === 9 || mode === 11) {
-      return BotEngine.decideBettlCard(state, seatIndex, isDeclarer, legalCards, deductions, weights);
+      return BotEngine.decideBettlCard(state, seatIndex, isDeclarer, legalCards, deductions, weights, ismctsMap);
     }
 
     // 2. Mord & Doppelmord (Modes 10 & 12)
     if (mode === 10 || mode === 12) {
-      return BotEngine.decideMordCard(state, seatIndex, isDeclarer, legalCards, deductions, weights);
+      return BotEngine.decideMordCard(state, seatIndex, isDeclarer, legalCards, deductions, weights, ismctsMap);
     }
 
     // 3. Color Games (Modes 5..8)
-    return BotEngine.decideColorCard(state, seatIndex, isDeclarer, legalCards, deductions, weights);
+    return BotEngine.decideColorCard(state, seatIndex, isDeclarer, legalCards, deductions, weights, ismctsMap);
   }
 
   // --- COLOR GAME TRICK PLAY ---
@@ -650,6 +668,7 @@ export class BotEngine {
     legalCards: Card[],
     deductions: BotDeductions,
     weights: BotStrategyWeights = BotEngine.championWeights,
+    ismctsMap?: Map<string, number> | null,
   ): string {
     const trumpSuit = GAME_MODE_INFO[state.gameMode as GameMode]?.trumpSuit as Suit;
     const trick = state.currentTrick;
@@ -704,6 +723,9 @@ export class BotEngine {
             // Declarer wins: Wimmeln (dump 0 points!)
             score += 100 - card.points * 12 - card.rank * 2;
           }
+        }
+        if (ismctsMap && ismctsMap.has(card.id)) {
+          score += ismctsMap.get(card.id)!;
         }
         scoredCandidates.push({ cardId: card.id, score });
       }
@@ -762,6 +784,9 @@ export class BotEngine {
               score += 90 - card.points * 10 - card.rank;
             }
           }
+        }
+        if (ismctsMap && ismctsMap.has(card.id)) {
+          score += ismctsMap.get(card.id)!;
         }
         scoredCandidates.push({ cardId: card.id, score });
       }
@@ -835,6 +860,9 @@ export class BotEngine {
           }
         }
       }
+      if (ismctsMap && ismctsMap.has(card.id)) {
+        score += ismctsMap.get(card.id)!;
+      }
       scoredCandidates.push({ cardId: card.id, score });
     }
     return BotEngine.sampleMoveWithTemperature(scoredCandidates, weights.explorationTemperature ?? 3.0);
@@ -849,6 +877,7 @@ export class BotEngine {
     legalCards: Card[],
     deductions: BotDeductions,
     weights: BotStrategyWeights = BotEngine.championWeights,
+    ismctsMap?: Map<string, number> | null,
   ): string {
     const trick = state.currentTrick;
     const scoredCandidates: { cardId: string; score: number }[] = [];
@@ -869,12 +898,18 @@ export class BotEngine {
             } else {
               score += 20;
             }
+            if (ismctsMap && ismctsMap.has(card.id)) {
+              score += ismctsMap.get(card.id)!;
+            }
             scoredCandidates.push({ cardId: card.id, score });
           }
         } else {
           // Tricks 3+: Lead lowest card of longest safe suit
           for (const card of legalCards) {
-            const score = 100 - card.rank * 10;
+            let score = 100 - card.rank * 10;
+            if (ismctsMap && ismctsMap.has(card.id)) {
+              score += ismctsMap.get(card.id)!;
+            }
             scoredCandidates.push({ cardId: card.id, score });
           }
         }
@@ -902,6 +937,9 @@ export class BotEngine {
         } else {
           // Forced to play higher card: play lowest possible
           score -= 100 + card.rank * 10;
+        }
+        if (ismctsMap && ismctsMap.has(card.id)) {
+          score += ismctsMap.get(card.id)!;
         }
         scoredCandidates.push({ cardId: card.id, score });
       }
@@ -935,6 +973,9 @@ export class BotEngine {
           // Declarer not winning
           score += 100 - card.rank * 5;
         }
+        if (ismctsMap && ismctsMap.has(card.id)) {
+          score += ismctsMap.get(card.id)!;
+        }
         scoredCandidates.push({ cardId: card.id, score });
       }
       return BotEngine.sampleMoveWithTemperature(scoredCandidates, weights.explorationTemperature ?? 3.0);
@@ -950,6 +991,9 @@ export class BotEngine {
           score += 300 + card.rank * 10;
         } else {
           score -= 100;
+        }
+        if (ismctsMap && ismctsMap.has(card.id)) {
+          score += ismctsMap.get(card.id)!;
         }
         scoredCandidates.push({ cardId: card.id, score });
       }
@@ -968,6 +1012,9 @@ export class BotEngine {
       } else {
         score += 70 - card.rank * 2;
       }
+      if (ismctsMap && ismctsMap.has(card.id)) {
+        score += ismctsMap.get(card.id)!;
+      }
       scoredCandidates.push({ cardId: card.id, score });
     }
     return BotEngine.sampleMoveWithTemperature(scoredCandidates, weights.explorationTemperature ?? 3.0);
@@ -982,6 +1029,7 @@ export class BotEngine {
     legalCards: Card[],
     deductions: BotDeductions,
     weights: BotStrategyWeights = BotEngine.championWeights,
+    ismctsMap?: Map<string, number> | null,
   ): string {
     const trick = state.currentTrick;
     const scoredCandidates: { cardId: string; score: number }[] = [];
@@ -989,7 +1037,11 @@ export class BotEngine {
     if (isDeclarer) {
       // Declarer must win every trick! Play highest rank!
       for (const card of legalCards) {
-        scoredCandidates.push({ cardId: card.id, score: card.rank * 10 });
+        let score = card.rank * 10;
+        if (ismctsMap && ismctsMap.has(card.id)) {
+          score += ismctsMap.get(card.id)!;
+        }
+        scoredCandidates.push({ cardId: card.id, score });
       }
       return BotEngine.sampleMoveWithTemperature(scoredCandidates, weights.explorationTemperature ?? 3.0);
     }
@@ -1007,13 +1059,20 @@ export class BotEngine {
         } else {
           score += card.rank * 5;
         }
+        if (ismctsMap && ismctsMap.has(card.id)) {
+          score += ismctsMap.get(card.id)!;
+        }
         scoredCandidates.push({ cardId: card.id, score });
       }
       return BotEngine.sampleMoveWithTemperature(scoredCandidates, weights.explorationTemperature ?? 3.0);
     }
 
     for (const card of legalCards) {
-      scoredCandidates.push({ cardId: card.id, score: card.rank * 5 });
+      let score = card.rank * 5;
+      if (ismctsMap && ismctsMap.has(card.id)) {
+        score += ismctsMap.get(card.id)!;
+      }
+      scoredCandidates.push({ cardId: card.id, score });
     }
     return BotEngine.sampleMoveWithTemperature(scoredCandidates, weights.explorationTemperature ?? 3.0);
   }

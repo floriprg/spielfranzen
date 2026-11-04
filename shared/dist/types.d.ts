@@ -324,6 +324,9 @@ export interface BotStrategyWeights {
     doppelbettlDangerThreshold?: number;
     mordMaxStopperHoles?: number;
     explorationTemperature?: number;
+    useISMCTS?: boolean;
+    ismctsIterations?: number;
+    ismctsExploration?: number;
 }
 export interface BotTournamentResult {
     generation: number;

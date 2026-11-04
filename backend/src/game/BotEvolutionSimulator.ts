@@ -177,6 +177,13 @@ export class BotEvolutionSimulator {
     mutated.explorationTemperature = Number(
       clamp(jitter(base.explorationTemperature ?? 3.0, 0.5), 1.0, 6.0).toFixed(2),
     );
+    mutated.useISMCTS = base.useISMCTS !== false;
+    mutated.ismctsIterations = Math.round(
+      clamp(jitter(base.ismctsIterations ?? 100, 20), 40, 200),
+    );
+    mutated.ismctsExploration = Number(
+      clamp(jitter(base.ismctsExploration ?? 0.75, 0.15), 0.3, 1.4).toFixed(2),
+    );
 
     return mutated;
   }
@@ -221,9 +228,12 @@ export class BotEvolutionSimulator {
         parentB.mordMaxStopperHoles ?? 0,
       ),
       explorationTemperature: pick(
-        parentA.explorationTemperature ?? 0.15,
-        parentB.explorationTemperature ?? 0.15,
+        parentA.explorationTemperature ?? 3.0,
+        parentB.explorationTemperature ?? 3.0,
       ),
+      useISMCTS: pick(parentA.useISMCTS ?? true, parentB.useISMCTS ?? true),
+      ismctsIterations: pick(parentA.ismctsIterations ?? 100, parentB.ismctsIterations ?? 100),
+      ismctsExploration: pick(parentA.ismctsExploration ?? 0.75, parentB.ismctsExploration ?? 0.75),
     };
   }
 
