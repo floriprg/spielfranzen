@@ -33,7 +33,7 @@ import { SchnapsenControls } from '../components/table/SchnapsenControls.js';
 import { SurrenderConfirmModal } from '../components/table/SurrenderConfirmModal.js';
 import { TalonModal } from '../components/table/TalonModal.js';
 import { TrickArea } from '../components/table/TrickArea.js';
-import { WattenControls } from '../components/table/WattenControls.js';
+import { RANK_LABELS, WattenControls } from '../components/table/WattenControls.js';
 import { InteractiveTutorialModal } from '../components/tutorial/InteractiveTutorialModal.js';
 import { useAuthStore } from '../store/authStore.js';
 import { useGameStore } from '../store/gameStore.js';
@@ -519,6 +519,20 @@ export const GamePage: React.FC = () => {
   const myPlayer = players[mySeat];
   const modeInfo = gameMode ? GAME_MODE_INFO[gameMode] : null;
 
+  const isSchlagChooser = isWatten && gameState.wattenState?.schlagChooserSeat === mySeat;
+  const isFarbeChooser = isWatten && gameState.wattenState?.farbeChooserSeat === mySeat;
+  const isWattenChoosingSchlag =
+    isWatten &&
+    phase === 'BIDDING' &&
+    isSchlagChooser &&
+    !gameState.wattenState?.schlag;
+  const isWattenChoosingFarbe =
+    isWatten &&
+    phase === 'BIDDING' &&
+    isFarbeChooser &&
+    !!gameState.wattenState?.schlag &&
+    !gameState.wattenState?.farbe;
+
   return (
     <div className="h-full flex-1 min-h-0 flex flex-col bg-slate-950 select-none overflow-hidden">
       {/* Top Match Status & Score Bar */}
@@ -822,6 +836,21 @@ export const GamePage: React.FC = () => {
 
         {/* Bottom: Player's Own Hand & Status */}
         <div className="flex flex-col items-center max-w-4xl mx-auto w-full pb-2 pt-0 flex-shrink-0">
+          {/* Watten Ansage: Schlag oder Farbe per Klick auf Handkarte */}
+          {isWattenChoosingSchlag && (
+            <div className="mb-1 px-3 py-0.5 rounded-full font-black text-[11px] shadow flex items-center gap-1.5 border bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 border-yellow-300 animate-bounce">
+              <Sparkles className="w-3.5 h-3.5 text-amber-950 fill-amber-950" />
+              <span>Vorhand: Klicke auf eine Handkarte, um ihren Schlag (Rang) anzusagen!</span>
+            </div>
+          )}
+
+          {isWattenChoosingFarbe && (
+            <div className="mb-1 px-3 py-0.5 rounded-full font-black text-[11px] shadow flex items-center gap-1.5 border bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 border-yellow-300 animate-bounce">
+              <Sparkles className="w-3.5 h-3.5 text-amber-950 fill-amber-950" />
+              <span>Geber: Klicke auf eine Handkarte, um ihre Farbe (Trumpf) anzusagen!</span>
+            </div>
+          )}
+
           {/* Turn Alert */}
           {isMyTurn && phase === 'TRICK_PLAY' && (
             <div
@@ -849,7 +878,11 @@ export const GamePage: React.FC = () => {
           <div className="flex justify-center items-end px-2 pt-1.5 pb-1 max-w-full overflow-visible">
             {myHand.map((card, index) => {
               const isLegal =
-                phase !== 'TRICK_PLAY'
+                isWattenChoosingSchlag
+                  ? card.rank !== 1
+                  : isWattenChoosingFarbe
+                  ? true
+                  : phase !== 'TRICK_PLAY'
                   ? true
                   : !isMyTurn
                   ? true
@@ -864,16 +897,60 @@ export const GamePage: React.FC = () => {
                   ? '-ml-2 sm:-ml-0.5 md:ml-1'
                   : 'ml-1 sm:ml-2 md:ml-2.5';
 
+              const rankLabel = RANK_LABELS[card.rank] || card.name;
+              const suitLabel =
+                card.suit === 'HERZ'
+                  ? 'Herz'
+                  : card.suit === 'SCHELL'
+                  ? 'Schell'
+                  : card.suit === 'LAUB'
+                  ? 'Laub'
+                  : 'Eichel';
+
+              const isWattenCardClickable =
+                (isWattenChoosingSchlag && card.rank !== 1) || isWattenChoosingFarbe;
+
+              const cardTooltip = isWattenChoosingSchlag
+                ? card.rank === 1
+                  ? 'Weli kann nicht als Schlag gewählt werden'
+                  : `Schlag "${rankLabel}" ansagen`
+                : isWattenChoosingFarbe
+                ? `Trumpffarbe "${suitLabel}" ansagen`
+                : undefined;
+
               return (
                 <div
                   key={card.id}
-                  className={`relative transition-all duration-200 hover:-translate-y-4 hover:z-30 cursor-pointer flex-shrink-0 ${overlapClass}`}
+                  title={cardTooltip}
+                  className={`group relative transition-all duration-200 hover:-translate-y-4 hover:z-30 cursor-pointer flex-shrink-0 ${overlapClass} ${
+                    isWattenCardClickable
+                      ? 'ring-2 ring-amber-400/90 rounded-lg hover:ring-4 hover:ring-yellow-300 shadow-lg shadow-amber-500/20 animate-pulse hover:animate-none'
+                      : ''
+                  }`}
                 >
+                  {/* Floating Action Badge on Hover during Watten Bidding */}
+                  {isWattenChoosingSchlag && card.rank !== 1 && (
+                    <div className="hidden group-hover:flex absolute -top-7 left-1/2 -translate-x-1/2 z-40 bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg border border-yellow-200 whitespace-nowrap pointer-events-none items-center gap-1">
+                      <span>Schlag: {rankLabel}</span>
+                    </div>
+                  )}
+                  {isWattenChoosingFarbe && (
+                    <div className="hidden group-hover:flex absolute -top-7 left-1/2 -translate-x-1/2 z-40 bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg border border-yellow-200 whitespace-nowrap pointer-events-none items-center gap-1">
+                      <span>Trumpf: {suitLabel}</span>
+                    </div>
+                  )}
+
                   <CardView
                     card={card}
                     isLegal={isLegal}
                     onClick={() => {
-                      if (isMyTurn && phase === 'TRICK_PLAY') {
+                      if (isWattenChoosingSchlag) {
+                        if (card.rank !== 1) {
+                          sendWattenAction('choose_schlag', card.rank);
+                        }
+                      } else if (isWattenChoosingFarbe) {
+                        sendWattenAction('choose_farbe', undefined, card.suit);
+                      } else if (isMyTurn && phase === 'TRICK_PLAY') {
                         playCard(card.id);
                       }
                     }}
@@ -891,26 +968,38 @@ export const GamePage: React.FC = () => {
               <span className="text-amber-400 font-bold truncate max-w-[200px] sm:max-w-[300px]" title={myPlayer.username}>
                 {myPlayer.username} (Du)
               </span>
-              <span className="text-slate-600">•</span>
-              <span className="flex items-center gap-1">
-                Rolle:{' '}
-                {myPlayer.role === 'DECLARER' ? (
-                  <span className="text-amber-300 font-bold flex items-center gap-0.5">
-                    <Crown className="w-3 h-3 text-amber-400" /> Alleinspieler
+              {!isWatten && (
+                <>
+                  <span className="text-slate-600">•</span>
+                  <span className="flex items-center gap-1">
+                    Rolle:{' '}
+                    {myPlayer.role === 'DECLARER' ? (
+                      <span className="text-amber-300 font-bold flex items-center gap-0.5">
+                        <Crown className="w-3 h-3 text-amber-400" /> Alleinspieler
+                      </span>
+                    ) : myPlayer.role === 'DEFENDER' ? (
+                      <span className="text-slate-300 font-semibold flex items-center gap-0.5">
+                        <Shield className="w-3 h-3 text-slate-400" /> Gegner
+                      </span>
+                    ) : (
+                      'Ausstehend'
+                    )}
                   </span>
-                ) : myPlayer.role === 'DEFENDER' ? (
-                  <span className="text-slate-300 font-semibold flex items-center gap-0.5">
-                    <Shield className="w-3 h-3 text-slate-400" /> Gegner
+                </>
+              )}
+              {isWatten && numPlayers === 4 && (
+                <>
+                  <span className="text-slate-600">•</span>
+                  <span className="text-amber-300 font-bold">
+                    Team {mySeat % 2 === 0 ? '1' : '2'}
                   </span>
-                ) : (
-                  'Ausstehend'
-                )}
-              </span>
+                </>
+              )}
               <span className="text-slate-600">•</span>
               <span>
                 Stiche: <strong className="text-slate-100">{myPlayer.tricksWon}</strong>
               </span>
-              {!isBettlOrMord && (
+              {!isBettlOrMord && !isWatten && (
                 <>
                   <span className="text-slate-600">•</span>
                   <span>

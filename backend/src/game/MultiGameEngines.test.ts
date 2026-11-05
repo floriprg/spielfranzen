@@ -39,6 +39,12 @@ test('WattenEngine 1: Initial state for 2 players deals 5 cards each and starts 
   assert.strictEqual(state.wattenState?.schlagChooserSeat, 1);
   assert.strictEqual(state.wattenState?.farbeChooserSeat, 0);
 
+  // Vorhand cannot announce Weli (rank 1) as Schlag
+  assert.throws(
+    () => wattenEngine.handleWattenAnnounce(state, 1, { schlag: 1 as CardRank }),
+    /Ungültiger Schlag/,
+  );
+
   // Vorhand announces Schlag (Ass = 9)
   wattenEngine.handleWattenAnnounce(state, 1, { schlag: 9 });
   assert.strictEqual(state.wattenState?.schlag, 9);
@@ -289,6 +295,59 @@ test('WattenBotAI: 4-player team awareness (Never needlessly overtakes partner)'
     useless.id,
     'Bot must not overtake partner holding the winning Rechte; must discard useless card',
   );
+});
+
+test('WattenBotAI: 2-player bidding decision (hold, fold, counter-raise, proactive bet)', () => {
+  const engine = new WattenEngine('watten_2');
+  const state = engine.createInitialState(
+    'watten-bot-bidding',
+    'WBB01',
+    5,
+    [
+      { userId: 'u0', username: 'Human', isBot: false },
+      { userId: 'u1', username: 'Bot', isBot: true },
+    ],
+  );
+
+  state.phase = 'TRICK_PLAY';
+  state.wattenState!.schlag = 7; // König
+  state.wattenState!.farbe = 'HERZ'; // Trumpf = Herz
+  state.wattenState!.currentBet = 2;
+
+  // Case 1: Bot holds strong hand (Rechter + Gueter), opponent raises to 3
+  state.wattenState!.betPending = true;
+  state.wattenState!.betChallengerSeat = 0; // Human raised to 3
+  state.wattenState!.currentBet = 3;
+
+  const rechter: Card = { id: 'HERZ_7', suit: 'HERZ', rank: 7, points: 4, name: 'Herz König', shortName: 'K' };
+  const gueter: Card = { id: 'HERZ_9', suit: 'HERZ', rank: 9, points: 11, name: 'Herz Ass', shortName: 'A' };
+  state.hands[1] = [rechter, gueter];
+
+  let decision = WattenBotAI.decideBetAction(state, 1, engine);
+  assert.strictEqual(decision.action, 'bet', 'Bot with monster hand counter-raises (Drüberschlagen)!');
+
+  // Case 2: Bot holds average hand (strength >= 2.0, e.g. 1 Schlag), opponent raises
+  const schlagEichel: Card = { id: 'EICHEL_7', suit: 'EICHEL', rank: 7, points: 4, name: 'Eichel König', shortName: 'K' };
+  const junk: Card = { id: 'LAUB_2', suit: 'LAUB', rank: 2, points: 0, name: 'Laub 7', shortName: '7' };
+  state.hands[1] = [schlagEichel, junk];
+
+  decision = WattenBotAI.decideBetAction(state, 1, engine);
+  assert.strictEqual(decision.action, 'hold', 'Bot with decent hand (Schlag) holds the bet');
+
+  // Case 3: Bot holds complete junk (strength < 2.0, 0 tricks won), opponent raises
+  state.hands[1] = [junk];
+  decision = WattenBotAI.decideBetAction(state, 1, engine);
+  assert.strictEqual(decision.action, 'fold', 'Bot with no trumps or schläge folds when challenged');
+
+  // Case 4: No pending bet, Bot holds Rechter (strength >= 4.0) -> Proactively initiates bet
+  state.wattenState!.betPending = false;
+  state.wattenState!.betChallengerSeat = null;
+  state.wattenState!.lastBettingTeam = null;
+  state.wattenState!.currentBet = 2;
+  state.hands[1] = [rechter, junk];
+
+  decision = WattenBotAI.decideBetAction(state, 1, engine);
+  assert.strictEqual(decision.action, 'bet', 'Bot proactively raises ("Schlagen auf 3") with strong cards');
 });
 
 test('SchnapsenEngine 1: 2er-Schnapsen deals 5 cards each and reveals trump card on talon', () => {

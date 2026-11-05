@@ -517,6 +517,9 @@ export class WattenEngine implements IGameEngine {
       if (seatIndex !== ws.schlagChooserSeat) {
         throw new Error('Du bist nicht an der Reihe, den Schlag anzusagen.');
       }
+      if (payload.schlag < 2 || payload.schlag > 9) {
+        throw new Error('Ungültiger Schlag. Gültige Ränge sind 7er bis Ass.');
+      }
       ws.schlag = payload.schlag;
       // Switch turn to Farbe chooser
       state.currentTurnSeat = ws.farbeChooserSeat;

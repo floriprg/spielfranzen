@@ -16,7 +16,7 @@ interface WattenControlsProps {
   maxPlayers: number;
 }
 
-const RANK_LABELS: Record<number, string> = {
+export const RANK_LABELS: Record<number, string> = {
   9: 'Ass',
   7: 'König',
   6: 'Ober',
@@ -72,6 +72,17 @@ export const WattenControls: React.FC<WattenControlsProps> = ({
   const isBetPendingAgainstMe = wattenState.betPending && challengerTeam !== myTeam;
   const isBetPendingByMyTeam = wattenState.betPending && challengerTeam === myTeam;
 
+  const isGestrichen =
+    !!wattenState.isGestrichen && (wattenState.isGestrichen[0] || wattenState.isGestrichen[1]);
+  const hasAlreadyBet = wattenState.lastBettingTeam === myTeam;
+  const targetScore = wattenState.targetScore || 15;
+  const canInitiateBet =
+    !wattenState.betPending &&
+    !isGestrichen &&
+    !hasAlreadyBet &&
+    wattenState.currentBet < targetScore &&
+    (maxPlayers === 2 || isMyTurn);
+
   // 1. Ansage-Phase (Schlag & Farbe)
   if (phase === 'BIDDING') {
     return (
@@ -87,7 +98,7 @@ export const WattenControls: React.FC<WattenControlsProps> = ({
             {isSchlagChooser ? (
               <div className="space-y-3">
                 <p className="text-xs font-semibold text-slate-200">
-                  Du bist die <strong>Vorhand</strong>. Wähle den <strong>Schlag</strong> (Rang):
+                  Du bist die <strong>Vorhand</strong>. Klicke unten auf eine <strong>Handkarte</strong> oder wähle hier den <strong>Schlag</strong> (Rang):
                 </p>
                 <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
                   {[
@@ -132,7 +143,7 @@ export const WattenControls: React.FC<WattenControlsProps> = ({
             {isFarbeChooser ? (
               <div className="space-y-3">
                 <p className="text-xs font-semibold text-slate-200">
-                  Du bist der <strong>Geber</strong>. Wähle nun die <strong>Trumpffarbe</strong>:
+                  Du bist der <strong>Geber</strong>. Klicke unten auf eine <strong>Handkarte</strong> oder wähle hier die <strong>Trumpffarbe</strong>:
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {SUITS.map(({ suit, label, colorClass }) => (
@@ -233,32 +244,32 @@ export const WattenControls: React.FC<WattenControlsProps> = ({
           <div className="flex items-center gap-2">
             <ShieldAlert className="w-5 h-5 text-rose-400 flex-shrink-0" />
             <span className="text-xs font-bold text-rose-200">
-              Gegner hat auf <strong>{wattenState.currentBet} Punkte</strong> erhöht!
+              {maxPlayers === 2 ? 'Gegner bietet' : 'Gegnerteam bietet'}: Erhöhung auf <strong>{wattenState.currentBet} Punkte</strong>!
             </span>
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               onClick={() => onWattenAction('hold')}
-              className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1 shadow cursor-pointer active:scale-95"
+              className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1 shadow cursor-pointer active:scale-95 transition-all"
             >
               <Check className="w-3.5 h-3.5" />
               <span>Halten ({wattenState.currentBet} Pkt.)</span>
             </button>
             <button
               onClick={() => onWattenAction('fold')}
-              className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg bg-rose-700 hover:bg-rose-600 text-white font-bold text-xs flex items-center justify-center gap-1 shadow cursor-pointer active:scale-95"
+              className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg bg-rose-700 hover:bg-rose-600 text-white font-bold text-xs flex items-center justify-center gap-1 shadow cursor-pointer active:scale-95 transition-all"
             >
               <X className="w-3.5 h-3.5" />
-              <span>Gehen ({wattenState.currentBet - 1} Pkt. an Gegner)</span>
+              <span>Gehen ({Math.max(2, wattenState.currentBet - 1)} Pkt. an Gegner)</span>
             </button>
-            {wattenState.currentBet < 11 && (
+            {wattenState.currentBet < targetScore && (
               <button
                 onClick={() => onWattenAction('bet')}
-                className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1 shadow cursor-pointer active:scale-95"
+                className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1 shadow cursor-pointer active:scale-95 transition-all"
               >
                 <Flame className="w-3.5 h-3.5" />
-                <span>Schlagen ({wattenState.currentBet + 1})</span>
+                <span>Gegenbieten ({wattenState.currentBet + 1} Pkt.)</span>
               </button>
             )}
           </div>
@@ -273,16 +284,28 @@ export const WattenControls: React.FC<WattenControlsProps> = ({
       )}
 
       {/* Button to Bet/Schlagen when not pending */}
-      {!wattenState.betPending && isMyTurn && wattenState.currentBet < 11 && (
+      {canInitiateBet && (
         <div className="flex justify-center">
           <button
             onClick={() => onWattenAction('bet')}
-            className="px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-slate-950 font-black text-xs shadow-md border border-yellow-300/60 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all hover:scale-105"
-            title="Einsatz um 1 Punkt erhöhen"
+            className="px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg border-2 border-yellow-300 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all hover:scale-105 animate-pulse"
+            title={`Einsatz auf ${wattenState.currentBet + 1} Punkte bieten (Gegner muss Halten, Gehen oder Gegenbieten)`}
           >
-            <Flame className="w-4 h-4" />
-            <span>Schlagen auf {wattenState.currentBet + 1} Punkte!</span>
+            <Flame className="w-4 h-4 text-amber-950 fill-amber-950" />
+            <span>Punkte bieten: Schlagen auf {wattenState.currentBet + 1}!</span>
           </button>
+        </div>
+      )}
+
+      {hasAlreadyBet && !wattenState.betPending && (
+        <div className="text-center text-[10px] text-amber-300/80 font-semibold bg-amber-950/40 px-2.5 py-0.5 rounded-full border border-amber-500/20 max-w-fit mx-auto">
+          Du hast auf {wattenState.currentBet} Punkte erhöht (Warte auf gegnerisches Gebot)
+        </div>
+      )}
+
+      {isGestrichen && (
+        <div className="text-center text-[10px] text-rose-300/80 font-bold bg-rose-950/40 px-2.5 py-0.5 rounded-full border border-rose-500/30 max-w-fit mx-auto">
+          Gestrichen ({wattenState.currentBet} Pkt. fest) – Bieten gesperrt
         </div>
       )}
     </div>

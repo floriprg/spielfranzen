@@ -127,17 +127,27 @@ export class WattenBotAI {
     const strength = this.evaluateHandStrength(hand, ws, wattenEngine);
     const myTeamTricks = ws.teamTricksWon[myTeam];
 
-    // If opponent has raised: must decide "hold" vs "fold" (or re-raise)
+    // 1. Opponent has raised: decide "hold", "fold", or counter-raise "bet"
     if (ws.betPending && ws.betChallengerSeat !== null && ws.betChallengerSeat % 2 !== myTeam) {
-      // Need 3 tricks to win. If we already have 2 tricks, or strong cards:
-      if (myTeamTricks >= 2 || strength >= 4.5 || (myTeamTricks === 1 && strength >= 3.0)) {
+      const maxTarget = ws.targetScore || 15;
+      // Counter-raise ("Drüberschlagen") if holding a dominant hand or 2 tricks with power
+      if (
+        ws.currentBet < maxTarget &&
+        ((myTeamTricks >= 2 && strength >= 3.0) || strength >= 6.5)
+      ) {
+        return { action: 'bet' };
+      }
+
+      // Hold if reasonably solid hand or already having tricks
+      if (myTeamTricks >= 2 || strength >= 2.0 || (myTeamTricks >= 1 && strength >= 1.0)) {
         return { action: 'hold' };
       }
       return { action: 'fold' };
     }
 
-    // Not pending: decide whether to raise ("Schlagen")
-    if (!ws.betPending && state.currentTurnSeat === seatIndex && ws.currentBet < 11) {
+    // 2. Not pending: decide whether to proactively offer a bet ("Bieten / Schlagen")
+    const maxTarget = ws.targetScore || 15;
+    if (!ws.betPending && ws.currentBet < maxTarget) {
       // Don't raise if forbidden by gestrichen
       if (ws.isGestrichen && (ws.isGestrichen[0] || ws.isGestrichen[1])) {
         return { action: 'pass' };
@@ -146,12 +156,20 @@ export class WattenBotAI {
         return { action: 'pass' };
       }
 
-      // If team already has 2 tricks and holds a guaranteed winner:
-      if (myTeamTricks === 2 && strength >= 3.5) {
+      // Condition A: 2 tricks in the bag and holding at least one useful card -> Strike!
+      if (myTeamTricks === 2 && strength >= 1.5) {
         return { action: 'bet' };
       }
-      // If holding monster hand:
-      if (strength >= 8.5) {
+      // Condition B: 1 trick in the bag and good cards
+      if (myTeamTricks === 1 && strength >= 3.0) {
+        return { action: 'bet' };
+      }
+      // Condition C: Strong initial hand (Rechter, Guater or strong trumps)
+      if (strength >= 4.0) {
+        return { action: 'bet' };
+      }
+      // Condition D: Occasional bluff in 2er Watten (15% probability when having some presence)
+      if (state.maxPlayers === 2 && strength >= 2.0 && Math.random() < 0.15) {
         return { action: 'bet' };
       }
     }
