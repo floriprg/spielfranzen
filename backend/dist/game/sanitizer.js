@@ -1,4 +1,5 @@
 import { GAME_MODE_INFO, } from '@spielfranzen/shared';
+import { EngineRouter } from './EngineRouter.js';
 import { sortCards } from './deck.js';
 export function getLegalCardIds(hand, currentTrick, gameMode) {
     if (hand.length === 0)
@@ -71,17 +72,27 @@ export function sanitizeGameStateForPlayer(state, userId) {
     }
     // Compute legal cards for requesting player if it's their turn in trick play
     let legalCardIdsToPlay = [];
+    const maxPlayers = state.maxPlayers || 3;
     if (mySeatIndex !== null &&
         state.phase === 'TRICK_PLAY' &&
         state.currentTurnSeat === mySeatIndex &&
-        state.currentTrick.length < 3 &&
+        state.currentTrick.length < maxPlayers &&
         myHand.length > 0) {
-        legalCardIdsToPlay = getLegalCardIds(myHand, state.currentTrick, state.gameMode);
+        if (state.gameType && state.gameType !== 'franzen') {
+            const engine = EngineRouter.getEngine(state.gameType);
+            legalCardIdsToPlay = engine.getLegalCardsToPlay(state, mySeatIndex).map((c) => c.id);
+        }
+        else {
+            legalCardIdsToPlay = getLegalCardIds(myHand, state.currentTrick, state.gameMode);
+        }
     }
     // Last completed trick from history
     const lastTrick = state.trickHistory.length > 0 ? state.trickHistory[state.trickHistory.length - 1] : null;
     return {
         matchId: state.matchId,
+        name: state.name,
+        gameType: state.gameType || 'franzen',
+        maxPlayers,
         code: state.code,
         status: state.status,
         isPrivate: state.isPrivate,
@@ -102,6 +113,10 @@ export function sanitizeGameStateForPlayer(state, userId) {
         myHand,
         talonCount: state.talon.length,
         talonCards,
+        wattenState: state.wattenState,
+        schnapsenState: state.schnapsenState,
+        wattenOptions: state.wattenOptions,
+        schnapsenOptions: state.schnapsenOptions,
         currentTrick: state.currentTrick,
         trickLeadSeat: state.trickLeadSeat,
         lastTrick,

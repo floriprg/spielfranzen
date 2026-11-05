@@ -28,9 +28,132 @@ export const DEFAULT_BOT_WEIGHTS = {
     useISMCTS: true,
     ismctsIterations: 100,
     ismctsExploration: 0.75,
+    useNeuralNetwork: true,
+    neuralNetworkWeight: 80,
 };
+// 33 Canonical Card IDs for RL State Encoding
+export const RL_CARD_IDS = [
+    // Eichel (0..7)
+    'EICHEL_2', 'EICHEL_3', 'EICHEL_4', 'EICHEL_5', 'EICHEL_6', 'EICHEL_7', 'EICHEL_8', 'EICHEL_9',
+    // Laub (8..15)
+    'LAUB_2', 'LAUB_3', 'LAUB_4', 'LAUB_5', 'LAUB_6', 'LAUB_7', 'LAUB_8', 'LAUB_9',
+    // Herz (16..23)
+    'HERZ_2', 'HERZ_3', 'HERZ_4', 'HERZ_5', 'HERZ_6', 'HERZ_7', 'HERZ_8', 'HERZ_9',
+    // Schell (24..31)
+    'SCHELL_2', 'SCHELL_3', 'SCHELL_4', 'SCHELL_5', 'SCHELL_6', 'SCHELL_7', 'SCHELL_8', 'SCHELL_9',
+    // Weli (32)
+    'SCHELL_WELI',
+];
+export const RL_CARD_TO_INDEX = {};
+RL_CARD_IDS.forEach((id, idx) => {
+    RL_CARD_TO_INDEX[id] = idx;
+});
+/**
+ * Encodes the current match state into the exact 147-float input vector expected by FranzenActorCritic:
+ * - 0–32: Player hand cards (One-Hot, 33)
+ * - 33–65: Already played cards in previous tricks (One-Hot, 33)
+ * - 66–98: First card in current trick (One-Hot, 33)
+ * - 99–131: Second card in current trick (One-Hot, 33)
+ * - 132–140: Current game mode 4 to 12 (One-Hot, 9)
+ * - 141–146: Normalized values [eigenePkt/66, gegnerPkt/66, stichNr/10, istAlleinspieler, posImStich/2, trumpfIdx/4]
+ */
+export function encodeGameStateTo147Floats(state, seatIndex) {
+    const vec = new Float32Array(147);
+    // 1. Hand cards
+    const myHand = state.hands[seatIndex] || [];
+    for (const card of myHand) {
+        const idx = RL_CARD_TO_INDEX[card.id];
+        if (idx !== undefined) {
+            vec[idx] = 1.0;
+        }
+    }
+    // 2. Played cards in previous tricks
+    for (const trick of state.trickHistory) {
+        for (const play of trick.cards) {
+            const idx = RL_CARD_TO_INDEX[play.card.id];
+            if (idx !== undefined) {
+                vec[33 + idx] = 1.0;
+            }
+        }
+    }
+    // 3. First card in current trick
+    if (state.currentTrick.length >= 1) {
+        const leadCard = state.currentTrick[0].card;
+        const idx = RL_CARD_TO_INDEX[leadCard.id];
+        if (idx !== undefined) {
+            vec[66 + idx] = 1.0;
+        }
+    }
+    // 4. Second card in current trick
+    if (state.currentTrick.length >= 2) {
+        const secondCard = state.currentTrick[1].card;
+        const idx = RL_CARD_TO_INDEX[secondCard.id];
+        if (idx !== undefined) {
+            vec[99 + idx] = 1.0;
+        }
+    }
+    // 5. Game Mode (4 to 12)
+    const mode = state.gameMode || 5;
+    const modeIdx = Math.max(0, Math.min(8, mode - 4));
+    vec[132 + modeIdx] = 1.0;
+    // 6. Normalized Floats
+    const isDeclarer = seatIndex === state.declarerSeat;
+    const eigenePunkte = isDeclarer ? state.declarerCardPoints : state.defenderCardPoints;
+    const gegnerPunkte = isDeclarer ? state.defenderCardPoints : state.declarerCardPoints;
+    vec[141] = eigenePunkte / 66.0;
+    vec[142] = gegnerPunkte / 66.0;
+    vec[143] = state.trickHistory.length / 10.0;
+    vec[144] = isDeclarer ? 1.0 : 0.0;
+    vec[145] = state.currentTrick.length / 2.0;
+    // Trumpf-Farbe-Index: Eichel=0, Laub=1, Schell=3, Herz=2, Kein Trumpf=4
+    const TRUMP_SUIT_INDEX = {
+        5: 0, // EICHEL
+        6: 1, // LAUB
+        7: 3, // SCHELL
+        8: 2, // HERZ
+    };
+    const trumpIdx = TRUMP_SUIT_INDEX[mode] !== undefined ? TRUMP_SUIT_INDEX[mode] : 4;
+    vec[146] = trumpIdx / 4.0;
+    return vec;
+}
 export class BotEngine {
     static championWeights = BotEngine.loadChampionWeights();
+    static onnxSession = null;
+    static onnxInitAttempted = false;
+    /**
+     * Initializes and warms up the ONNX runtime inference session.
+     * Automatically picks the newest trained model based on file modification timestamp.
+     */
+    static async initNeuralNetwork(forceReload = false) {
+        if (BotEngine.onnxSession && !forceReload)
+            return true;
+        try {
+            const ort = await import('onnxruntime-node');
+            const __filename = fileURLToPath(import.meta.url);
+            const __dirname = path.dirname(__filename);
+            const candidatePaths = [
+                path.resolve(process.cwd(), 'franzen_bot.onnx'),
+                path.resolve(__dirname, '../../../franzen_bot.onnx'),
+                path.resolve(__dirname, '../config/franzen_bot.onnx'),
+                path.resolve(process.cwd(), 'backend/src/config/franzen_bot.onnx'),
+            ].filter((p) => fs.existsSync(p));
+            if (candidatePaths.length === 0) {
+                console.warn('⚠️ [BotEngine] franzen_bot.onnx not found. Falling back to ISMCTS/Heuristics.');
+                return false;
+            }
+            // Sort by newest modification timestamp
+            candidatePaths.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
+            const modelPath = candidatePaths[0];
+            const stats = fs.statSync(modelPath);
+            BotEngine.onnxSession = await ort.InferenceSession.create(modelPath);
+            console.log(`🧠 [BotEngine] Franzen RL Neural Network (ONNX) loaded from: ${modelPath} (Stand: ${new Date(stats.mtime).toLocaleString()})`);
+            return true;
+        }
+        catch (err) {
+            console.warn('⚠️ [BotEngine] Failed to initialize ONNX neural network:', err);
+            return false;
+        }
+    }
     static getChampionWeights() {
         return { ...BotEngine.championWeights };
     }
@@ -479,9 +602,101 @@ export class BotEngine {
         };
     }
     // =========================================================================
-    // --- TRICK PLAY DECISION MATRIX (PDF SECTION 7.4) ---
+    // --- TRICK PLAY DECISION MATRIX (DEEP RL & HEURISTICS) ---
     // =========================================================================
-    static decideCardToPlay(state, seatIndex, weights = BotEngine.championWeights) {
+    /**
+     * Computes masked Softmax policy distribution (priors) over legal cards using the ONNX model.
+     * Returns a map of cardId -> probability (summing to 1.0).
+     */
+    static async getNeuralNetworkPriors(state, seatIndex, legalCardIds) {
+        if (!BotEngine.onnxSession && !BotEngine.onnxInitAttempted) {
+            BotEngine.onnxInitAttempted = true;
+            await BotEngine.initNeuralNetwork();
+        }
+        if (!BotEngine.onnxSession) {
+            return null;
+        }
+        try {
+            const ort = await import('onnxruntime-node');
+            const inputVector = encodeGameStateTo147Floats(state, seatIndex);
+            const inputTensor = new ort.Tensor('float32', inputVector, [1, 147]);
+            const results = await BotEngine.onnxSession.run({ input: inputTensor });
+            const logitsTensor = results.logits;
+            if (!logitsTensor || !logitsTensor.data) {
+                return null;
+            }
+            const logitsData = logitsTensor.data;
+            // Extract legal logits and compute numerically stable Softmax
+            let maxLogit = -Infinity;
+            const rawLogits = [];
+            for (const cardId of legalCardIds) {
+                const cardIdx = RL_CARD_TO_INDEX[cardId];
+                const logit = cardIdx !== undefined ? logitsData[cardIdx] : -100;
+                rawLogits.push(logit);
+                if (logit > maxLogit) {
+                    maxLogit = logit;
+                }
+            }
+            let sumExp = 0;
+            const expValues = rawLogits.map((l) => {
+                const exp = Math.exp(l - maxLogit);
+                sumExp += exp;
+                return exp;
+            });
+            const priors = new Map();
+            legalCardIds.forEach((cardId, i) => {
+                priors.set(cardId, sumExp > 0 ? expValues[i] / sumExp : 1.0 / legalCardIds.length);
+            });
+            return priors;
+        }
+        catch (err) {
+            console.warn('⚠️ [BotEngine] Neural network inference error, falling back:', err);
+            return null;
+        }
+    }
+    /**
+     * Evaluates the current state using the trained Actor-Critic Neural Network (ONNX).
+     * Masks illegal actions and returns the highest logit legal card ID.
+     */
+    static async decideCardWithNeuralNetwork(state, seatIndex, legalCardIds, weights = BotEngine.championWeights) {
+        const priors = await BotEngine.getNeuralNetworkPriors(state, seatIndex, legalCardIds);
+        if (!priors)
+            return null;
+        let bestCard = legalCardIds[0];
+        let maxP = -1;
+        for (const [cardId, p] of priors) {
+            if (p > maxP) {
+                maxP = p;
+                bestCard = cardId;
+            }
+        }
+        return bestCard;
+    }
+    /**
+     * Primary asynchronous entry point for bot card selection.
+     * State-of-the-art hybrid combination:
+     * 1. Neural Network Policy Priors (ONNX Deep RL)
+     * 2. Information Set Monte Carlo Tree Search (ISMCTS with PUCT)
+     * 3. Expert domain heuristics & blunder prevention
+     */
+    static async decideCardToPlayAsync(state, seatIndex, weights = BotEngine.championWeights) {
+        const hand = state.hands[seatIndex];
+        const legalIds = getLegalCardIds(hand, state.currentTrick, state.gameMode);
+        if (legalIds.length === 0) {
+            throw new Error(`No legal cards available for seat ${seatIndex}`);
+        }
+        if (legalIds.length === 1) {
+            return legalIds[0];
+        }
+        // 1. Run ONNX Neural Network to obtain legal policy distribution
+        let nnPriors = null;
+        if (weights.useNeuralNetwork !== false) {
+            nnPriors = await BotEngine.getNeuralNetworkPriors(state, seatIndex, legalIds);
+        }
+        // 2. Guide ISMCTS search and decision heuristics using the neural priors
+        return BotEngine.decideCardToPlay(state, seatIndex, weights, nnPriors);
+    }
+    static decideCardToPlay(state, seatIndex, weights = BotEngine.championWeights, nnPriors) {
         const hand = state.hands[seatIndex];
         const legalIds = getLegalCardIds(hand, state.currentTrick, state.gameMode);
         if (legalIds.length === 0) {
@@ -494,14 +709,14 @@ export class BotEngine {
         const mode = state.gameMode || 5;
         const isDeclarer = seatIndex === state.declarerSeat;
         const deductions = BotEngine.deduceGameState(state, seatIndex);
-        // Information Set Monte Carlo Tree Search (ISMCTS)
+        // Information Set Monte Carlo Tree Search (ISMCTS), guided by NN policy priors
         let ismctsMap = null;
         if (weights.useISMCTS !== false) {
             try {
-                const ismctsResult = ISMCTSEngine.search(state, seatIndex, weights);
+                const ismctsResult = ISMCTSEngine.search(state, seatIndex, weights, undefined, undefined, nnPriors);
                 ismctsMap = new Map();
                 for (const [cardId, stats] of ismctsResult.cardStats) {
-                    ismctsMap.set(cardId, stats.mctsScore);
+                    ismctsMap.set(cardId, stats.combinedScore ?? stats.mctsScore);
                 }
             }
             catch (err) {
@@ -510,17 +725,17 @@ export class BotEngine {
         }
         // 1. Bettl & Doppelbettl (Modes 9 & 11)
         if (mode === 9 || mode === 11) {
-            return BotEngine.decideBettlCard(state, seatIndex, isDeclarer, legalCards, deductions, weights, ismctsMap);
+            return BotEngine.decideBettlCard(state, seatIndex, isDeclarer, legalCards, deductions, weights, ismctsMap, nnPriors);
         }
         // 2. Mord & Doppelmord (Modes 10 & 12)
         if (mode === 10 || mode === 12) {
-            return BotEngine.decideMordCard(state, seatIndex, isDeclarer, legalCards, deductions, weights, ismctsMap);
+            return BotEngine.decideMordCard(state, seatIndex, isDeclarer, legalCards, deductions, weights, ismctsMap, nnPriors);
         }
         // 3. Color Games (Modes 5..8)
-        return BotEngine.decideColorCard(state, seatIndex, isDeclarer, legalCards, deductions, weights, ismctsMap);
+        return BotEngine.decideColorCard(state, seatIndex, isDeclarer, legalCards, deductions, weights, ismctsMap, nnPriors);
     }
     // --- COLOR GAME TRICK PLAY ---
-    static decideColorCard(state, seatIndex, isDeclarer, legalCards, deductions, weights = BotEngine.championWeights, ismctsMap) {
+    static decideColorCard(state, seatIndex, isDeclarer, legalCards, deductions, weights = BotEngine.championWeights, ismctsMap, nnPriors) {
         const trumpSuit = GAME_MODE_INFO[state.gameMode]?.trumpSuit;
         const trick = state.currentTrick;
         const partnerSeat = isDeclarer
@@ -581,6 +796,9 @@ export class BotEngine {
                 }
                 if (ismctsMap && ismctsMap.has(card.id)) {
                     score += ismctsMap.get(card.id);
+                }
+                if (nnPriors && nnPriors.has(card.id)) {
+                    score += nnPriors.get(card.id) * (weights.neuralNetworkWeight ?? 80);
                 }
                 scoredCandidates.push({ cardId: card.id, score });
             }
@@ -643,6 +861,9 @@ export class BotEngine {
                 }
                 if (ismctsMap && ismctsMap.has(card.id)) {
                     score += ismctsMap.get(card.id);
+                }
+                if (nnPriors && nnPriors.has(card.id)) {
+                    score += nnPriors.get(card.id) * (weights.neuralNetworkWeight ?? 80);
                 }
                 scoredCandidates.push({ cardId: card.id, score });
             }
@@ -728,12 +949,15 @@ export class BotEngine {
             if (ismctsMap && ismctsMap.has(card.id)) {
                 score += ismctsMap.get(card.id);
             }
+            if (nnPriors && nnPriors.has(card.id)) {
+                score += nnPriors.get(card.id) * (weights.neuralNetworkWeight ?? 80);
+            }
             scoredCandidates.push({ cardId: card.id, score });
         }
         return BotEngine.sampleMoveWithTemperature(scoredCandidates, weights.explorationTemperature ?? 3.0);
     }
     // --- BETTL TRICK PLAY (PDF SECTION 5 & 7.4) ---
-    static decideBettlCard(state, seatIndex, isDeclarer, legalCards, deductions, weights = BotEngine.championWeights, ismctsMap) {
+    static decideBettlCard(state, seatIndex, isDeclarer, legalCards, deductions, weights = BotEngine.championWeights, ismctsMap, nnPriors) {
         const trick = state.currentTrick;
         const scoredCandidates = [];
         if (isDeclarer) {
@@ -757,6 +981,9 @@ export class BotEngine {
                         if (ismctsMap && ismctsMap.has(card.id)) {
                             score += ismctsMap.get(card.id);
                         }
+                        if (nnPriors && nnPriors.has(card.id)) {
+                            score += nnPriors.get(card.id) * (weights.neuralNetworkWeight ?? 80);
+                        }
                         scoredCandidates.push({ cardId: card.id, score });
                     }
                 }
@@ -766,6 +993,9 @@ export class BotEngine {
                         let score = 100 - card.rank * 10;
                         if (ismctsMap && ismctsMap.has(card.id)) {
                             score += ismctsMap.get(card.id);
+                        }
+                        if (nnPriors && nnPriors.has(card.id)) {
+                            score += nnPriors.get(card.id) * (weights.neuralNetworkWeight ?? 80);
                         }
                         scoredCandidates.push({ cardId: card.id, score });
                     }
@@ -794,6 +1024,9 @@ export class BotEngine {
                 }
                 if (ismctsMap && ismctsMap.has(card.id)) {
                     score += ismctsMap.get(card.id);
+                }
+                if (nnPriors && nnPriors.has(card.id)) {
+                    score += nnPriors.get(card.id) * (weights.neuralNetworkWeight ?? 80);
                 }
                 scoredCandidates.push({ cardId: card.id, score });
             }
@@ -827,6 +1060,9 @@ export class BotEngine {
                 if (ismctsMap && ismctsMap.has(card.id)) {
                     score += ismctsMap.get(card.id);
                 }
+                if (nnPriors && nnPriors.has(card.id)) {
+                    score += nnPriors.get(card.id) * (weights.neuralNetworkWeight ?? 80);
+                }
                 scoredCandidates.push({ cardId: card.id, score });
             }
             return BotEngine.sampleMoveWithTemperature(scoredCandidates, weights.explorationTemperature ?? 3.0);
@@ -845,6 +1081,9 @@ export class BotEngine {
                 }
                 if (ismctsMap && ismctsMap.has(card.id)) {
                     score += ismctsMap.get(card.id);
+                }
+                if (nnPriors && nnPriors.has(card.id)) {
+                    score += nnPriors.get(card.id) * (weights.neuralNetworkWeight ?? 80);
                 }
                 scoredCandidates.push({ cardId: card.id, score });
             }
@@ -867,12 +1106,15 @@ export class BotEngine {
             if (ismctsMap && ismctsMap.has(card.id)) {
                 score += ismctsMap.get(card.id);
             }
+            if (nnPriors && nnPriors.has(card.id)) {
+                score += nnPriors.get(card.id) * (weights.neuralNetworkWeight ?? 80);
+            }
             scoredCandidates.push({ cardId: card.id, score });
         }
         return BotEngine.sampleMoveWithTemperature(scoredCandidates, weights.explorationTemperature ?? 3.0);
     }
     // --- MORD TRICK PLAY (PDF SECTION 6 & 7.4) ---
-    static decideMordCard(state, seatIndex, isDeclarer, legalCards, deductions, weights = BotEngine.championWeights, ismctsMap) {
+    static decideMordCard(state, seatIndex, isDeclarer, legalCards, deductions, weights = BotEngine.championWeights, ismctsMap, nnPriors) {
         const trick = state.currentTrick;
         const scoredCandidates = [];
         if (isDeclarer) {
@@ -881,6 +1123,9 @@ export class BotEngine {
                 let score = card.rank * 10;
                 if (ismctsMap && ismctsMap.has(card.id)) {
                     score += ismctsMap.get(card.id);
+                }
+                if (nnPriors && nnPriors.has(card.id)) {
+                    score += nnPriors.get(card.id) * (weights.neuralNetworkWeight ?? 80);
                 }
                 scoredCandidates.push({ cardId: card.id, score });
             }
@@ -901,6 +1146,9 @@ export class BotEngine {
                 if (ismctsMap && ismctsMap.has(card.id)) {
                     score += ismctsMap.get(card.id);
                 }
+                if (nnPriors && nnPriors.has(card.id)) {
+                    score += nnPriors.get(card.id) * (weights.neuralNetworkWeight ?? 80);
+                }
                 scoredCandidates.push({ cardId: card.id, score });
             }
             return BotEngine.sampleMoveWithTemperature(scoredCandidates, weights.explorationTemperature ?? 3.0);
@@ -909,6 +1157,9 @@ export class BotEngine {
             let score = card.rank * 5;
             if (ismctsMap && ismctsMap.has(card.id)) {
                 score += ismctsMap.get(card.id);
+            }
+            if (nnPriors && nnPriors.has(card.id)) {
+                score += nnPriors.get(card.id) * (weights.neuralNetworkWeight ?? 80);
             }
             scoredCandidates.push({ cardId: card.id, score });
         }
@@ -1011,4 +1262,6 @@ export class BotEngine {
 function leadCardRankDifference(card, targetRank) {
     return card.rank - targetRank;
 }
+export { WattenBotAI } from './WattenBotAI.js';
+export { SchnapsenBotAI } from './SchnapsenBotAI.js';
 //# sourceMappingURL=BotEngine.js.map

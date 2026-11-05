@@ -300,3 +300,53 @@ test('10. Chat Feature: chatEnabled flag and chatMessages forwarding', () => {
   const sanitizedDisabled = sanitizeGameStateForPlayer(stateDisabled, 'u2');
   assert.strictEqual(sanitizedDisabled.chatEnabled, false);
 });
+
+test('11. Surrender handling: Declarer, Defender, and Match forfeit', () => {
+  const players = [
+    { userId: 'u1', username: 'Alleinspieler', isBot: false },
+    { userId: 'u2', username: 'Gegner 1', isBot: false },
+    { userId: 'u3', username: 'Gegner 2', isBot: false },
+  ];
+
+  // Case 1: Declarer surrenders current round
+  const state1 = GameEngine.createInitialState('match-surr-1', 'SURR1', 3, players);
+  GameEngine.startNewRound(state1);
+  state1.phase = 'TRICK_PLAY';
+  state1.declarerSeat = 0;
+  state1.gameMode = 5; // Eichel (100)
+
+  GameEngine.handleSurrender(state1, 0, 'round');
+  assert.strictEqual(state1.phase, 'ROUND_SUMMARY');
+  assert.strictEqual(state1.lastRoundResult?.declarerWon, false);
+  assert.strictEqual(state1.players[0]!.score, -100);
+  assert.strictEqual(state1.players[1]!.score, 50);
+  assert.strictEqual(state1.players[2]!.score, 50);
+  assert.ok(state1.lastRoundResult?.reason.includes('Alleinspieler'));
+
+  // Case 2: Defender surrenders current round
+  const state2 = GameEngine.createInitialState('match-surr-2', 'SURR2', 3, players);
+  GameEngine.startNewRound(state2);
+  state2.phase = 'TRICK_PLAY';
+  state2.declarerSeat = 0;
+  state2.gameMode = 9; // Bettl (200)
+
+  GameEngine.handleSurrender(state2, 1, 'round');
+  assert.strictEqual(state2.phase, 'ROUND_SUMMARY');
+  assert.strictEqual(state2.lastRoundResult?.declarerWon, true);
+  assert.strictEqual(state2.players[0]!.score, 200);
+  assert.strictEqual(state2.players[1]!.score, -100);
+  assert.strictEqual(state2.players[2]!.score, -100);
+
+  // Case 3: Player forfeits whole match
+  const state3 = GameEngine.createInitialState('match-surr-3', 'SURR3', 3, players);
+  GameEngine.startNewRound(state3);
+  state3.phase = 'TRICK_PLAY';
+  state3.declarerSeat = 0;
+  state3.gameMode = 6; // Laub (100)
+
+  GameEngine.handleSurrender(state3, 0, 'match');
+  assert.strictEqual(state3.phase, 'MATCH_COMPLETED');
+  assert.strictEqual(state3.status, 'COMPLETED');
+  assert.ok(state3.matchResult !== null, 'Match result must be computed on match forfeit');
+  assert.strictEqual(state3.matchResult?.rankings.length, 3);
+});

@@ -1,5 +1,5 @@
 import { Card } from '@spielfranzen/shared';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { SuitIcon } from './SuitIcon.js';
 
 interface CardViewProps {
@@ -12,6 +12,8 @@ interface CardViewProps {
   showPoints?: boolean;
 }
 
+const FORMAT_PRIORITY = ['svg', 'png', 'webp'] as const;
+
 export const CardView: React.FC<CardViewProps> = ({
   card,
   isLegal = true,
@@ -21,7 +23,23 @@ export const CardView: React.FC<CardViewProps> = ({
   className = '',
   showPoints = true,
 }) => {
-  const [imgError, setImgError] = useState(false);
+  const [formatIndex, setFormatIndex] = useState(0);
+  const [allFailed, setAllFailed] = useState(false);
+
+  useEffect(() => {
+    setFormatIndex(0);
+    setAllFailed(false);
+  }, [card.id]);
+
+  const handleImgError = () => {
+    if (formatIndex < FORMAT_PRIORITY.length - 1) {
+      setFormatIndex((prev) => prev + 1);
+    } else {
+      setAllFailed(true);
+    }
+  };
+
+  const imageSrc = `/cards/${card.id}.${FORMAT_PRIORITY[formatIndex]}`;
 
   const sizeClasses = {
     xs: 'w-[32px] sm:w-[36px] aspect-[256/480] max-h-[68px] text-[9px] flex-shrink-0',
@@ -57,13 +75,14 @@ export const CardView: React.FC<CardViewProps> = ({
       `}
       title={`${card.name}${showPoints ? ` (${card.points} Augen)` : ''}${!isLegal ? ' - Nicht regelkonform' : ''}`}
     >
-      {/* Authentic South Tyrolean Card Image */}
-      {!imgError ? (
+      {/* Authentic Card Image with SVG priority and PNG/WebP fallback */}
+      {!allFailed ? (
         <div className="w-full h-full relative bg-stone-100">
           <img
-            src={`/cards/${card.id}.webp`}
+            key={imageSrc}
+            src={imageSrc}
             alt={card.name}
-            onError={() => setImgError(true)}
+            onError={handleImgError}
             className="w-full h-full object-cover pointer-events-none rounded-md"
             loading="eager"
           />

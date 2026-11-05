@@ -29,6 +29,7 @@
     "express": "^4.21.2",
     "google-auth-library": "^11.3.2",
     "jsonwebtoken": "^9.0.2",
+    "onnxruntime-node": "^1.31.1",
     "prisma": "^6.3.1",
     "socket.io": "^4.8.1",
     "tsx": "^4.19.2",

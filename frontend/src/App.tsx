@@ -7,6 +7,7 @@ import { LobbyPage } from './pages/LobbyPage.js';
 import { LoginPage } from './pages/LoginPage.js';
 import { ProfilePage } from './pages/ProfilePage.js';
 import { RegisterPage } from './pages/RegisterPage.js';
+import { RulesPage } from './pages/RulesPage.js';
 import { useAuthStore } from './store/authStore.js';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -59,6 +60,7 @@ export const App: React.FC = () => {
               }
             />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/rules" element={<RulesPage />} />
             <Route path="/profile/:username" element={<ProfilePage />} />
             <Route path="*" element={<Navigate to="/lobby" replace />} />
           </Routes>

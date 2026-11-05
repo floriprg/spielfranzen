@@ -1,4 +1,5 @@
 import {
+  CardRank,
   ChatMessage,
   ClientToServerEvents,
   FullGameState,
@@ -7,13 +8,19 @@ import {
   SanitizedGameState,
   SanitizedPlayerSeat,
   ServerToClientEvents,
+  Suit,
   Trick,
 } from '@spielfranzen/shared';
 import crypto from 'crypto';
 import { Server, Socket } from 'socket.io';
 import { prisma } from '../db/prisma.js';
 import { BotEngine } from '../game/BotEngine.js';
+import { EngineRouter } from '../game/EngineRouter.js';
 import { GameEngine } from '../game/GameEngine.js';
+import { SchnapsenBotAI } from '../game/SchnapsenBotAI.js';
+import { SchnapsenEngine } from '../game/SchnapsenEngine.js';
+import { WattenBotAI } from '../game/WattenBotAI.js';
+import { WattenEngine } from '../game/WattenEngine.js';
 import { sanitizeGameStateForPlayer } from '../game/sanitizer.js';
 import { AuthUserPayload } from '../middleware/auth.js';
 
@@ -107,6 +114,33 @@ export class GameSocketHandler {
         }
       });
 
+      // Handle player surrender (round or match)
+      socket.on('game:surrender', async ({ matchId, surrenderType }) => {
+        try {
+          await this.handleSurrender(socket, matchId, userId, surrenderType);
+        } catch (err: any) {
+          socket.emit('game:error', { message: err.message || 'Fehler beim Aufgeben.' });
+        }
+      });
+
+      // Handle Watten actions (Schlag, Farbe, Bieten/Halten/Gehen, Es gehen die Vier)
+      socket.on('game:watten_action', async ({ matchId, action, schlag, farbe, decision }) => {
+        try {
+          await this.handleWattenAction(socket, matchId, userId, action, schlag, farbe, decision);
+        } catch (err: any) {
+          socket.emit('game:error', { message: err.message || 'Fehler bei Watten-Aktion.' });
+        }
+      });
+
+      // Handle Schnapsen actions (Ansage 20/40, Trumpftausch, Zudrehen, Mode, Bidding, Atout, Talon)
+      socket.on('game:schnapsen_action', async (payload: any) => {
+        try {
+          await this.handleSchnapsenAction(socket, payload.matchId, userId, payload);
+        } catch (err: any) {
+          socket.emit('game:error', { message: err.message || 'Fehler bei Schnapsen-Aktion.' });
+        }
+      });
+
       // Handle adding a Bot
       socket.on('game:add_bot', async ({ matchId, seatIndex }) => {
         try {
@@ -189,6 +223,9 @@ export class GameSocketHandler {
         const state = parsed as FullGameState;
         if (match.isPrivate !== undefined) {
           state.isPrivate = match.isPrivate;
+        }
+        if (state.name === undefined && match.name) {
+          state.name = match.name;
         }
         if (state.chatEnabled === undefined) {
           state.chatEnabled = (match.liveGameState as any)?.chatEnabled ?? true;
@@ -319,47 +356,24 @@ export class GameSocketHandler {
 
     if (!match) return;
 
-    const dummySeats: [SanitizedPlayerSeat, SanitizedPlayerSeat, SanitizedPlayerSeat] = [
-      {
-        seatIndex: 0,
-        userId: '',
-        username: '',
-        isBot: false,
-        isOnline: false,
-        score: 0,
-        role: 'NONE',
-        handCount: 0,
-        tricksWon: 0,
-        cardPointsWon: 0,
-      },
-      {
-        seatIndex: 1,
-        userId: '',
-        username: '',
-        isBot: false,
-        isOnline: false,
-        score: 0,
-        role: 'NONE',
-        handCount: 0,
-        tricksWon: 0,
-        cardPointsWon: 0,
-      },
-      {
-        seatIndex: 2,
-        userId: '',
-        username: '',
-        isBot: false,
-        isOnline: false,
-        score: 0,
-        role: 'NONE',
-        handCount: 0,
-        tricksWon: 0,
-        cardPointsWon: 0,
-      },
-    ];
+    const maxPlayers = (match as any).maxPlayers || 3;
+    const gameType = (match as any).gameType || 'franzen';
+
+    const dummySeats: SanitizedPlayerSeat[] = Array.from({ length: maxPlayers }, (_, idx) => ({
+      seatIndex: idx,
+      userId: '',
+      username: '',
+      isBot: false,
+      isOnline: false,
+      score: 0,
+      role: 'NONE',
+      handCount: 0,
+      tricksWon: 0,
+      cardPointsWon: 0,
+    }));
 
     for (const p of match.participants) {
-      if (p.seatIndex >= 0 && p.seatIndex <= 2) {
+      if (p.seatIndex >= 0 && p.seatIndex < maxPlayers) {
         dummySeats[p.seatIndex] = {
           seatIndex: p.seatIndex,
           userId: p.userId,
@@ -398,6 +412,9 @@ export class GameSocketHandler {
 
         const waitingState: SanitizedGameState = {
           matchId: match.id,
+          name: match.name || undefined,
+          gameType,
+          maxPlayers,
           code: match.code,
           status: 'WAITING',
           isPrivate: match.isPrivate,
@@ -471,11 +488,15 @@ export class GameSocketHandler {
         return;
       }
 
+      const maxPlayers = (match as any).maxPlayers || 3;
+      const gameType = (match as any).gameType || 'franzen';
+
       // If user is not yet a participant and match is WAITING with free seats, auto-seat them!
       const isParticipant = match.participants.some((p) => p.userId === userId);
-      if (!isParticipant && match.status === 'WAITING' && match.participants.length < 3) {
+      if (!isParticipant && match.status === 'WAITING' && match.participants.length < maxPlayers) {
         const takenSeats = match.participants.map((p) => p.seatIndex);
-        const freeSeat = [0, 1, 2].find((s) => !takenSeats.includes(s));
+        const allSeats = Array.from({ length: maxPlayers }, (_, i) => i);
+        const freeSeat = allSeats.find((s) => !takenSeats.includes(s));
         if (freeSeat !== undefined) {
           await prisma.matchParticipant.create({
             data: {
@@ -497,8 +518,8 @@ export class GameSocketHandler {
         }
       }
 
-      // If match is WAITING and now has 3 participants, initialize game state and start!
-      if (match.status === 'WAITING' && match.participants.length === 3) {
+      // If match is WAITING and now has maxPlayers participants, initialize game state and start!
+      if (match.status === 'WAITING' && match.participants.length === maxPlayers) {
         const players = match.participants.map((p) => ({
           userId: p.userId,
           username: p.isBot ? p.botName || 'Bot' : p.user.username,
@@ -509,7 +530,20 @@ export class GameSocketHandler {
           (match.liveGameState as any)?.timerConfig ??
           (match.liveGameState as any)?.timer?.config;
         const chatEnabled = (match.liveGameState as any)?.chatEnabled ?? true;
-        state = GameEngine.createInitialState(match.id, match.code, match.totalRounds, players, timerConfig, chatEnabled);
+        const wattenOptions = (match.liveGameState as any)?.wattenOptions;
+        const schnapsenOptions = (match.liveGameState as any)?.schnapsenOptions;
+        state = EngineRouter.createInitialState(
+          gameType,
+          match.id,
+          match.code,
+          match.totalRounds,
+          players,
+          timerConfig,
+          chatEnabled,
+          match.name || undefined,
+          wattenOptions,
+          schnapsenOptions,
+        );
         state.isPrivate = match.isPrivate;
         state.chatMessages = (match.liveGameState as any)?.chatMessages || [];
         this.activeMatches.set(matchId, state);
@@ -602,12 +636,13 @@ export class GameSocketHandler {
     const seatIdx = state.players.findIndex((p) => p && p.userId === userId);
     if (seatIdx === -1) throw new Error('Du bist kein Mitspieler in diesem Raum.');
 
-    if (state.currentTrick.length >= 3) {
+    const maxPlayers = state.maxPlayers || 3;
+    if (state.currentTrick.length >= maxPlayers) {
       throw new Error('Der vorherige Stich wird noch ausgewertet.');
     }
 
     this.deductTurnTime(state, seatIdx);
-    const result = GameEngine.handlePlayCard(state, seatIdx, cardId);
+    const result = EngineRouter.handlePlayCard(state, seatIdx, cardId);
     await this.processTrickPlayResult(matchId, result);
   }
 
@@ -631,7 +666,7 @@ export class GameSocketHandler {
         this.trickTimers.delete(matchId);
       }
 
-      // Hold trick visible on table for at least 3 seconds (3200ms)
+      // Hold trick visible on table for 1 second (1000ms)
       const timer = setTimeout(async () => {
         try {
           this.trickTimers.delete(matchId);
@@ -639,7 +674,7 @@ export class GameSocketHandler {
           if (!liveState) return;
 
           // Clear completed trick from table
-          GameEngine.clearCurrentTrick(liveState);
+          EngineRouter.clearCurrentTrick(liveState);
 
           if (result.roundEnded) {
             await this.handleRoundEnd(matchId, liveState);
@@ -655,7 +690,7 @@ export class GameSocketHandler {
         } catch (err) {
           console.error('Error resolving completed trick:', err);
         }
-      }, 3200);
+      }, 1000);
 
       this.trickTimers.set(matchId, timer);
       return;
@@ -785,12 +820,118 @@ export class GameSocketHandler {
       return;
     }
 
-    GameEngine.advanceToNextRound(state);
+    EngineRouter.advanceToNextRound(state);
     await this.persistMatchState(state);
     this.syncStateToMatch(matchId, state);
 
     this.startTurnTimer(matchId, state);
     this.checkAndTriggerBot(matchId, state);
+  }
+
+  /**
+   * Handles player surrender for the current round or entire match.
+   */
+  private async handleSurrender(
+    socket: Socket,
+    matchId: string,
+    userId: string,
+    surrenderType: 'round' | 'match' = 'round',
+  ): Promise<void> {
+    const state = await this.getOrLoadMatchState(matchId);
+    if (!state) throw new Error('Spiel nicht gefunden.');
+
+    const seatIndex = state.players.findIndex((p) => p && p.userId === userId);
+    if (seatIndex === -1) {
+      throw new Error('Du bist kein Mitspieler an diesem Tisch.');
+    }
+
+    if (state.phase === 'MATCH_COMPLETED' || state.status === 'COMPLETED') {
+      throw new Error('Das Spiel ist bereits beendet.');
+    }
+
+    // Clear active timers
+    if (this.botTimers.has(matchId)) {
+      clearTimeout(this.botTimers.get(matchId)!);
+      this.botTimers.delete(matchId);
+    }
+    this.clearTurnTimer(matchId);
+
+    const nextState = EngineRouter.handleSurrender(state, seatIndex, surrenderType);
+
+    if (nextState.phase === 'ROUND_SUMMARY' || nextState.phase === 'MATCH_COMPLETED') {
+      await this.handleRoundEnd(matchId, nextState);
+    } else {
+      await this.persistMatchState(nextState);
+      this.syncStateToMatch(matchId, nextState);
+    }
+  }
+
+  /**
+   * Handles Watten actions (Schlag, Farbe, Bieten/Halten/Gehen, Es gehen die Vier).
+   */
+  private async handleWattenAction(
+    socket: Socket,
+    matchId: string,
+    userId: string,
+    action: 'choose_schlag' | 'choose_farbe' | 'bet' | 'hold' | 'fold' | 'es_gehen_die_vier_response' | 'schlagtausch',
+    schlag?: CardRank,
+    farbe?: Suit,
+    decision?: 'hold' | 'fold',
+  ): Promise<void> {
+    const state = await this.getOrLoadMatchState(matchId);
+    if (!state) throw new Error('Spiel nicht gefunden.');
+    const seatIdx = state.players.findIndex((p) => p && p.userId === userId);
+    if (seatIdx === -1) throw new Error('Du bist kein Mitspieler an diesem Tisch.');
+
+    const wattenEngine = EngineRouter.getEngine(state.gameType) as WattenEngine;
+
+    if (action === 'choose_schlag' || action === 'choose_farbe' || action === 'schlagtausch') {
+      wattenEngine.handleWattenAnnounce(state, seatIdx, { schlag, farbe, action });
+      await this.persistMatchState(state);
+      this.syncStateToMatch(matchId, state);
+      this.startTurnTimer(matchId, state);
+      this.checkAndTriggerBot(matchId, state);
+      return;
+    }
+
+    if (action === 'bet' || action === 'hold' || action === 'fold' || action === 'es_gehen_die_vier_response') {
+      const res = wattenEngine.handleWattenBet(state, seatIdx, action, decision);
+      if (res.roundEnded) {
+        await this.handleRoundEnd(matchId, res.state);
+      } else {
+        await this.persistMatchState(res.state);
+        this.syncStateToMatch(matchId, res.state);
+        this.startTurnTimer(matchId, res.state);
+        this.checkAndTriggerBot(matchId, res.state);
+      }
+    }
+  }
+
+  /**
+   * Handles Schnapsen actions (Ansage 20/40, Trumpftausch, Zudrehen, Mode).
+   */
+  private async handleSchnapsenAction(
+    socket: Socket,
+    matchId: string,
+    userId: string,
+    payload: any,
+  ): Promise<void> {
+    const state = await this.getOrLoadMatchState(matchId);
+    if (!state) throw new Error('Spiel nicht gefunden.');
+    const seatIdx = state.players.findIndex((p) => p && p.userId === userId);
+    if (seatIdx === -1) throw new Error('Du bist kein Mitspieler an diesem Tisch.');
+
+    const schnapsenEngine = EngineRouter.getEngine(state.gameType) as SchnapsenEngine;
+    const res = schnapsenEngine.handleSchnapsenAction(state, seatIdx, payload);
+
+    if (res.roundEnded) {
+      await this.handleRoundEnd(matchId, res.state);
+    } else {
+      await this.persistMatchState(res.state);
+      this.syncStateToMatch(matchId, res.state);
+      this.startTurnTimer(matchId, res.state);
+      this.checkAndTriggerBot(matchId, res.state);
+    }
   }
 
   /**
@@ -851,7 +992,10 @@ export class GameSocketHandler {
       },
     });
 
-    if (updatedMatch && updatedMatch.participants.length === 3) {
+    const maxPlayers = (updatedMatch as any)?.maxPlayers || 3;
+    const gameType = (updatedMatch as any)?.gameType || 'franzen';
+
+    if (updatedMatch && updatedMatch.participants.length === maxPlayers) {
       const players = updatedMatch.participants.map((p) => ({
         userId: p.userId,
         username: p.isBot ? p.botName || 'Bot' : p.user.username,
@@ -862,13 +1006,19 @@ export class GameSocketHandler {
         (updatedMatch.liveGameState as any)?.timerConfig ??
         (updatedMatch.liveGameState as any)?.timer?.config;
       const chatEnabled = (updatedMatch.liveGameState as any)?.chatEnabled ?? true;
-      const state = GameEngine.createInitialState(
+      const wattenOptions = (updatedMatch.liveGameState as any)?.wattenOptions;
+      const schnapsenOptions = (updatedMatch.liveGameState as any)?.schnapsenOptions;
+      const state = EngineRouter.createInitialState(
+        gameType,
         updatedMatch.id,
         updatedMatch.code,
         updatedMatch.totalRounds,
         players,
         timerConfig,
         chatEnabled,
+        updatedMatch.name || undefined,
+        wattenOptions,
+        schnapsenOptions,
       );
       state.isPrivate = updatedMatch.isPrivate;
       state.chatMessages = (updatedMatch.liveGameState as any)?.chatMessages || [];
@@ -917,9 +1067,10 @@ export class GameSocketHandler {
    * Checks if the active turn belongs to a Bot and executes bot move after a realistic delay.
    */
   private checkAndTriggerBot(matchId: string, state: FullGameState): void {
+    const maxPlayers = state.maxPlayers || 3;
     if (state.status !== 'IN_PROGRESS') return;
     if (state.phase === 'ROUND_SUMMARY' || state.phase === 'MATCH_COMPLETED') return;
-    if (state.currentTrick.length >= 3) return; // Wait for the 3-second trick review to conclude
+    if (state.currentTrick.length >= maxPlayers) return; // Wait for trick review to conclude
 
     const currentSeat = state.currentTurnSeat;
     const player = state.players[currentSeat];
@@ -931,8 +1082,8 @@ export class GameSocketHandler {
       this.botTimers.delete(matchId);
     }
 
-    // Realistic 1 second thinking time for Bots across all phases (Trick Play, Bidding, Talon)
-    const delay = 1000;
+    // Fast 0.5 second thinking time for Bots across all phases (Trick Play, Bidding, Talon)
+    const delay = 500;
 
     const timer = setTimeout(async () => {
       try {
@@ -950,6 +1101,116 @@ export class GameSocketHandler {
           return;
         }
 
+        // 1. Watten Bots (WattenBotAI)
+        if (liveState.gameType === 'watten_2' || liveState.gameType === 'watten_4') {
+          const wattenEngine = EngineRouter.getEngine(liveState.gameType) as WattenEngine;
+          if (liveState.phase === 'BIDDING') {
+            const ws = liveState.wattenState;
+            if (ws && ws.schlag === null && ws.schlagChooserSeat === currentSeat) {
+              const schlag = WattenBotAI.chooseSchlag(liveState.hands[currentSeat] || []);
+              wattenEngine.handleWattenAnnounce(liveState, currentSeat, { schlag });
+            } else if (ws && ws.farbe === null && ws.farbeChooserSeat === currentSeat) {
+              const farbe = WattenBotAI.chooseFarbe(liveState.hands[currentSeat] || [], ws.schlag);
+              wattenEngine.handleWattenAnnounce(liveState, currentSeat, { farbe });
+            } else if (ws && ws.esGehenDieVier && ws.esGehenDieVierPendingTeam !== null) {
+              const decision = WattenBotAI.decideEsGehenDieVier(liveState, currentSeat, wattenEngine);
+              const betRes = wattenEngine.handleWattenBet(liveState, currentSeat, decision);
+              if (betRes.roundEnded) {
+                await this.handleRoundEnd(matchId, betRes.state);
+                return;
+              }
+            }
+            await this.persistMatchState(liveState);
+            this.syncStateToMatch(matchId, liveState);
+            this.startTurnTimer(matchId, liveState);
+            this.checkAndTriggerBot(matchId, liveState);
+            return;
+          }
+          if (liveState.phase === 'TRICK_PLAY') {
+            if (liveState.currentTrick.length >= maxPlayers) return;
+
+            // Check if there is an active bet or if bot wants to raise
+            const betAction = WattenBotAI.decideBetAction(liveState, currentSeat, wattenEngine);
+            if (betAction.action === 'hold' || betAction.action === 'fold') {
+              const betRes = wattenEngine.handleWattenBet(liveState, currentSeat, betAction.action);
+              if (betRes.roundEnded) {
+                await this.handleRoundEnd(matchId, betRes.state);
+                return;
+              }
+              await this.persistMatchState(betRes.state);
+              this.syncStateToMatch(matchId, betRes.state);
+              this.startTurnTimer(matchId, betRes.state);
+              this.checkAndTriggerBot(matchId, betRes.state);
+              return;
+            }
+            if (betAction.action === 'bet') {
+              const betRes = wattenEngine.handleWattenBet(liveState, currentSeat, 'bet');
+              await this.persistMatchState(betRes.state);
+              this.syncStateToMatch(matchId, betRes.state);
+              this.startTurnTimer(matchId, betRes.state);
+              this.checkAndTriggerBot(matchId, betRes.state);
+              return;
+            }
+
+            // Normal card play
+            this.deductTurnTime(liveState, currentSeat);
+            const cardId = WattenBotAI.decideCardToPlay(liveState, currentSeat, wattenEngine);
+            const result = wattenEngine.handlePlayCard(liveState, currentSeat, cardId);
+            await this.processTrickPlayResult(matchId, result);
+            return;
+          }
+        }
+
+        // 2. Schnapsen Bots (SchnapsenBotAI)
+        if (
+          liveState.gameType === 'schnapsen_2' ||
+          liveState.gameType === 'schnapsen_3' ||
+          liveState.gameType === 'schnapsen_4'
+        ) {
+          const schnapsenEngine = EngineRouter.getEngine(liveState.gameType) as SchnapsenEngine;
+
+          if (
+            liveState.phase === 'BIDDING' ||
+            liveState.phase === 'TALON_AND_DECLARATION'
+          ) {
+            const special = SchnapsenBotAI.decideSpecialAction(liveState, currentSeat, schnapsenEngine);
+            if (special.action) {
+              this.deductTurnTime(liveState, currentSeat);
+              const res = schnapsenEngine.handleSchnapsenAction(liveState, currentSeat, special as any);
+              if (res.roundEnded) {
+                await this.handleRoundEnd(matchId, res.state);
+                return;
+              }
+              await this.persistMatchState(res.state);
+              this.syncStateToMatch(matchId, res.state);
+              this.startTurnTimer(matchId, res.state);
+              this.checkAndTriggerBot(matchId, res.state);
+              return;
+            }
+          }
+
+          if (liveState.phase === 'TRICK_PLAY') {
+            if (liveState.currentTrick.length >= maxPlayers) return;
+
+            // Check special actions if leading trick or declare_66
+            const special = SchnapsenBotAI.decideSpecialAction(liveState, currentSeat, schnapsenEngine);
+            if (special.action) {
+              const res = schnapsenEngine.handleSchnapsenAction(liveState, currentSeat, special as any);
+              if (res.roundEnded) {
+                await this.handleRoundEnd(matchId, res.state);
+                return;
+              }
+            }
+
+            this.deductTurnTime(liveState, currentSeat);
+            const cardId = SchnapsenBotAI.decideCardToPlay(liveState, currentSeat, schnapsenEngine);
+            const result = schnapsenEngine.handlePlayCard(liveState, currentSeat, cardId);
+            await this.processTrickPlayResult(matchId, result);
+            return;
+          }
+        }
+
+        // 3. Franzen (Default / Existing Deep RL Bot Engine)
         if (liveState.phase === 'BIDDING') {
           this.deductTurnTime(liveState, currentSeat);
           const decision = BotEngine.decideBidAction(liveState, currentSeat);
@@ -979,9 +1240,9 @@ export class GameSocketHandler {
         }
 
         if (liveState.phase === 'TRICK_PLAY') {
-          if (liveState.currentTrick.length >= 3) return;
+          if (liveState.currentTrick.length >= maxPlayers) return;
           this.deductTurnTime(liveState, currentSeat);
-          const cardId = BotEngine.decideCardToPlay(liveState, currentSeat);
+          const cardId = await BotEngine.decideCardToPlayAsync(liveState, currentSeat);
           const result = GameEngine.handlePlayCard(liveState, currentSeat, cardId);
           await this.processTrickPlayResult(matchId, result);
           return;

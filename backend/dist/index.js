@@ -12,6 +12,7 @@ import { authRouter } from './routes/auth.js';
 import { leaderboardRouter } from './routes/leaderboard.js';
 import { matchesRouter } from './routes/matches.js';
 import { GameSocketHandler } from './sockets/gameSocket.js';
+import { BotEngine } from './game/BotEngine.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
@@ -61,8 +62,9 @@ const gameSocketHandler = new GameSocketHandler(io);
 gameSocketHandler.register();
 // Start Server
 const PORT = config.port;
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, async () => {
     console.log(`🚀 Franzen Game Backend server running on port ${PORT}`);
+    await BotEngine.initNeuralNetwork();
 });
 // Graceful shutdown
 process.on('SIGTERM', async () => {

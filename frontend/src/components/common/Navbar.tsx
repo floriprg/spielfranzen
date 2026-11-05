@@ -1,4 +1,4 @@
-import { Award, LogOut, Trophy, User } from 'lucide-react';
+import { Award, BookOpen, LogOut, Trophy, User } from 'lucide-react';
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore.js';
@@ -35,6 +35,13 @@ export const Navbar: React.FC = () => {
           <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-300">
             <Link to="/lobby" className="hover:text-amber-400 transition-colors">
               Lobby
+            </Link>
+            <Link
+              to="/rules"
+              className="flex items-center gap-1 hover:text-amber-400 transition-colors"
+            >
+              <BookOpen className="w-4 h-4 text-amber-500" />
+              <span>Spielanleitung</span>
             </Link>
             <Link
               to="/leaderboard"
@@ -92,6 +99,13 @@ export const Navbar: React.FC = () => {
           </div>
         ) : (
           <div className="flex items-center gap-2 sm:gap-3">
+            <Link
+              to="/rules"
+              className="text-xs sm:text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors flex items-center gap-1"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-amber-500" />
+              <span>Anleitung</span>
+            </Link>
             <Link
               to="/login"
               className="text-xs sm:text-sm font-semibold text-slate-300 hover:text-amber-400 transition-colors"

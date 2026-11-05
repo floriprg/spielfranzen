@@ -23,6 +23,7 @@ export class GameEngine {
     players: { userId: string; username: string; isBot: boolean }[],
     timerConfig?: Partial<GameTimerConfig>,
     chatEnabled?: boolean,
+    name?: string,
   ): FullGameState {
     if (players.length !== 3) {
       throw new Error('A Franzen match requires exactly 3 players.');
@@ -75,6 +76,7 @@ export class GameEngine {
 
     const state: FullGameState = {
       matchId,
+      name,
       code,
       status: 'IN_PROGRESS',
       chatEnabled: chatEnabled ?? true,
@@ -768,9 +770,9 @@ export class GameEngine {
     declarerWon: boolean,
     reason: string,
   ): FullGameState {
-    const mode = state.gameMode!;
-    const baseValue = GAME_MODE_INFO[mode].baseValue;
-    const declarerSeat = state.declarerSeat!;
+    const mode = (state.gameMode || state.minMode || 5) as GameMode;
+    const baseValue = GAME_MODE_INFO[mode]?.baseValue ?? 100;
+    const declarerSeat = state.declarerSeat ?? 0;
 
     // Zero-sum scoring:
     // If declarer won: Declarer +W, each defender -W/2
@@ -811,6 +813,55 @@ export class GameEngine {
       state.phase = 'ROUND_SUMMARY';
     }
 
+    return state;
+  }
+
+  /**
+   * Handles player surrender for the current round or entire match.
+   */
+  public static handleSurrender(
+    state: FullGameState,
+    seatIndex: number,
+    surrenderType: 'round' | 'match' = 'round',
+  ): FullGameState {
+    if (state.phase === 'MATCH_COMPLETED' || state.status === 'COMPLETED') {
+      throw new Error('Das Spiel ist bereits beendet.');
+    }
+
+    const player = state.players[seatIndex];
+    const username = player?.username || `Spieler ${seatIndex + 1}`;
+
+    if (surrenderType === 'match') {
+      // If in active round with a game mode, score this round as lost for the surrenderer
+      if (
+        state.phase === 'TRICK_PLAY' ||
+        state.phase === 'TALON_AND_DECLARATION'
+      ) {
+        const isDeclarer = seatIndex === state.declarerSeat;
+        const declarerWon = !isDeclarer;
+        GameEngine.finalizeRound(state, declarerWon, `${username} hat das Match aufgegeben.`);
+      }
+      state.phase = 'MATCH_COMPLETED';
+      state.status = 'COMPLETED';
+      state.matchResult = GameEngine.computeMatchResult(state);
+      return state;
+    }
+
+    // Surrendering current round:
+    if (state.phase === 'TRICK_PLAY' || state.phase === 'TALON_AND_DECLARATION') {
+      const isDeclarer = seatIndex === state.declarerSeat;
+      const declarerWon = !isDeclarer;
+      const reason = isDeclarer
+        ? `${username} (Alleinspieler) hat die Runde aufgegeben.`
+        : `${username} (Gegner) hat die Runde aufgegeben.`;
+
+      return GameEngine.finalizeRound(state, declarerWon, reason);
+    }
+
+    // If surrendering during BIDDING or other phase, default to concluding match
+    state.phase = 'MATCH_COMPLETED';
+    state.status = 'COMPLETED';
+    state.matchResult = GameEngine.computeMatchResult(state);
     return state;
   }
 

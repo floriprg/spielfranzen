@@ -4,6 +4,82 @@ export type Suit = 'EICHEL' | 'LAUB' | 'SCHELL' | 'HERZ';
 // Card Rank (1 = Weli, 2..9 = 7, 8, 9, Unter, Ober, König, 10, Ass)
 export type CardRank = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
+export type GameType = 'franzen' | 'watten_2' | 'watten_4' | 'schnapsen_2' | 'schnapsen_3' | 'schnapsen_4';
+
+export interface GameTypeConfig {
+  id: GameType;
+  name: string;
+  shortName: string;
+  description: string;
+  playerCount: number;
+  deckSize: 20 | 24 | 33;
+  handSize: number;
+  hasTeams: boolean;
+}
+
+export const GAME_TYPE_CONFIGS: Record<GameType, GameTypeConfig> = {
+  franzen: {
+    id: 'franzen',
+    name: 'Franzen (3 Spieler)',
+    shortName: 'Franzen',
+    description: 'Bayerisches Traditionsspiel für 3 Spieler mit 33 Karten (inkl. Weli), Reizen und Talon.',
+    playerCount: 3,
+    deckSize: 33,
+    handSize: 10,
+    hasTeams: false,
+  },
+  watten_2: {
+    id: 'watten_2',
+    name: 'Watten (2 Spieler)',
+    shortName: 'Watten (2er)',
+    description: 'Klassisches 1-gegen-1 Kartenduell mit 33 Karten, Schlag & Farbe sowie Bieten („Schlagta!“).',
+    playerCount: 2,
+    deckSize: 33,
+    handSize: 5,
+    hasTeams: false,
+  },
+  watten_4: {
+    id: 'watten_4',
+    name: 'Watten (4 Spieler)',
+    shortName: 'Watten (4er)',
+    description: 'Das beliebte 4er-Watten im 2-gegen-2 Team über Kreuz. Zusammenspiel, Deuten und Schlagen.',
+    playerCount: 4,
+    deckSize: 33,
+    handSize: 5,
+    hasTeams: true,
+  },
+  schnapsen_2: {
+    id: 'schnapsen_2',
+    name: 'Schnapsen (2 Spieler)',
+    shortName: 'Schnapsen',
+    description: 'Österreichisches 1-gegen-1 mit 20 Karten. Ziel: 66 Augen, Ansagen (20/40), Zudrehen und Bummerl.',
+    playerCount: 2,
+    deckSize: 20,
+    handSize: 5,
+    hasTeams: false,
+  },
+  schnapsen_3: {
+    id: 'schnapsen_3',
+    name: 'Dreierschnapsen (3 Spieler)',
+    shortName: 'Dreierschnapsen',
+    description: 'Echtes Dreierschnapsen mit 20 Karten, Talon & Lizitation. Jeder gegen jeden von 24 auf 0.',
+    playerCount: 3,
+    deckSize: 20,
+    handSize: 6,
+    hasTeams: false,
+  },
+  schnapsen_4: {
+    id: 'schnapsen_4',
+    name: 'Bauernschnapsen (4 Spieler)',
+    shortName: 'Bauernschnapsen (4er)',
+    description: 'Klassisches Viererschnapsen im 2-gegen-2 Team mit 20 Karten und Lizitation.',
+    playerCount: 4,
+    deckSize: 20,
+    handSize: 5,
+    hasTeams: true,
+  },
+};
+
 export interface Card {
   id: string; // e.g. "EICHEL_9", "WELI"
   suit: Suit;
@@ -193,6 +269,8 @@ export interface RoundResult {
 export interface MatchResult {
   matchId: string;
   totalRounds: number;
+  isSchneider?: boolean;
+  bummerlCount?: number;
   rankings: {
     rank: number;
     userId: string;
@@ -219,10 +297,286 @@ export interface GameTimerState {
   playerBanks: [number, number, number]; // remaining bank seconds for seat 0, 1, 2
 }
 
+export type WattenGameMode = 'OFFEN' | 'BLIND' | 'KRITISCH' | 'LADINISCH';
+
+export interface WattenOptions {
+  targetScore: 11 | 15 | 18; // default 15
+  hasGueter: boolean; // default true
+  hasSupergueter: boolean; // default false
+  weliRole: 'kleinster_trumpf' | 'kleinster_schell'; // default 'kleinster_trumpf'
+}
+
+export interface SchnapsenOptions {
+  targetBummerl: 1 | 2 | 3; // default 1
+  subMode3?: 'DREIERSCHNAPSEN_3P' | 'MITSCHREIBEN_3P'; // for schnapsen_3, default 'DREIERSCHNAPSEN_3P'
+  allowZudrehen: boolean; // default true
+  allowTrumpfTausch: boolean; // default true
+  schneiderBummerl: boolean; // default true
+}
+
+export interface WattenState {
+  schlag: CardRank | null; // e.g. 9 for Ass, 6 for Ober
+  farbe: Suit | null; // e.g. 'HERZ'
+  schlagChooserSeat: number;
+  farbeChooserSeat: number;
+  currentBet: number; // 2, 3, 4 ... points
+  betChallengerSeat: number | null;
+  betPending: boolean;
+  lastBettingTeam?: number | null; // 0 for Team A, 1 for Team B
+  teamTricksWon: [number, number]; // [Team A (seats 0,2), Team B (seats 1,3)]
+  targetScore?: number; // 11, 15, or 18 (default 15)
+  mode?: WattenGameMode;
+  isGestrichen?: [boolean, boolean]; // whether Team A / Team B is gestrichen (score >= targetScore - 2)
+  esGehenDieVier?: boolean; // special "Es gehen die Vier" mode active
+  esGehenDieVierPendingTeam?: number | null; // team that must respond
+  cutCard?: Card | null; // bottom card revealed during cut
+  weliHasGueter?: boolean;
+  weliIsAlwaysLowestTrump?: boolean;
+  gueterMustFollowTrump?: boolean;
+  pointsOnGehenWhenGestrichen?: number; // default 2
+  hasGueter?: boolean;
+  hasSupergueter?: boolean;
+  weliRole?: 'kleinster_trumpf' | 'kleinster_schell';
+}
+
+export type SchnapsenMode =
+  | 'CLASSIC_2P'
+  | 'MITSCHREIBEN_3P'
+  | 'DREIERSCHNAPSEN_3P'
+  | 'BAUERNSCHNAPSEN_4P';
+
+export type SchnapsenCallType =
+  | 'RUFER'
+  | 'BETTLER'
+  | 'ASSBETTLER'
+  | 'SCHNAPSER'
+  | 'GANGL'
+  | 'ZEHNERLOCH'
+  | 'KONTRASCHNAPSER'
+  | 'BAUERNSCHNAPSER'
+  | 'HERRENGANGL'
+  | 'KONTRABAUERNSCHNAPSER'
+  | 'HERRENSCHNAPSER';
+
+export type SchnapsenPhase =
+  | 'DEALING'
+  | 'ATOUT_SELECTION'
+  | 'BIDDING'
+  | 'TALON_EXCHANGE'
+  | 'TRICK_PLAY'
+  | 'SCORING';
+
+export type TalonState = 'TALON_OPEN' | 'TALON_CLOSED';
+
+export type SchnapsenKontraLevel = 1 | 2 | 4 | 8;
+
+export interface SchnapsenCallDefinition {
+  name: string;
+  points: number;
+  hasTrump: boolean;
+  leadByVorhand: boolean;
+  isNegative: boolean;
+  isAllTricks: boolean;
+  isThreeTricks: boolean;
+  isAufgelegt: boolean;
+  allowedFor3P: boolean;
+  canBeKontriert: boolean;
+}
+
+export const SCHNAPSEN_CALL_CONFIG: Record<SchnapsenCallType, SchnapsenCallDefinition> = {
+  RUFER: {
+    name: 'Einfacher Rufer',
+    points: 1,
+    hasTrump: true,
+    leadByVorhand: true,
+    isNegative: false,
+    isAllTricks: false,
+    isThreeTricks: false,
+    isAufgelegt: false,
+    allowedFor3P: true,
+    canBeKontriert: true,
+  },
+  BETTLER: {
+    name: 'Bettler',
+    points: 5,
+    hasTrump: false,
+    leadByVorhand: false,
+    isNegative: true,
+    isAllTricks: false,
+    isThreeTricks: false,
+    isAufgelegt: false,
+    allowedFor3P: true,
+    canBeKontriert: true,
+  },
+  ASSBETTLER: {
+    name: 'Assbettler',
+    points: 6,
+    hasTrump: false,
+    leadByVorhand: false,
+    isNegative: true,
+    isAllTricks: false,
+    isThreeTricks: false,
+    isAufgelegt: false,
+    allowedFor3P: true,
+    canBeKontriert: true,
+  },
+  SCHNAPSER: {
+    name: 'Schnapser (Drei-Stich)',
+    points: 6,
+    hasTrump: true,
+    leadByVorhand: true,
+    isNegative: false,
+    isAllTricks: false,
+    isThreeTricks: true,
+    isAufgelegt: false,
+    allowedFor3P: true,
+    canBeKontriert: true,
+  },
+  GANGL: {
+    name: 'Durchmarsch (Gangl)',
+    points: 9,
+    hasTrump: false,
+    leadByVorhand: false,
+    isNegative: false,
+    isAllTricks: true,
+    isThreeTricks: false,
+    isAufgelegt: false,
+    allowedFor3P: true,
+    canBeKontriert: true,
+  },
+  ZEHNERLOCH: {
+    name: 'Zehnerloch',
+    points: 10,
+    hasTrump: false,
+    leadByVorhand: false,
+    isNegative: false,
+    isAllTricks: true,
+    isThreeTricks: false,
+    isAufgelegt: false,
+    allowedFor3P: true,
+    canBeKontriert: true,
+  },
+  KONTRASCHNAPSER: {
+    name: 'Kontraschnapser',
+    points: 12,
+    hasTrump: true,
+    leadByVorhand: true,
+    isNegative: false,
+    isAllTricks: false,
+    isThreeTricks: true,
+    isAufgelegt: false,
+    allowedFor3P: true,
+    canBeKontriert: true,
+  },
+  BAUERNSCHNAPSER: {
+    name: 'Bauernschnapser',
+    points: 12,
+    hasTrump: true,
+    leadByVorhand: true,
+    isNegative: false,
+    isAllTricks: true,
+    isThreeTricks: false,
+    isAufgelegt: false,
+    allowedFor3P: true,
+    canBeKontriert: true,
+  },
+  HERRENGANGL: {
+    name: 'Herrengangl',
+    points: 18,
+    hasTrump: false,
+    leadByVorhand: false,
+    isNegative: false,
+    isAllTricks: true,
+    isThreeTricks: false,
+    isAufgelegt: true,
+    allowedFor3P: false,
+    canBeKontriert: false,
+  },
+  KONTRABAUERNSCHNAPSER: {
+    name: 'Kontrabauernschnapser',
+    points: 24,
+    hasTrump: true,
+    leadByVorhand: true,
+    isNegative: false,
+    isAllTricks: true,
+    isThreeTricks: false,
+    isAufgelegt: false,
+    allowedFor3P: true,
+    canBeKontriert: false,
+  },
+  HERRENSCHNAPSER: {
+    name: 'Herrenschnapser',
+    points: 24,
+    hasTrump: true,
+    leadByVorhand: true,
+    isNegative: false,
+    isAllTricks: true,
+    isThreeTricks: false,
+    isAufgelegt: true,
+    allowedFor3P: false,
+    canBeKontriert: false,
+  },
+};
+
+export interface SchnapsenMarriage {
+  seatIndex: number;
+  suit: Suit;
+  points: 20 | 40;
+}
+
+export type Schnapsen3Mode = 'NORMAL' | 'BETTLER' | 'SCHNAPSER' | 'GANGL' | 'BAUERNSCHNAPSER';
+
+export interface SchnapsenState {
+  mode: SchnapsenMode;
+  schnapsenPhase: SchnapsenPhase;
+  talonState: TalonState;
+  trumpSuit: Suit;
+  trumpCard: Card | null; // face-up card under stock (2P)
+  stockCount: number; // cards remaining in stock (2P)
+  talonClosed: boolean; // turned / closed by player (2P)
+  talonClosedBySeat: number | null;
+  talonClosedOpponentEyes?: number; // opponent eyes at moment of closing
+  talonClosedOpponentTricks?: number; // opponent tricks at moment of closing
+  marriages: SchnapsenMarriage[];
+  playerEyes: number[]; // points counted for each player (or team)
+  countdownScores?: number[]; // start 7 (2P/mitschreiben) or 24 (3P/4P)
+  declared66Seat: number | null;
+  mode3?: Schnapsen3Mode;
+  targetEyes?: number; // 66
+  declarerSeat?: number | null; // For 3er / 4er Schnapsen
+  callType?: SchnapsenCallType;
+  kontraLevel: SchnapsenKontraLevel;
+  kontraSeat?: number | null;
+  atoutSelection?: {
+    first3Cards?: Card[];
+    cardRevealed?: Card | null;
+    canRedeal3Buben?: boolean;
+    step?: 'FIRST_3' | 'DONE';
+  };
+  biddingHistory?: {
+    seatIndex: number;
+    callType: SchnapsenCallType | 'PASS' | 'KONTRA';
+  }[];
+  consecutivePasses?: number;
+  highestBidSeat?: number | null;
+  firstTrickVorhandMarriageSuit?: Suit | null;
+  firstTrickVorhandMarriageSeat?: number | null;
+  pendingMarriageSuit?: Suit | null;
+  pausedDealerSeat?: number | null;
+  targetBummerl?: 1 | 2 | 3;
+  bummerlsWon?: number[];
+  allowZudrehen?: boolean;
+  allowTrumpfTausch?: boolean;
+  schneiderBummerl?: boolean;
+}
+
 // Full Server-Side State (Stored in DB JSONB and in memory)
 export interface FullGameState {
   matchId: string;
   code: string;
+  name?: string;
+  gameType?: GameType;
+  maxPlayers?: number;
   status: MatchStatus;
   isPrivate?: boolean;
   chatEnabled?: boolean;
@@ -237,11 +591,15 @@ export interface FullGameState {
   minMode: GameMode | null;
   talonTaken: boolean;
   talonRevealed?: boolean;
-  players: [PlayerSeatState, PlayerSeatState, PlayerSeatState];
-  hands: [Card[], Card[], Card[]]; // 10 cards each
+  players: PlayerSeatState[];
+  hands: Card[][];
   talon: Card[]; // 3 cards
   discardedCards: Card[]; // 3 cards discarded by declarer
   biddingState: BiddingState;
+  wattenState?: WattenState;
+  schnapsenState?: SchnapsenState;
+  wattenOptions?: WattenOptions;
+  schnapsenOptions?: SchnapsenOptions;
   currentTrick: PlayedCard[];
   trickLeadSeat: number;
   trickHistory: Trick[];
@@ -269,6 +627,9 @@ export interface SanitizedPlayerSeat {
 export interface SanitizedGameState {
   matchId: string;
   code: string;
+  name?: string;
+  gameType?: GameType;
+  maxPlayers?: number;
   status: MatchStatus;
   isPrivate?: boolean;
   chatEnabled?: boolean;
@@ -284,10 +645,14 @@ export interface SanitizedGameState {
   talonTaken: boolean;
   talonRevealed?: boolean;
   mySeatIndex: number | null; // Seat index of the requesting player (or null for spectators)
-  players: [SanitizedPlayerSeat, SanitizedPlayerSeat, SanitizedPlayerSeat];
+  players: SanitizedPlayerSeat[];
   myHand: Card[]; // Only the requesting player's hand!
   talonCount: number;
   talonCards: Card[] | null; // Only visible if mySeatIndex === declarerSeat during TALON_AND_DECLARATION
+  wattenState?: WattenState;
+  schnapsenState?: SchnapsenState;
+  wattenOptions?: WattenOptions;
+  schnapsenOptions?: SchnapsenOptions;
   currentTrick: PlayedCard[];
   trickLeadSeat: number;
   lastTrick: Trick | null;
@@ -328,9 +693,20 @@ export interface LeaderboardEntry {
   soloWinRate: number;
 }
 
+export interface MatchParticipantSummary {
+  seatIndex: number;
+  userId: string;
+  username: string;
+  isBot: boolean;
+  isHost: boolean;
+}
+
 export interface MatchListItem {
   id: string;
   code: string;
+  name?: string;
+  gameType?: GameType;
+  maxPlayers?: number;
   hostUsername: string;
   isPrivate: boolean;
   status: MatchStatus;
@@ -339,6 +715,9 @@ export interface MatchListItem {
   playerCount: number;
   createdAt: string;
   timerConfig?: GameTimerConfig;
+  players?: MatchParticipantSummary[];
+  wattenOptions?: WattenOptions;
+  schnapsenOptions?: SchnapsenOptions;
 }
 
 // Socket.io Typed Events
@@ -369,6 +748,35 @@ export interface ClientToServerEvents {
   'game:next_round': (payload: { matchId: string }) => void;
   'game:add_bot': (payload: { matchId: string; seatIndex: number }) => void;
   'game:remove_bot': (payload: { matchId: string; seatIndex: number }) => void;
+  'game:surrender': (payload: { matchId: string; surrenderType?: 'round' | 'match' }) => void;
+  'game:watten_action': (payload: {
+    matchId: string;
+    action: 'choose_schlag' | 'choose_farbe' | 'bet' | 'hold' | 'fold' | 'es_gehen_die_vier_response' | 'schlagtausch';
+    schlag?: CardRank;
+    farbe?: Suit;
+    decision?: 'hold' | 'fold';
+  }) => void;
+  'game:schnapsen_action': (payload: {
+    matchId: string;
+    action:
+      | 'announce_marriage'
+      | 'swap_trump'
+      | 'close_talon'
+      | 'declare_mode'
+      | 'declare_66'
+      | 'select_atout'
+      | 'reveal_card'
+      | 'redeal_3_buben'
+      | 'bid'
+      | 'pass'
+      | 'kontra'
+      | 'exchange_talon';
+    suit?: Suit;
+    mode?: Schnapsen3Mode;
+    callType?: SchnapsenCallType;
+    cardIndex?: number;
+    discardIds?: string[];
+  }) => void;
   'chat:send_message': (payload: { matchId: string; text: string }) => void;
 }
 
@@ -411,12 +819,17 @@ export interface ChatMessage {
 }
 
 export interface CreateMatchRequest {
+  name?: string;
+  gameType?: GameType;
+  maxPlayers?: number;
   totalRounds: number;
   isPrivate: boolean;
   timerEnabled?: boolean;
   turnTimeLimit?: number;
   totalTimeBank?: number;
   chatEnabled?: boolean;
+  wattenOptions?: WattenOptions;
+  schnapsenOptions?: SchnapsenOptions;
 }
 
 // Bot Strategy & Evolutionary Self-Play Types
@@ -446,6 +859,10 @@ export interface BotStrategyWeights {
   useISMCTS?: boolean; // default: true
   ismctsIterations?: number; // default: 120 (iterations per search)
   ismctsExploration?: number; // default: 0.75 (UCB1 exploration constant C)
+
+  // Deep Reinforcement Learning (Masked PPO ONNX Policy):
+  useNeuralNetwork?: boolean; // default: true
+  neuralNetworkWeight?: number; // default: 80 (influence weight of ONNX policy prior in ISMCTS and decision fusion)
 }
 
 export interface BotTournamentResult {

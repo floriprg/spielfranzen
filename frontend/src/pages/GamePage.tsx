@@ -1,5 +1,23 @@
-import { GAME_MODE_INFO, GameMode } from '@spielfranzen/shared';
-import { Bot, Check, Clock, Copy, Crown, Globe, Lock, MessageSquare, Play, Shield, Sliders, Users } from 'lucide-react';
+import { GAME_MODE_INFO, GAME_TYPE_CONFIGS, GameMode } from '@spielfranzen/shared';
+import {
+  BookOpen,
+  Bot,
+  Check,
+  Clock,
+  Copy,
+  Crown,
+  Flag,
+  Flame,
+  Globe,
+  GraduationCap,
+  Lock,
+  MessageSquare,
+  Play,
+  Shield,
+  Sliders,
+  Sparkles,
+  Users,
+} from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CardView } from '../components/cards/CardView.js';
@@ -11,8 +29,12 @@ import { GameInfoModal } from '../components/table/GameInfoModal.js';
 import { MatchCompletedModal } from '../components/table/MatchCompletedModal.js';
 import { PlayerSeatView } from '../components/table/PlayerSeatView.js';
 import { RoundSummaryModal } from '../components/table/RoundSummaryModal.js';
+import { SchnapsenControls } from '../components/table/SchnapsenControls.js';
+import { SurrenderConfirmModal } from '../components/table/SurrenderConfirmModal.js';
 import { TalonModal } from '../components/table/TalonModal.js';
 import { TrickArea } from '../components/table/TrickArea.js';
+import { WattenControls } from '../components/table/WattenControls.js';
+import { InteractiveTutorialModal } from '../components/tutorial/InteractiveTutorialModal.js';
 import { useAuthStore } from '../store/authStore.js';
 import { useGameStore } from '../store/gameStore.js';
 
@@ -27,10 +49,13 @@ export const GamePage: React.FC = () => {
     gameState,
     sendBid,
     sendTalonAction,
+    sendWattenAction,
+    sendSchnapsenAction,
     playCard,
     nextRound,
     addBot,
     removeBot,
+    surrender,
     sendChatMessage,
     error,
     clearError,
@@ -40,9 +65,19 @@ export const GamePage: React.FC = () => {
   const [showRoundSummary, setShowRoundSummary] = useState(false);
   const [showMatchCompleted, setShowMatchCompleted] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [showSurrenderModal, setShowSurrenderModal] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const prevMsgCountRef = useRef(0);
+
+  // Check if first-time tutorial should open
+  useEffect(() => {
+    const hasCompletedTutorial = localStorage.getItem('franzen_tutorial_completed');
+    if (!hasCompletedTutorial) {
+      setShowTutorial(true);
+    }
+  }, []);
 
   useEffect(() => {
     const currentMsgs = gameState?.chatMessages || [];
@@ -66,7 +101,7 @@ export const GamePage: React.FC = () => {
       if (gameState.currentTrick.length === 3) {
         const timer = setTimeout(() => {
           setShowRoundSummary(true);
-        }, 3200);
+        }, 1000);
         return () => clearTimeout(timer);
       } else {
         setShowRoundSummary(true);
@@ -82,7 +117,7 @@ export const GamePage: React.FC = () => {
       if (gameState.currentTrick.length === 3) {
         const timer = setTimeout(() => {
           setShowMatchCompleted(true);
-        }, 3200);
+        }, 1000);
         return () => clearTimeout(timer);
       } else {
         setShowMatchCompleted(true);
@@ -164,6 +199,9 @@ export const GamePage: React.FC = () => {
     legalCardIdsToPlay,
   } = gameState;
 
+  const isWatten = (gameState.gameType || 'franzen').startsWith('watten');
+  const isSchnapsen = (gameState.gameType || 'franzen').startsWith('schnapsen');
+
   // Dedicated Waiting Room view when waiting for players
   if (status === 'WAITING') {
     return (
@@ -174,8 +212,13 @@ export const GamePage: React.FC = () => {
           </div>
 
           <h2 className="text-2xl font-black font-serif-vintage bg-gradient-to-r from-amber-400 to-yellow-200 bg-clip-text text-transparent mb-1">
-            Warteraum
+            {gameState.name || 'Warteraum'}
           </h2>
+          {gameState.name && (
+            <p className="text-xs font-bold text-amber-300/90 mb-1">
+              Tisch: {gameState.name}
+            </p>
+          )}
           <p className="text-xs text-slate-300 mb-5">
             Teile den Raum-Code mit deinen Freunden oder fülle leere Plätze mit KI-Bots auf.
           </p>
@@ -183,23 +226,47 @@ export const GamePage: React.FC = () => {
           {/* Match Settings & Room Code Card */}
           <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 mb-5 text-left shadow-inner">
             <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-slate-800/80">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Spieleinstellungen
+              <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">
+                {GAME_TYPE_CONFIGS[gameState.gameType || 'franzen']?.name || 'Spieleinstellungen'}
               </span>
-              <button
-                onClick={() => setShowInfoModal(true)}
-                className="text-[11px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer"
-                title="Alle Spielinfos und Regeln öffnen"
-              >
-                <Sliders className="w-3.5 h-3.5" />
-                <span>Details & Regeln</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowTutorial(true)}
+                  className="text-[11px] text-amber-300 hover:text-amber-200 font-bold flex items-center gap-1 cursor-pointer bg-amber-500/15 px-2 py-0.5 rounded-lg border border-amber-500/30"
+                  title="Interaktives Tutorial starten"
+                >
+                  <GraduationCap className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Tutorial</span>
+                </button>
+                <button
+                  onClick={() => setShowInfoModal(true)}
+                  className="text-[11px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer"
+                  title="Alle Spielinfos und Regeln öffnen"
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>Details & Regeln</span>
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800/80">
-                <span className="text-[10px] text-slate-400 block mb-0.5">Runden:</span>
-                <span className="font-bold text-slate-200">{totalRounds} Runden</span>
+                <span className="text-[10px] text-slate-400 block mb-0.5">Spiel & Deck:</span>
+                <span className="font-bold text-slate-200">
+                  {GAME_TYPE_CONFIGS[gameState.gameType || 'franzen']?.deckSize || 33} Karten
+                </span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800/80">
+                <span className="text-[10px] text-slate-400 block mb-0.5">
+                  {isWatten ? 'Ziel-Punkte:' : isSchnapsen ? 'Match-Ziel:' : 'Runden:'}
+                </span>
+                <span className="font-bold text-slate-200">
+                  {isWatten
+                    ? `${gameState.wattenState?.targetScore || 15} Punkte (Runde ${currentRound})`
+                    : isSchnapsen
+                    ? `${gameState.schnapsenState?.targetBummerl || 1} ${(gameState.schnapsenState?.targetBummerl || 1) === 1 ? 'Bummerl' : 'Bummerl'}`
+                    : `${totalRounds} Runden`}
+                </span>
               </div>
               <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800/80">
                 <span className="text-[10px] text-slate-400 block mb-0.5">Sichtbarkeit:</span>
@@ -235,13 +302,47 @@ export const GamePage: React.FC = () => {
                   )}
                 </span>
               </div>
-              <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800/80">
-                <span className="text-[10px] text-slate-400 block mb-0.5">In-Game Chat:</span>
-                <span className="font-bold text-slate-200 flex items-center gap-1.5">
-                  <MessageSquare className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-                  <span>{gameState.chatEnabled !== false ? 'Aktiv' : 'Aus'}</span>
-                </span>
-              </div>
+
+              {(isWatten || isSchnapsen) && (
+                <div className="sm:col-span-2 p-2.5 rounded-xl bg-slate-900 border border-slate-800/80 text-xs">
+                  <span className="text-[10px] text-slate-400 block mb-1">Aktive Spielregeln:</span>
+                  <div className="flex flex-wrap gap-1.5 text-[11px] text-slate-300">
+                    {isWatten && (
+                      <>
+                        <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
+                          {gameState.wattenState?.hasGueter !== false ? 'Mit Gutem' : 'Ohne Guten'}
+                        </span>
+                        {gameState.wattenState?.hasSupergueter && (
+                          <span className="px-2 py-0.5 rounded bg-amber-950/70 border border-amber-500/40 text-amber-300">
+                            ★ Mit Supergutem
+                          </span>
+                        )}
+                        <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
+                          Weli: {gameState.wattenState?.weliRole === 'kleinster_schell' ? 'Kleinster Schell' : 'Kleinster Trumpf'}
+                        </span>
+                      </>
+                    )}
+                    {isSchnapsen && (
+                      <>
+                        {gameState.gameType === 'schnapsen_3' && (
+                          <span className="px-2 py-0.5 rounded bg-amber-950/70 border border-amber-500/40 text-amber-300">
+                            {gameState.schnapsenState?.mode === 'MITSCHREIBEN_3P' ? 'Mitschreiben (von 7)' : 'Dreierschnapsen (von 24)'}
+                          </span>
+                        )}
+                        <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
+                          Zudrehen: {gameState.schnapsenState?.allowZudrehen !== false ? 'Erlaubt' : 'Aus'}
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
+                          Trumpftausch: {gameState.schnapsenState?.allowTrumpfTausch !== false ? 'Erlaubt' : 'Aus'}
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
+                          Schneider: {gameState.schnapsenState?.schneiderBummerl !== false ? 'Doppelt (2)' : 'Einfach (1)'}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Room Code with Copy Button */}
@@ -258,9 +359,9 @@ export const GamePage: React.FC = () => {
             </div>
           </div>
 
-          {/* 3 Seats List */}
+          {/* Dynamic Seats List */}
           <div className="space-y-3 mb-6">
-            {[0, 1, 2].map((sIndex) => {
+            {Array.from({ length: gameState.maxPlayers || 3 }).map((_, sIndex) => {
               const p = players[sIndex];
               const isTaken = p && p.userId && p.userId !== '';
               const isMe = isTaken && p.seatIndex === mySeatIndex;
@@ -281,7 +382,7 @@ export const GamePage: React.FC = () => {
                     </div>
                     <div className="text-left">
                       <div className="font-bold text-slate-100 flex items-center gap-1.5 min-w-0">
-                        <span className="truncate max-w-[190px] sm:max-w-[280px]" title={p.username}>
+                        <span className="truncate max-w-[190px] sm:max-w-[280px]" title={p?.username}>
                           {isTaken ? (
                             <>
                               {p.username} {p.isBot && '(Bot)'} {isMe && '(Du)'}
@@ -367,6 +468,13 @@ export const GamePage: React.FC = () => {
           gameState={gameState}
           copiedCode={copiedCode}
           onCopyCode={handleCopyCode}
+          onOpenTutorial={() => setShowTutorial(true)}
+        />
+
+        {/* Interactive Tutorial Modal for Waiting Room */}
+        <InteractiveTutorialModal
+          isOpen={showTutorial}
+          onClose={() => setShowTutorial(false)}
         />
 
         {/* In-Game Chat Drawer for Waiting Room */}
@@ -383,19 +491,32 @@ export const GamePage: React.FC = () => {
     );
   }
 
+  const numPlayers = gameState.maxPlayers || players.length || 3;
+
   const modeNum = gameMode !== null && gameMode !== undefined ? Number(gameMode) : null;
   const isBettlOrMord =
-    modeNum === 9 || modeNum === 10 || modeNum === 11 || modeNum === 12;
+    !isWatten && !isSchnapsen && (modeNum === 9 || modeNum === 10 || modeNum === 11 || modeNum === 12);
 
   // Determine seating layout relative to current user:
-  // Me is at bottom. Opponent 1 is left (me + 1) % 3, Opponent 2 is right (me + 2) % 3.
-  const opponentLeftSeat = (mySeat + 1) % 3;
-  const opponentRightSeat = (mySeat + 2) % 3;
+  // 2 Players: Me bottom, Opponent top
+  const opponentSeat2P = (mySeat + 1) % 2;
+  const opponent2P = players[opponentSeat2P];
 
-  const opponentLeft = players[opponentLeftSeat];
-  const opponentRight = players[opponentRightSeat];
+  // 3 Players: Me bottom, Opponent Left, Opponent Right
+  const opponentLeftSeat3P = (mySeat + 1) % 3;
+  const opponentRightSeat3P = (mySeat + 2) % 3;
+  const opponentLeft3P = players[opponentLeftSeat3P];
+  const opponentRight3P = players[opponentRightSeat3P];
+
+  // 4 Players: Me bottom, Partner top, Opponent Left, Opponent Right
+  const opponentLeftSeat4P = (mySeat + 1) % 4;
+  const partnerSeat4P = (mySeat + 2) % 4;
+  const opponentRightSeat4P = (mySeat + 3) % 4;
+  const opponentLeft4P = players[opponentLeftSeat4P];
+  const partner4P = players[partnerSeat4P];
+  const opponentRight4P = players[opponentRightSeat4P];
+
   const myPlayer = players[mySeat];
-
   const modeInfo = gameMode ? GAME_MODE_INFO[gameMode] : null;
 
   return (
@@ -404,6 +525,14 @@ export const GamePage: React.FC = () => {
       <div className="bg-slate-900/95 border-b border-amber-600/30 px-3 py-1 flex items-center justify-between gap-2 shadow-sm flex-shrink-0 text-xs">
         {/* Left: Round & Code */}
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {gameState.name && (
+            <span
+              className="hidden md:inline-block max-w-[140px] truncate text-[11px] font-bold text-amber-200 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/30"
+              title={gameState.name}
+            >
+              {gameState.name}
+            </span>
+          )}
           <button
             onClick={handleCopyCode}
             className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 font-mono text-[11px] font-bold transition-colors cursor-pointer"
@@ -413,9 +542,28 @@ export const GamePage: React.FC = () => {
             {copiedCode ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
           </button>
 
-          <span className="text-[11px] font-bold text-slate-300">
-            Runde <strong className="text-amber-400">{currentRound}</strong>/{totalRounds}
-          </span>
+          {isWatten ? (
+            <span className="text-[11px] font-bold text-slate-300">
+              Ziel: <strong className="text-amber-400">{gameState.wattenState?.targetScore || 15} Pkt.</strong> (Runde {currentRound})
+            </span>
+          ) : isSchnapsen ? (
+            <span className="text-[11px] font-bold text-slate-300">
+              Ziel: <strong className="text-amber-400">{gameState.schnapsenState?.targetBummerl || 1} {(gameState.schnapsenState?.targetBummerl || 1) === 1 ? 'Bummerl' : 'Bummerl'}</strong> (Runde {currentRound})
+            </span>
+          ) : (
+            <span className="text-[11px] font-bold text-slate-300">
+              Runde <strong className="text-amber-400">{currentRound}</strong>/{totalRounds}
+            </span>
+          )}
+
+          <button
+            onClick={() => setShowTutorial(true)}
+            className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-[11px] font-semibold transition-colors cursor-pointer shadow-sm"
+            title="Interaktives Tutorial & Anleitung"
+          >
+            <GraduationCap className="w-3 h-3 text-amber-400" />
+            <span className="hidden sm:inline">Anleitung</span>
+          </button>
 
           <button
             onClick={() => setShowInfoModal(true)}
@@ -442,11 +590,39 @@ export const GamePage: React.FC = () => {
               </span>
             )}
           </button>
+
+          {/* Aufgeben Button */}
+          {status === 'IN_PROGRESS' && phase !== 'MATCH_COMPLETED' && (
+            <button
+              onClick={() => setShowSurrenderModal(true)}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/40 text-rose-300 hover:text-rose-100 text-[11px] font-semibold transition-colors cursor-pointer shadow-sm"
+              title="Runde oder Match aufgeben"
+            >
+              <Flag className="w-3 h-3 text-rose-400" />
+              <span>Aufgeben</span>
+            </button>
+          )}
         </div>
 
         {/* Center: Mode Indicator */}
         <div className="flex items-center gap-1.5">
-          {modeInfo ? (
+          {isWatten ? (
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/60 shadow-sm text-amber-300 text-[11px] font-bold">
+              <Flame className="w-3.5 h-3.5 text-amber-400" />
+              <span>
+                {gameState.wattenState?.farbe
+                  ? `${gameState.wattenState.farbe} ${gameState.wattenState.schlag ? `(${gameState.wattenState.schlag})` : ''}`
+                  : 'Watten'}
+              </span>
+            </div>
+          ) : isSchnapsen ? (
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/60 shadow-sm text-amber-300 text-[11px] font-bold">
+              {gameState.schnapsenState?.trumpSuit && (
+                <SuitIcon suit={gameState.schnapsenState.trumpSuit} size={14} />
+              )}
+              <span>Schnapsen</span>
+            </div>
+          ) : modeInfo ? (
             <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/60 shadow-sm text-amber-300 text-[11px] font-bold">
               {modeInfo.trumpSuit && <SuitIcon suit={modeInfo.trumpSuit} size={14} />}
               <span>{modeInfo.name}</span>
@@ -458,7 +634,7 @@ export const GamePage: React.FC = () => {
           )}
         </div>
 
-        {/* Right: Live Scoreboard (Zero-Sum) - Visible on sm and larger screens */}
+        {/* Right: Live Scoreboard (Zero-Sum) */}
         <div className="hidden sm:flex items-center gap-1.5 text-[11px]">
           {players.map((p) => (
             <div
@@ -500,34 +676,97 @@ export const GamePage: React.FC = () => {
 
       {/* Main Card Game Table - Zero Scroll Fit */}
       <div className="flex-1 min-h-0 relative flex flex-col justify-between p-1.5 sm:p-2.5 bg-slate-950 shadow-felt border-2 sm:border-4 border-amber-950/70 overflow-hidden">
-        {/* Top: Opponent Seats */}
-        <div className="flex justify-between items-start max-w-4xl mx-auto w-full px-2 pt-0.5 flex-shrink-0 gap-2">
-          {opponentLeft && (
-            <PlayerSeatView
-              player={opponentLeft}
-              isCurrentTurn={currentTurnSeat === opponentLeft.seatIndex}
-              isDealer={dealerSeat === opponentLeft.seatIndex}
-              isMe={false}
-              timer={gameState.timer}
-              className="flex-1 max-w-[200px] sm:max-w-[250px]"
-            />
-          )}
+        {/* Top: Opponent Seats (Dynamic for 2, 3 or 4 players) */}
+        {numPlayers === 2 && (
+          <div className="flex justify-center items-start max-w-4xl mx-auto w-full px-2 pt-0.5 flex-shrink-0">
+            {opponent2P && (
+              <PlayerSeatView
+                player={opponent2P}
+                isCurrentTurn={currentTurnSeat === opponent2P.seatIndex}
+                isDealer={dealerSeat === opponent2P.seatIndex}
+                isMe={false}
+                timer={gameState.timer}
+                className="w-full max-w-[220px] sm:max-w-[260px]"
+              />
+            )}
+          </div>
+        )}
 
-          {opponentRight && (
-            <PlayerSeatView
-              player={opponentRight}
-              isCurrentTurn={currentTurnSeat === opponentRight.seatIndex}
-              isDealer={dealerSeat === opponentRight.seatIndex}
-              isMe={false}
-              timer={gameState.timer}
-              className="flex-1 max-w-[200px] sm:max-w-[250px]"
-            />
-          )}
-        </div>
+        {numPlayers === 3 && (
+          <div className="flex justify-between items-start max-w-4xl mx-auto w-full px-2 pt-0.5 flex-shrink-0 gap-2">
+            {opponentLeft3P && (
+              <PlayerSeatView
+                player={opponentLeft3P}
+                isCurrentTurn={currentTurnSeat === opponentLeft3P.seatIndex}
+                isDealer={dealerSeat === opponentLeft3P.seatIndex}
+                isMe={false}
+                timer={gameState.timer}
+                className="flex-1 max-w-[200px] sm:max-w-[250px]"
+              />
+            )}
+            {opponentRight3P && (
+              <PlayerSeatView
+                player={opponentRight3P}
+                isCurrentTurn={currentTurnSeat === opponentRight3P.seatIndex}
+                isDealer={dealerSeat === opponentRight3P.seatIndex}
+                isMe={false}
+                timer={gameState.timer}
+                className="flex-1 max-w-[200px] sm:max-w-[250px]"
+              />
+            )}
+          </div>
+        )}
 
-        {/* Center: Trick Play or Bidding Controls (strictly contained) */}
-        <div className="flex-1 min-h-0 flex items-center justify-center my-auto py-0.5 relative">
-          {phase === 'BIDDING' ? (
+        {numPlayers === 4 && (
+          <div className="flex justify-between items-start max-w-4xl mx-auto w-full px-2 pt-0.5 flex-shrink-0 gap-2">
+            {opponentLeft4P && (
+              <PlayerSeatView
+                player={opponentLeft4P}
+                isCurrentTurn={currentTurnSeat === opponentLeft4P.seatIndex}
+                isDealer={dealerSeat === opponentLeft4P.seatIndex}
+                isMe={false}
+                timer={gameState.timer}
+                className="flex-1 max-w-[150px] sm:max-w-[220px]"
+              />
+            )}
+            {partner4P && (
+              <PlayerSeatView
+                player={partner4P}
+                isCurrentTurn={currentTurnSeat === partner4P.seatIndex}
+                isDealer={dealerSeat === partner4P.seatIndex}
+                isMe={false}
+                isPartner={true}
+                timer={gameState.timer}
+                className="flex-1 max-w-[150px] sm:max-w-[220px] ring-1 ring-teal-500/40"
+              />
+            )}
+            {opponentRight4P && (
+              <PlayerSeatView
+                player={opponentRight4P}
+                isCurrentTurn={currentTurnSeat === opponentRight4P.seatIndex}
+                isDealer={dealerSeat === opponentRight4P.seatIndex}
+                isMe={false}
+                timer={gameState.timer}
+                className="flex-1 max-w-[150px] sm:max-w-[220px]"
+              />
+            )}
+          </div>
+        )}
+
+        {/* Center: Trick Play or Bidding Controls */}
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center my-auto py-0.5 relative space-y-1">
+          {/* Watten in BIDDING phase */}
+          {isWatten && phase === 'BIDDING' ? (
+            <WattenControls
+              wattenState={gameState.wattenState}
+              mySeatIndex={mySeat}
+              isMyTurn={isMyTurn}
+              phase={phase}
+              onWattenAction={sendWattenAction}
+              maxPlayers={numPlayers}
+            />
+          ) : !isWatten && !isSchnapsen && phase === 'BIDDING' ? (
+            /* Franzen Bidding */
             <BiddingControls
               biddingState={biddingState}
               mySeatIndex={mySeat}
@@ -536,18 +775,48 @@ export const GamePage: React.FC = () => {
               timer={gameState.timer}
             />
           ) : (
-            <TrickArea
-              currentTrick={currentTrick}
-              lastTrick={lastTrick}
-              players={players}
-              declarerCardPoints={declarerCardPoints}
-              defenderCardPoints={defenderCardPoints}
-              trickNumber={gameState.lastTrick ? gameState.lastTrick.trickNumber + 1 : 1}
-              gameMode={gameMode}
-              declarerSeat={declarerSeat}
-              mySeatIndex={mySeat}
-              currentTurnSeat={currentTurnSeat}
-            />
+            <>
+              {/* Watten Controls in Trick Play (Betting banner & buttons) */}
+              {isWatten && (
+                <WattenControls
+                  wattenState={gameState.wattenState}
+                  mySeatIndex={mySeat}
+                  isMyTurn={isMyTurn}
+                  phase={phase}
+                  onWattenAction={sendWattenAction}
+                  maxPlayers={numPlayers}
+                />
+              )}
+
+              {/* Schnapsen Controls in Trick Play (20/40, Trumpftausch, Zudrehen) */}
+              {isSchnapsen && (
+                <SchnapsenControls
+                  schnapsenState={gameState.schnapsenState}
+                  mySeatIndex={mySeat}
+                  isMyTurn={isMyTurn}
+                  myHand={myHand}
+                  currentTrickLength={currentTrick.length}
+                  onSchnapsenAction={sendSchnapsenAction}
+                  gameType={gameState.gameType}
+                />
+              )}
+
+              {/* Main Trick Area */}
+              <TrickArea
+                currentTrick={currentTrick}
+                lastTrick={lastTrick}
+                players={players}
+                declarerCardPoints={declarerCardPoints}
+                defenderCardPoints={defenderCardPoints}
+                trickNumber={gameState.lastTrick ? gameState.lastTrick.trickNumber + 1 : 1}
+                gameMode={gameMode}
+                declarerSeat={declarerSeat}
+                mySeatIndex={mySeat}
+                currentTurnSeat={currentTurnSeat}
+                gameType={gameState.gameType}
+                maxPlayers={numPlayers}
+              />
+            </>
           )}
         </div>
 
@@ -738,6 +1007,13 @@ export const GamePage: React.FC = () => {
         gameState={gameState}
         copiedCode={copiedCode}
         onCopyCode={handleCopyCode}
+        onOpenTutorial={() => setShowTutorial(true)}
+      />
+
+      {/* Interactive Tutorial Modal */}
+      <InteractiveTutorialModal
+        isOpen={showTutorial}
+        onClose={() => setShowTutorial(false)}
       />
 
       {/* Floating Chat Trigger Button */}
@@ -767,6 +1043,18 @@ export const GamePage: React.FC = () => {
         chatEnabled={gameState.chatEnabled}
         currentUserId={user?.id}
         mySeatIndex={mySeatIndex}
+      />
+
+      {/* Surrender Confirmation Modal */}
+      <SurrenderConfirmModal
+        isOpen={showSurrenderModal}
+        onClose={() => setShowSurrenderModal(false)}
+        onConfirmSurrender={(type) => surrender(type)}
+        isDeclarer={isDeclarer}
+        gameMode={gameMode}
+        totalRounds={totalRounds}
+        currentRound={currentRound}
+        phase={phase}
       />
     </div>
   );

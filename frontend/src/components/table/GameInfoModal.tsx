@@ -1,11 +1,13 @@
 import { SanitizedGameState } from '@spielfranzen/shared';
 import {
   Award,
+  BookOpen,
   Check,
   Clock,
   Copy,
   Crown,
   Globe,
+  GraduationCap,
   HelpCircle,
   Info,
   Lock,
@@ -18,6 +20,7 @@ import {
   Zap,
 } from 'lucide-react';
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 interface GameInfoModalProps {
   isOpen: boolean;
@@ -25,6 +28,7 @@ interface GameInfoModalProps {
   gameState: SanitizedGameState;
   copiedCode: boolean;
   onCopyCode: () => void;
+  onOpenTutorial?: () => void;
 }
 
 export const GameInfoModal: React.FC<GameInfoModalProps> = ({
@@ -33,6 +37,7 @@ export const GameInfoModal: React.FC<GameInfoModalProps> = ({
   gameState,
   copiedCode,
   onCopyCode,
+  onOpenTutorial,
 }) => {
   const [activeTab, setActiveTab] = useState<'settings' | 'players' | 'rules'>('settings');
 
@@ -70,7 +75,7 @@ export const GameInfoModal: React.FC<GameInfoModalProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-sm sm:text-base text-amber-300 font-serif-vintage leading-tight">
-                Spiel-Informationen & Einstellungen
+                {gameState.name || 'Spiel-Informationen & Einstellungen'}
               </h3>
               <p className="text-[11px] text-slate-400">
                 Match #{code} • {isPrivate ? 'Privater Raum' : 'Öffentlicher Raum'}
@@ -90,11 +95,10 @@ export const GameInfoModal: React.FC<GameInfoModalProps> = ({
         <div className="flex border-b border-slate-800 bg-slate-950/60 px-4 pt-1 gap-1">
           <button
             onClick={() => setActiveTab('settings')}
-            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-t-lg transition-all cursor-pointer ${
-              activeTab === 'settings'
-                ? 'text-amber-300 border-b-2 border-amber-400 bg-slate-900'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-t-lg transition-all cursor-pointer ${activeTab === 'settings'
+              ? 'text-amber-300 border-b-2 border-amber-400 bg-slate-900'
+              : 'text-slate-400 hover:text-slate-200'
+              }`}
           >
             <Sliders className="w-3.5 h-3.5" />
             <span>Einstellungen</span>
@@ -102,26 +106,24 @@ export const GameInfoModal: React.FC<GameInfoModalProps> = ({
 
           <button
             onClick={() => setActiveTab('players')}
-            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-t-lg transition-all cursor-pointer ${
-              activeTab === 'players'
-                ? 'text-amber-300 border-b-2 border-amber-400 bg-slate-900'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-t-lg transition-all cursor-pointer ${activeTab === 'players'
+              ? 'text-amber-300 border-b-2 border-amber-400 bg-slate-900'
+              : 'text-slate-400 hover:text-slate-200'
+              }`}
           >
             <Users className="w-3.5 h-3.5" />
-            <span>Mitspieler ({players.filter((p) => p.userId).length}/3)</span>
+            <span>Mitspieler ({players.filter((p) => p.userId).length}/{gameState.maxPlayers || 3})</span>
           </button>
 
           <button
             onClick={() => setActiveTab('rules')}
-            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-t-lg transition-all cursor-pointer ${
-              activeTab === 'rules'
-                ? 'text-amber-300 border-b-2 border-amber-400 bg-slate-900'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-t-lg transition-all cursor-pointer ${activeTab === 'rules'
+              ? 'text-amber-300 border-b-2 border-amber-400 bg-slate-900'
+              : 'text-slate-400 hover:text-slate-200'
+              }`}
           >
             <HelpCircle className="w-3.5 h-3.5" />
-            <span>Regeln & Franzen</span>
+            <span>Spielregeln</span>
           </button>
         </div>
 
@@ -134,7 +136,7 @@ export const GameInfoModal: React.FC<GameInfoModalProps> = ({
               <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-                    Raum-Code
+                    {gameState.name ? `Tisch: ${gameState.name}` : 'Raum-Code'}
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-base font-black text-amber-300">
@@ -207,11 +209,10 @@ export const GameInfoModal: React.FC<GameInfoModalProps> = ({
                     Bedenkzeit & Zeitlimit
                   </span>
                   <span
-                    className={`px-2 py-0.2 rounded-full text-[10px] font-bold ${
-                      isTimerEnabled
-                        ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/50'
-                        : 'bg-slate-800 text-slate-400 border border-slate-700'
-                    }`}
+                    className={`px-2 py-0.2 rounded-full text-[10px] font-bold ${isTimerEnabled
+                      ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/50'
+                      : 'bg-slate-800 text-slate-400 border border-slate-700'
+                      }`}
                   >
                     {isTimerEnabled ? 'Aktiviert' : 'Deaktiviert (Kein Zeitlimit)'}
                   </span>
@@ -255,11 +256,10 @@ export const GameInfoModal: React.FC<GameInfoModalProps> = ({
                     In-Game Chat
                   </span>
                   <span
-                    className={`px-2 py-0.2 rounded-full text-[10px] font-bold ${
-                      gameState.chatEnabled !== false
-                        ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/50'
-                        : 'bg-rose-950/80 text-rose-400 border border-rose-500/50'
-                    }`}
+                    className={`px-2 py-0.2 rounded-full text-[10px] font-bold ${gameState.chatEnabled !== false
+                      ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/50'
+                      : 'bg-rose-950/80 text-rose-400 border border-rose-500/50'
+                      }`}
                   >
                     {gameState.chatEnabled !== false ? 'Aktiviert' : 'Deaktiviert'}
                   </span>
@@ -288,13 +288,12 @@ export const GameInfoModal: React.FC<GameInfoModalProps> = ({
                 return (
                   <div
                     key={index}
-                    className={`p-3 rounded-xl border flex items-center justify-between ${
-                      p.seatIndex === gameState.mySeatIndex
-                        ? 'bg-amber-500/15 border-amber-500/50 shadow-inner'
-                        : isTaken
+                    className={`p-3 rounded-xl border flex items-center justify-between ${p.seatIndex === gameState.mySeatIndex
+                      ? 'bg-amber-500/15 border-amber-500/50 shadow-inner'
+                      : isTaken
                         ? 'bg-slate-950/80 border-slate-800'
                         : 'bg-slate-950/40 border-dashed border-slate-800/80'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-2">
                       <div className="w-7 h-7 rounded-full bg-slate-800 text-amber-300 font-bold text-xs flex items-center justify-center flex-shrink-0 shadow">
@@ -345,13 +344,12 @@ export const GameInfoModal: React.FC<GameInfoModalProps> = ({
 
                     <div className="text-right flex-shrink-0">
                       <div
-                        className={`text-sm font-black ${
-                          p.score > 0
-                            ? 'text-emerald-400'
-                            : p.score < 0
+                        className={`text-sm font-black ${p.score > 0
+                          ? 'text-emerald-400'
+                          : p.score < 0
                             ? 'text-rose-400'
                             : 'text-slate-300'
-                        }`}
+                          }`}
                       >
                         {p.score > 0 ? `+${p.score}` : p.score} Pkt
                       </div>
@@ -363,42 +361,157 @@ export const GameInfoModal: React.FC<GameInfoModalProps> = ({
             </div>
           )}
 
-          {/* TAB 3: REGELN & FRANZISIEREN */}
+          {/* TAB 3: REGELN */}
           {activeTab === 'rules' && (
             <div className="space-y-2.5 text-slate-300">
-              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
-                <h4 className="font-bold text-amber-300 mb-1 text-xs">🎴 Südtiroler Masenghini-Blatt</h4>
-                <p className="text-[11px] leading-relaxed text-slate-300">
-                  Gespielt wird mit 33 Karten (Eichel, Laub, Schell, Herz; 7, 8, 9, 10, Unter, Ober,
-                  König, Ass) plus dem <strong>Schell Weli (Schell 6)</strong> als 33. Karte.
-                </p>
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                {onOpenTutorial && gameState.gameType === 'franzen' && (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      onOpenTutorial();
+                    }}
+                    className="p-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    <span>Tutorial starten</span>
+                  </button>
+                )}
+                <Link
+                  to="/rules"
+                  onClick={onClose}
+                  className={`p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors text-center ${
+                    !onOpenTutorial || gameState.gameType !== 'franzen' ? 'col-span-2' : ''
+                  }`}
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Ausführliches Regelwerk</span>
+                </Link>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
-                <h4 className="font-bold text-amber-300 mb-1 text-xs">🃏 Der Schell Weli</h4>
-                <p className="text-[11px] leading-relaxed text-slate-300">
-                  Der Weli ist bei Farbspielen der <strong>kleinste Trumpf</strong> (unter dem
-                  Trumpf-Siebner). Bei reinen Fehlfarben ohne Trumpf zählt er als zweithöchste
-                  Schell-Karte (über dem König, unter dem Ass).
-                </p>
-              </div>
+              {/* WATTEN REGELN */}
+              {(gameState.gameType === 'watten_2' || gameState.gameType === 'watten_4') && (
+                <>
+                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <h4 className="font-bold text-amber-300 mb-1 text-xs">🎴 Watten: 33-Karten-Blatt & Teams</h4>
+                    <p className="text-[11px] leading-relaxed text-slate-300">
+                      Gespielt wird mit 33 Karten (Eichel, Laub, Schell, Herz; 7 bis Ass + Weli).
+                      Jeder Spieler erhält 5 Handkarten. {gameState.gameType === 'watten_4' ? 'Spieler 1 & 3 spielen im Team gegen Spieler 2 & 4 (Partner sitzen sich gegenüber).' : '1 gegen 1 Duell.'}
+                    </p>
+                  </div>
 
-              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
-                <h4 className="font-bold text-amber-300 mb-1 text-xs">⚖️ Nullsummenspiel & Augen</h4>
-                <p className="text-[11px] leading-relaxed text-slate-300">
-                  Das Spiel ist streng nullsummiert: Punkte, die der Alleinspieler gewinnt, werden den
-                  beiden Gegnern zu gleichen Teilen abgezogen. Bei Farbspielen gewinnt, wer zuerst{' '}
-                  <strong>66 Augen</strong> erreicht oder den 10. (letzten) Stich macht.
-                </p>
-              </div>
+                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <h4 className="font-bold text-amber-300 mb-1 text-xs">🗣️ Ansage: Schlag & Farbe</h4>
+                    <p className="text-[11px] leading-relaxed text-slate-300">
+                      <strong>Vorhand</strong> (links vom Geber) sagt den <strong>Schlag</strong> (Rang) an.
+                      Danach sagt der <strong>Geber</strong> die <strong>Farbe</strong> (Trumpffarbe) an.
+                      Höchste Karte ist der <strong>Rechte</strong> (Schlag in Trumpffarbe), gefolgt vom <strong>Guten</strong> (Schlag + 1 in Trumpffarbe) und den weiteren Schlägen.
+                    </p>
+                  </div>
 
-              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
-                <h4 className="font-bold text-amber-300 mb-1 text-xs">🎯 Farb- und Trumpfzwang</h4>
-                <p className="text-[11px] leading-relaxed text-slate-300">
-                  Es herrscht strikter Farbzwang und Überstechzwang. Kann die angespielte Farbe nicht
-                  bedient werden, muss mit Trumpf gestochen werden.
-                </p>
-              </div>
+                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <h4 className="font-bold text-amber-300 mb-1 text-xs">🚫 Kein Farb- und Stichzwang!</h4>
+                    <p className="text-[11px] leading-relaxed text-slate-300">
+                      Beim Watten gibt es grundsätzlich <strong>weder Farb- noch Stichzwang</strong>!
+                      Einzige Ausnahme: Spielt Vorhand im 1. Stich Trumpf aus („Trumpf ausspeiben“), müssen alle anderen Trumpf zugeben (Rechter, Guter und Schläge sind befreit).
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <h4 className="font-bold text-amber-300 mb-1 text-xs">🔥 Bieten & Rundenziel (3 Stiche)</h4>
+                    <p className="text-[11px] leading-relaxed text-slate-300">
+                      Wer zuerst <strong>3 Stiche</strong> macht, gewinnt die Hand sofort! Jede Hand startet bei 2 Punkten.
+                      Vor dem Ausspielen einer Karte kann ein Team <strong>„Schlagen“</strong> (auf 3, 4, 5... erhöhen). Der Gegner kann <strong>Halten</strong>, <strong>Gehen</strong> oder selbst gegen-erhöhen.
+                      Match-Ziel: {gameState.wattenState?.targetScore || 15} Punkte.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {/* SCHNAPSEN REGELN */}
+              {(gameState.gameType === 'schnapsen_2' || gameState.gameType === 'schnapsen_3' || gameState.gameType === 'schnapsen_4') && (
+                <>
+                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <h4 className="font-bold text-amber-300 mb-1 text-xs">🎴 Schnapsen: Blatt & Kartenwerte</h4>
+                    <p className="text-[11px] leading-relaxed text-slate-300">
+                      Gespielt wird mit {gameState.gameType === 'schnapsen_3' ? '24 Karten' : '20 Karten'}:
+                      <strong> Ass (11)</strong>, <strong>Zehner (10)</strong>, <strong>König (4)</strong>, <strong>Dame/Ober (3)</strong>, <strong>Bube/Unter (2)</strong>.
+                      Ziel eines Spiels sind <strong>66 Augen</strong> oder der Gewinn des letzten Stichs.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <h4 className="font-bold text-amber-300 mb-1 text-xs">🔄 Offener Talon vs. Geschlossener Talon</h4>
+                    <p className="text-[11px] leading-relaxed text-slate-300">
+                      Solange Karten im Talon liegen, herrscht <strong>kein Farb- und kein Stichzwang</strong>. Nach jedem Stich zieht der Stichgewinner zuerst eine Karte nach.
+                      Sobald der Talon aufgebraucht oder <strong>zugedreht</strong> wurde, gilt strenger <strong>Farb-, Stich- und Trumpfzwang</strong>!
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <h4 className="font-bold text-amber-300 mb-1 text-xs">💍 Ansagen & Spezialaktionen (Am Ausspiel)</h4>
+                    <p className="text-[11px] leading-relaxed text-slate-300">
+                      • <strong>20er / 40er:</strong> König + Dame/Ober derselben Farbe vorzeigen (zählt nur, wenn man mind. einen Stich macht).<br/>
+                      • <strong>Trumpf tauschen:</strong> Atout-Bube gegen die offene Trumpfkarte unter dem Talon austauschen.<br/>
+                      • <strong>Talon zudrehen:</strong> Talon sperren – wer zudreht, muss 66 Augen erreichen.<br/>
+                      • <strong>„Danke genug“:</strong> 66 Augen beanspruchen (erfordert mind. 1 Stich!).
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <h4 className="font-bold text-amber-300 mb-1 text-xs">🏆 Bummerl & Wertung</h4>
+                    <p className="text-[11px] leading-relaxed text-slate-300">
+                      Es wird von {gameState.gameType === 'schnapsen_2' ? '7 Punkten' : '24 Punkten'} rückwärts bis 0 geschrieben.
+                      Bleibt der Verlierer auf der Startpunktzahl stehen, zählt das Bummerl doppelt (<strong>Schneider-Bummerl = 2 Bummerl</strong>).
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {/* FRANZEN REGELN */}
+              {gameState.gameType === 'franzen' && (
+                <>
+                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <h4 className="font-bold text-amber-300 mb-1 text-xs">🎴 Südtiroler Masenghini-Blatt</h4>
+                    <p className="text-[11px] leading-relaxed text-slate-300">
+                      Gespielt wird mit 33 Karten (Eichel, Laub, Schell, Herz; 7, 8, 9, 10, Unter, Ober,
+                      König, Ass) plus dem <strong>Schell Weli (Schell 6)</strong> als 33. Karte.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <h4 className="font-bold text-amber-300 mb-1 text-xs">🃏 Der Schell Weli</h4>
+                    <p className="text-[11px] leading-relaxed text-slate-300">
+                      Die Weli ist das kleinste Schell.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <h4 className="font-bold text-amber-300 mb-1 text-xs">⚖️ Nullsummenspiel & Augen</h4>
+                    <p className="text-[11px] leading-relaxed text-slate-300">
+                      Das Spiel ist streng nullsummiert: Punkte, die der Alleinspieler gewinnt, werden den
+                      beiden Gegnern zu gleichen Teilen abgezogen. Bei Farbspielen gewinnt, wer zuerst{' '}
+                      <strong>66 Augen</strong> erreicht oder den 10. (letzten) Stich macht.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <h4 className="font-bold text-amber-300 mb-1 text-xs">🗃️ Talon & Gedrückte Karten</h4>
+                    <p className="text-[11px] leading-relaxed text-slate-300">
+                      Die 3 vom Alleinspieler abgelegten (gedrückten) Karten scheiden vollständig aus dem Spiel aus
+                      und <strong>zählen nicht zu den Punkten</strong>. Für die 66 Augen zählen ausschließlich die in den regulären 10 Stichen gewonnenen Karten!
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <h4 className="font-bold text-amber-300 mb-1 text-xs">🎯 Farb- und Trumpfzwang</h4>
+                    <p className="text-[11px] leading-relaxed text-slate-300">
+                      Es herrscht strikter Farbzwang und Überstechzwang. Kann die angespielte Farbe nicht
+                      bedient werden, muss mit Trumpf gestochen werden.
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

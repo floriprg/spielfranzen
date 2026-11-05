@@ -17,12 +17,40 @@ function generateMatchCode(): string {
 }
 
 const createMatchSchema = z.object({
+  name: z.string().trim().min(1).max(50).optional(),
+  gameType: z.enum(['franzen', 'watten_2', 'watten_4', 'schnapsen_2', 'schnapsen_3', 'schnapsen_4']).default('franzen'),
   totalRounds: z.number().int().min(1).max(100).default(15),
   isPrivate: z.boolean().default(false),
   timerEnabled: z.boolean().default(true),
   turnTimeLimit: z.number().int().min(10).max(600).default(60),
   totalTimeBank: z.number().int().min(30).max(3600).default(300),
   chatEnabled: z.boolean().default(true),
+  wattenOptions: z
+    .object({
+      targetScore: z.union([z.literal(11), z.literal(15), z.literal(18)]).default(15),
+      hasGueter: z.boolean().default(true),
+      hasSupergueter: z.boolean().default(false),
+      weliRole: z.enum(['kleinster_trumpf', 'kleinster_schell']).default('kleinster_trumpf'),
+    })
+    .optional(),
+  schnapsenOptions: z
+    .object({
+      targetBummerl: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1),
+      subMode3: z.enum(['DREIERSCHNAPSEN_3P', 'MITSCHREIBEN_3P']).optional(),
+      allowZudrehen: z.boolean().default(true),
+      allowTrumpfTausch: z.boolean().default(true),
+      schneiderBummerl: z.boolean().default(true),
+    })
+    .optional(),
+  wattenTargetScore: z.union([z.literal(11), z.literal(15), z.literal(18)]).optional(),
+  wattenHasGueter: z.boolean().optional(),
+  wattenHasSupergueter: z.boolean().optional(),
+  wattenWeliRole: z.enum(['kleinster_trumpf', 'kleinster_schell']).optional(),
+  schnapsenTargetBummerl: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+  schnapsenSubMode3: z.enum(['DREIERSCHNAPSEN_3P', 'MITSCHREIBEN_3P']).optional(),
+  schnapsenAllowZudrehen: z.boolean().optional(),
+  schnapsenAllowTrumpfTausch: z.boolean().optional(),
+  schnapsenSchneiderBummerl: z.boolean().optional(),
 });
 
 // GET /api/matches (List open public lobbies)
@@ -35,7 +63,16 @@ matchesRouter.get('/', authenticateToken, async (req: Request, res: Response): P
       },
       include: {
         host: { select: { username: true } },
-        participants: true,
+        participants: {
+          select: {
+            seatIndex: true,
+            userId: true,
+            isBot: true,
+            botName: true,
+            user: { select: { username: true } },
+          },
+          orderBy: { seatIndex: 'asc' },
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: 20,
@@ -43,9 +80,20 @@ matchesRouter.get('/', authenticateToken, async (req: Request, res: Response): P
 
     const list: MatchListItem[] = matches.map((m) => {
       const live = m.liveGameState as any;
+      const players = m.participants.map((p) => ({
+        seatIndex: p.seatIndex,
+        userId: p.userId,
+        username: p.isBot ? p.botName || 'Bot' : p.user.username,
+        isBot: p.isBot,
+        isHost: p.userId === m.hostId,
+      }));
+
       return {
         id: m.id,
+        name: m.name ?? undefined,
         code: m.code,
+        gameType: (m as any).gameType || 'franzen',
+        maxPlayers: (m as any).maxPlayers || 3,
         hostUsername: m.host.username,
         isPrivate: m.isPrivate,
         status: m.status as any,
@@ -54,6 +102,9 @@ matchesRouter.get('/', authenticateToken, async (req: Request, res: Response): P
         playerCount: m.participants.length,
         createdAt: m.createdAt.toISOString(),
         timerConfig: live?.timer?.config || live?.timerConfig,
+        players,
+        wattenOptions: live?.wattenOptions,
+        schnapsenOptions: live?.schnapsenOptions,
       };
     });
 
@@ -93,7 +144,10 @@ matchesRouter.get('/current', authenticateToken, async (req: Request, res: Respo
     res.json({
       currentMatch: {
         id: participation.match.id,
+        name: participation.match.name ?? undefined,
         code: participation.match.code,
+        gameType: (participation.match as any).gameType || 'franzen',
+        maxPlayers: (participation.match as any).maxPlayers || 3,
         status: participation.match.status,
         currentRound: participation.match.currentRound,
         totalRounds: participation.match.totalRounds,
@@ -119,13 +173,50 @@ matchesRouter.post('/', authenticateToken, async (req: Request, res: Response): 
       return;
     }
 
-    const { totalRounds, isPrivate, timerEnabled, turnTimeLimit, totalTimeBank, chatEnabled } = parseResult.data;
+    const {
+      name,
+      gameType,
+      totalRounds,
+      isPrivate,
+      timerEnabled,
+      turnTimeLimit,
+      totalTimeBank,
+      chatEnabled,
+    } = parseResult.data;
+
+    const maxPlayers =
+      gameType === 'watten_2' || gameType === 'schnapsen_2'
+        ? 2
+        : gameType === 'watten_4' || gameType === 'schnapsen_4'
+        ? 4
+        : 3;
 
     const timerConfig = {
       enabled: timerEnabled,
       turnTimeLimit,
       totalTimeBank,
     };
+
+    const wattenOptions = gameType.startsWith('watten')
+      ? parseResult.data.wattenOptions || {
+          targetScore: parseResult.data.wattenTargetScore ?? 15,
+          hasGueter: parseResult.data.wattenHasGueter ?? true,
+          hasSupergueter: parseResult.data.wattenHasSupergueter ?? false,
+          weliRole: parseResult.data.wattenWeliRole ?? 'kleinster_trumpf',
+        }
+      : undefined;
+
+    const schnapsenOptions = gameType.startsWith('schnapsen')
+      ? parseResult.data.schnapsenOptions || {
+          targetBummerl: parseResult.data.schnapsenTargetBummerl ?? 1,
+          subMode3:
+            parseResult.data.schnapsenSubMode3 ??
+            (gameType === 'schnapsen_3' ? 'DREIERSCHNAPSEN_3P' : undefined),
+          allowZudrehen: parseResult.data.schnapsenAllowZudrehen ?? true,
+          allowTrumpfTausch: parseResult.data.schnapsenAllowTrumpfTausch ?? true,
+          schneiderBummerl: parseResult.data.schnapsenSchneiderBummerl ?? true,
+        }
+      : undefined;
 
     let code = generateMatchCode();
     // Ensure code uniqueness
@@ -136,14 +227,22 @@ matchesRouter.post('/', authenticateToken, async (req: Request, res: Response): 
     const match = await prisma.match.create({
       data: {
         code,
+        name: name || null,
+        gameType,
+        maxPlayers,
         hostId: req.user.userId,
         totalRounds,
         isPrivate,
         status: 'WAITING',
         currentRound: 1,
         liveGameState: {
+          name: name || undefined,
+          gameType,
+          maxPlayers,
           timerConfig,
           chatEnabled,
+          wattenOptions,
+          schnapsenOptions,
         },
         participants: {
           create: {
@@ -244,14 +343,16 @@ matchesRouter.post('/join-by-code', authenticateToken, async (req: Request, res:
       return;
     }
 
-    if (match.participants.length >= 3) {
-      res.status(400).json({ error: 'Dieser Raum ist bereits voll (3/3 Spieler).' });
+    const maxPlayers = (match as any).maxPlayers || 3;
+    if (match.participants.length >= maxPlayers) {
+      res.status(400).json({ error: `Dieser Raum ist bereits voll (${maxPlayers}/${maxPlayers} Spieler).` });
       return;
     }
 
-    // Find first free seat (0, 1, or 2)
+    // Find first free seat (0..maxPlayers - 1)
     const takenSeats = match.participants.map((p) => p.seatIndex);
-    const freeSeat = [0, 1, 2].find((s) => !takenSeats.includes(s));
+    const allSeats = Array.from({ length: maxPlayers }, (_, i) => i);
+    const freeSeat = allSeats.find((s) => !takenSeats.includes(s));
 
     if (freeSeat === undefined) {
       res.status(400).json({ error: 'Kein freier Platz verfügbar.' });

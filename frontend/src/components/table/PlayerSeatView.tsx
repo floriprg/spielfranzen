@@ -1,5 +1,5 @@
 import { GameTimerState, SanitizedPlayerSeat } from '@spielfranzen/shared';
-import { Bot, Clock, Crown, Shield, Wifi, WifiOff } from 'lucide-react';
+import { Bot, Clock, Crown, Shield, Users, Wifi, WifiOff } from 'lucide-react';
 import React from 'react';
 import { CardBack } from '../cards/CardBack.js';
 import { formatSecondsMMSS, useTurnTimer } from '../common/useTurnTimer.js';
@@ -9,6 +9,7 @@ interface PlayerSeatViewProps {
   isCurrentTurn: boolean;
   isDealer: boolean;
   isMe: boolean;
+  isPartner?: boolean;
   biddingText?: string;
   timer?: GameTimerState;
   className?: string;
@@ -19,6 +20,7 @@ export const PlayerSeatView: React.FC<PlayerSeatViewProps> = ({
   isCurrentTurn,
   isDealer,
   isMe,
+  isPartner,
   biddingText,
   timer,
   className = '',
@@ -50,12 +52,17 @@ export const PlayerSeatView: React.FC<PlayerSeatViewProps> = ({
         )}
 
         {/* Role Badge */}
-        {player.role === 'DECLARER' && (
+        {isPartner && (
+          <span className="flex items-center gap-0.5 bg-gradient-to-r from-teal-500 to-emerald-600 text-slate-950 font-bold px-2 py-0.2 rounded-full shadow-sm">
+            <Users className="w-2.5 h-2.5 text-slate-950" /> Partner
+          </span>
+        )}
+        {!isPartner && player.role === 'DECLARER' && (
           <span className="flex items-center gap-0.5 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold px-2 py-0.2 rounded-full shadow-sm">
             <Crown className="w-2.5 h-2.5 text-slate-950" /> Alleinspieler
           </span>
         )}
-        {player.role === 'DEFENDER' && (
+        {!isPartner && player.role === 'DEFENDER' && (
           <span className="flex items-center gap-0.5 bg-slate-800 text-slate-200 font-semibold px-2 py-0.2 rounded-full shadow-sm border border-slate-600">
             <Shield className="w-2.5 h-2.5 text-slate-400" /> Gegner
           </span>

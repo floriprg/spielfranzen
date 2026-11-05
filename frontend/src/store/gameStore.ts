@@ -1,10 +1,13 @@
 import {
+  CardRank,
   ChatMessage,
   ClientToServerEvents,
   MatchResult,
   RoundResult,
   SanitizedGameState,
+  SchnapsenCallType,
   ServerToClientEvents,
+  Suit,
   Trick,
 } from '@spielfranzen/shared';
 import { io, Socket } from 'socket.io-client';
@@ -33,6 +36,33 @@ interface GameStateStore {
   nextRound: () => void;
   addBot: (seatIndex: number) => void;
   removeBot: (seatIndex: number) => void;
+  surrender: (surrenderType?: 'round' | 'match') => void;
+  sendWattenAction: (
+    action: 'choose_schlag' | 'choose_farbe' | 'bet' | 'hold' | 'fold',
+    schlag?: CardRank,
+    farbe?: Suit,
+  ) => void;
+  sendSchnapsenAction: (
+    action:
+      | 'announce_marriage'
+      | 'swap_trump'
+      | 'close_talon'
+      | 'declare_mode'
+      | 'declare_66'
+      | 'select_atout'
+      | 'reveal_card'
+      | 'redeal_3_buben'
+      | 'bid'
+      | 'pass'
+      | 'kontra'
+      | 'exchange_talon',
+    payload?: {
+      suit?: Suit;
+      callType?: SchnapsenCallType;
+      cardIndex?: number;
+      discardIds?: string[];
+    },
+  ) => void;
   sendChatMessage: (text: string) => void;
   clearError: () => void;
 }
@@ -186,6 +216,24 @@ export const useGameStore = create<GameStateStore>((set, get) => ({
     const { socket, activeMatchId } = get();
     if (!socket || !activeMatchId) return;
     socket.emit('game:remove_bot', { matchId: activeMatchId, seatIndex });
+  },
+
+  surrender: (surrenderType = 'round') => {
+    const { socket, activeMatchId } = get();
+    if (!socket || !activeMatchId) return;
+    socket.emit('game:surrender', { matchId: activeMatchId, surrenderType });
+  },
+
+  sendWattenAction: (action, schlag, farbe) => {
+    const { socket, activeMatchId } = get();
+    if (!socket || !activeMatchId) return;
+    socket.emit('game:watten_action', { matchId: activeMatchId, action, schlag, farbe });
+  },
+
+  sendSchnapsenAction: (action, payload) => {
+    const { socket, activeMatchId } = get();
+    if (!socket || !activeMatchId) return;
+    socket.emit('game:schnapsen_action', { matchId: activeMatchId, action, ...payload });
   },
 
   sendChatMessage: (text: string) => {

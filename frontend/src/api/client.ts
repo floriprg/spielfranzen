@@ -75,6 +75,7 @@ export const api = {
     request<{
       currentMatch: {
         id: string;
+        name?: string;
         code: string;
         status: string;
         currentRound: number;

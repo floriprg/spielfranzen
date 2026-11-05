@@ -34,6 +34,9 @@ model User {
 model Match {
   id             String             @id @default(uuid())
   code           String             @unique
+  name           String?
+  gameType       String             @default("franzen") // franzen, watten_2, watten_4, schnapsen_2, schnapsen_3
+  maxPlayers     Int                @default(3)
   hostId         String
   isPrivate      Boolean            @default(false)
   status         String             @default("WAITING") // WAITING, IN_PROGRESS, COMPLETED, ABANDONED

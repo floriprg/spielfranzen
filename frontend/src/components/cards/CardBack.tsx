@@ -5,8 +5,21 @@ interface CardBackProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
+const FORMAT_PRIORITY = ['svg', 'png', 'webp'] as const;
+
 export const CardBack: React.FC<CardBackProps> = ({ className = '', size = 'md' }) => {
-  const [imgError, setImgError] = useState(false);
+  const [formatIndex, setFormatIndex] = useState(0);
+  const [allFailed, setAllFailed] = useState(false);
+
+  const handleImgError = () => {
+    if (formatIndex < FORMAT_PRIORITY.length - 1) {
+      setFormatIndex((prev) => prev + 1);
+    } else {
+      setAllFailed(true);
+    }
+  };
+
+  const imageSrc = `/cards/CARD_BACK.${FORMAT_PRIORITY[formatIndex]}`;
 
   const sizeClasses = {
     sm: 'w-[40px] sm:w-[46px] aspect-[256/480] max-h-[86px] flex-shrink-0',
@@ -18,11 +31,12 @@ export const CardBack: React.FC<CardBackProps> = ({ className = '', size = 'md' 
     <div
       className={`relative rounded-md overflow-hidden border border-amber-900/50 shadow-md select-none bg-stone-900 flex items-center justify-center ${sizeClasses} ${className}`}
     >
-      {!imgError ? (
+      {!allFailed ? (
         <img
-          src="/cards/CARD_BACK.webp"
+          key={imageSrc}
+          src={imageSrc}
           alt="Card Back"
-          onError={() => setImgError(true)}
+          onError={handleImgError}
           className="w-full h-full object-cover pointer-events-none rounded-md"
           loading="eager"
         />

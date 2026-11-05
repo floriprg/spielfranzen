@@ -1,5 +1,17 @@
 export type Suit = 'EICHEL' | 'LAUB' | 'SCHELL' | 'HERZ';
 export type CardRank = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+export type GameType = 'franzen' | 'watten_2' | 'watten_4' | 'schnapsen_2' | 'schnapsen_3' | 'schnapsen_4';
+export interface GameTypeConfig {
+    id: GameType;
+    name: string;
+    shortName: string;
+    description: string;
+    playerCount: number;
+    deckSize: 20 | 24 | 33;
+    handSize: number;
+    hasTeams: boolean;
+}
+export declare const GAME_TYPE_CONFIGS: Record<GameType, GameTypeConfig>;
 export interface Card {
     id: string;
     suit: Suit;
@@ -78,6 +90,8 @@ export interface RoundResult {
 export interface MatchResult {
     matchId: string;
     totalRounds: number;
+    isSchneider?: boolean;
+    bummerlCount?: number;
     rankings: {
         rank: number;
         userId: string;
@@ -100,9 +114,117 @@ export interface GameTimerState {
     turnDuration: number;
     playerBanks: [number, number, number];
 }
+export type WattenGameMode = 'OFFEN' | 'BLIND' | 'KRITISCH' | 'LADINISCH';
+export interface WattenOptions {
+    targetScore: 11 | 15 | 18;
+    hasGueter: boolean;
+    hasSupergueter: boolean;
+    weliRole: 'kleinster_trumpf' | 'kleinster_schell';
+}
+export interface SchnapsenOptions {
+    targetBummerl: 1 | 2 | 3;
+    subMode3?: 'DREIERSCHNAPSEN_3P' | 'MITSCHREIBEN_3P';
+    allowZudrehen: boolean;
+    allowTrumpfTausch: boolean;
+    schneiderBummerl: boolean;
+}
+export interface WattenState {
+    schlag: CardRank | null;
+    farbe: Suit | null;
+    schlagChooserSeat: number;
+    farbeChooserSeat: number;
+    currentBet: number;
+    betChallengerSeat: number | null;
+    betPending: boolean;
+    lastBettingTeam?: number | null;
+    teamTricksWon: [number, number];
+    targetScore?: number;
+    mode?: WattenGameMode;
+    isGestrichen?: [boolean, boolean];
+    esGehenDieVier?: boolean;
+    esGehenDieVierPendingTeam?: number | null;
+    cutCard?: Card | null;
+    weliHasGueter?: boolean;
+    weliIsAlwaysLowestTrump?: boolean;
+    gueterMustFollowTrump?: boolean;
+    pointsOnGehenWhenGestrichen?: number;
+    hasGueter?: boolean;
+    hasSupergueter?: boolean;
+    weliRole?: 'kleinster_trumpf' | 'kleinster_schell';
+}
+export type SchnapsenMode = 'CLASSIC_2P' | 'MITSCHREIBEN_3P' | 'DREIERSCHNAPSEN_3P' | 'BAUERNSCHNAPSEN_4P';
+export type SchnapsenCallType = 'RUFER' | 'BETTLER' | 'ASSBETTLER' | 'SCHNAPSER' | 'GANGL' | 'ZEHNERLOCH' | 'KONTRASCHNAPSER' | 'BAUERNSCHNAPSER' | 'HERRENGANGL' | 'KONTRABAUERNSCHNAPSER' | 'HERRENSCHNAPSER';
+export type SchnapsenPhase = 'DEALING' | 'ATOUT_SELECTION' | 'BIDDING' | 'TALON_EXCHANGE' | 'TRICK_PLAY' | 'SCORING';
+export type TalonState = 'TALON_OPEN' | 'TALON_CLOSED';
+export type SchnapsenKontraLevel = 1 | 2 | 4 | 8;
+export interface SchnapsenCallDefinition {
+    name: string;
+    points: number;
+    hasTrump: boolean;
+    leadByVorhand: boolean;
+    isNegative: boolean;
+    isAllTricks: boolean;
+    isThreeTricks: boolean;
+    isAufgelegt: boolean;
+    allowedFor3P: boolean;
+    canBeKontriert: boolean;
+}
+export declare const SCHNAPSEN_CALL_CONFIG: Record<SchnapsenCallType, SchnapsenCallDefinition>;
+export interface SchnapsenMarriage {
+    seatIndex: number;
+    suit: Suit;
+    points: 20 | 40;
+}
+export type Schnapsen3Mode = 'NORMAL' | 'BETTLER' | 'SCHNAPSER' | 'GANGL' | 'BAUERNSCHNAPSER';
+export interface SchnapsenState {
+    mode: SchnapsenMode;
+    schnapsenPhase: SchnapsenPhase;
+    talonState: TalonState;
+    trumpSuit: Suit;
+    trumpCard: Card | null;
+    stockCount: number;
+    talonClosed: boolean;
+    talonClosedBySeat: number | null;
+    talonClosedOpponentEyes?: number;
+    talonClosedOpponentTricks?: number;
+    marriages: SchnapsenMarriage[];
+    playerEyes: number[];
+    countdownScores?: number[];
+    declared66Seat: number | null;
+    mode3?: Schnapsen3Mode;
+    targetEyes?: number;
+    declarerSeat?: number | null;
+    callType?: SchnapsenCallType;
+    kontraLevel: SchnapsenKontraLevel;
+    kontraSeat?: number | null;
+    atoutSelection?: {
+        first3Cards?: Card[];
+        cardRevealed?: Card | null;
+        canRedeal3Buben?: boolean;
+        step?: 'FIRST_3' | 'DONE';
+    };
+    biddingHistory?: {
+        seatIndex: number;
+        callType: SchnapsenCallType | 'PASS' | 'KONTRA';
+    }[];
+    consecutivePasses?: number;
+    highestBidSeat?: number | null;
+    firstTrickVorhandMarriageSuit?: Suit | null;
+    firstTrickVorhandMarriageSeat?: number | null;
+    pendingMarriageSuit?: Suit | null;
+    pausedDealerSeat?: number | null;
+    targetBummerl?: 1 | 2 | 3;
+    bummerlsWon?: number[];
+    allowZudrehen?: boolean;
+    allowTrumpfTausch?: boolean;
+    schneiderBummerl?: boolean;
+}
 export interface FullGameState {
     matchId: string;
     code: string;
+    name?: string;
+    gameType?: GameType;
+    maxPlayers?: number;
     status: MatchStatus;
     isPrivate?: boolean;
     chatEnabled?: boolean;
@@ -117,11 +239,15 @@ export interface FullGameState {
     minMode: GameMode | null;
     talonTaken: boolean;
     talonRevealed?: boolean;
-    players: [PlayerSeatState, PlayerSeatState, PlayerSeatState];
-    hands: [Card[], Card[], Card[]];
+    players: PlayerSeatState[];
+    hands: Card[][];
     talon: Card[];
     discardedCards: Card[];
     biddingState: BiddingState;
+    wattenState?: WattenState;
+    schnapsenState?: SchnapsenState;
+    wattenOptions?: WattenOptions;
+    schnapsenOptions?: SchnapsenOptions;
     currentTrick: PlayedCard[];
     trickLeadSeat: number;
     trickHistory: Trick[];
@@ -146,6 +272,9 @@ export interface SanitizedPlayerSeat {
 export interface SanitizedGameState {
     matchId: string;
     code: string;
+    name?: string;
+    gameType?: GameType;
+    maxPlayers?: number;
     status: MatchStatus;
     isPrivate?: boolean;
     chatEnabled?: boolean;
@@ -161,10 +290,14 @@ export interface SanitizedGameState {
     talonTaken: boolean;
     talonRevealed?: boolean;
     mySeatIndex: number | null;
-    players: [SanitizedPlayerSeat, SanitizedPlayerSeat, SanitizedPlayerSeat];
+    players: SanitizedPlayerSeat[];
     myHand: Card[];
     talonCount: number;
     talonCards: Card[] | null;
+    wattenState?: WattenState;
+    schnapsenState?: SchnapsenState;
+    wattenOptions?: WattenOptions;
+    schnapsenOptions?: SchnapsenOptions;
     currentTrick: PlayedCard[];
     trickLeadSeat: number;
     lastTrick: Trick | null;
@@ -201,9 +334,19 @@ export interface LeaderboardEntry {
     soloGamesWon: number;
     soloWinRate: number;
 }
+export interface MatchParticipantSummary {
+    seatIndex: number;
+    userId: string;
+    username: string;
+    isBot: boolean;
+    isHost: boolean;
+}
 export interface MatchListItem {
     id: string;
     code: string;
+    name?: string;
+    gameType?: GameType;
+    maxPlayers?: number;
     hostUsername: string;
     isPrivate: boolean;
     status: MatchStatus;
@@ -212,6 +355,9 @@ export interface MatchListItem {
     playerCount: number;
     createdAt: string;
     timerConfig?: GameTimerConfig;
+    players?: MatchParticipantSummary[];
+    wattenOptions?: WattenOptions;
+    schnapsenOptions?: SchnapsenOptions;
 }
 export interface ServerToClientEvents {
     'game:state_sync': (state: SanitizedGameState) => void;
@@ -260,6 +406,26 @@ export interface ClientToServerEvents {
         matchId: string;
         seatIndex: number;
     }) => void;
+    'game:surrender': (payload: {
+        matchId: string;
+        surrenderType?: 'round' | 'match';
+    }) => void;
+    'game:watten_action': (payload: {
+        matchId: string;
+        action: 'choose_schlag' | 'choose_farbe' | 'bet' | 'hold' | 'fold' | 'es_gehen_die_vier_response' | 'schlagtausch';
+        schlag?: CardRank;
+        farbe?: Suit;
+        decision?: 'hold' | 'fold';
+    }) => void;
+    'game:schnapsen_action': (payload: {
+        matchId: string;
+        action: 'announce_marriage' | 'swap_trump' | 'close_talon' | 'declare_mode' | 'declare_66' | 'select_atout' | 'reveal_card' | 'redeal_3_buben' | 'bid' | 'pass' | 'kontra' | 'exchange_talon';
+        suit?: Suit;
+        mode?: Schnapsen3Mode;
+        callType?: SchnapsenCallType;
+        cardIndex?: number;
+        discardIds?: string[];
+    }) => void;
     'chat:send_message': (payload: {
         matchId: string;
         text: string;
@@ -298,12 +464,17 @@ export interface ChatMessage {
     createdAt: number;
 }
 export interface CreateMatchRequest {
+    name?: string;
+    gameType?: GameType;
+    maxPlayers?: number;
     totalRounds: number;
     isPrivate: boolean;
     timerEnabled?: boolean;
     turnTimeLimit?: number;
     totalTimeBank?: number;
     chatEnabled?: boolean;
+    wattenOptions?: WattenOptions;
+    schnapsenOptions?: SchnapsenOptions;
 }
 export interface BotStrategyWeights {
     name?: string;
@@ -327,6 +498,8 @@ export interface BotStrategyWeights {
     useISMCTS?: boolean;
     ismctsIterations?: number;
     ismctsExploration?: number;
+    useNeuralNetwork?: boolean;
+    neuralNetworkWeight?: number;
 }
 export interface BotTournamentResult {
     generation: number;

@@ -12,7 +12,16 @@ import { BotEngine, BotDeductions } from './BotEngine.js';
 
 export interface ISMCTSResult {
   bestCardId: string;
-  cardStats: Map<string, { visits: number; winRate: number; mctsScore: number }>;
+  cardStats: Map<
+    string,
+    {
+      visits: number;
+      winRate: number;
+      mctsScore: number;
+      nnPrior?: number;
+      combinedScore: number;
+    }
+  >;
   iterationsRun: number;
   timeMs: number;
 }
@@ -67,6 +76,7 @@ export class ISMCTSEngine {
     weights: BotStrategyWeights = BotEngine.getChampionWeights(),
     maxIterations = 140,
     maxTimeMs = 80,
+    nnPriors?: Map<string, number> | null,
   ): ISMCTSResult {
     const startTime = Date.now();
     const myHand = state.hands[seatIndex]!;
@@ -78,8 +88,24 @@ export class ISMCTSEngine {
 
     if (legalCardIds.length === 1) {
       const singleCardId = legalCardIds[0]!;
-      const cardStats = new Map<string, { visits: number; winRate: number; mctsScore: number }>();
-      cardStats.set(singleCardId, { visits: 1, winRate: 1.0, mctsScore: 100 });
+      const cardStats = new Map<
+        string,
+        {
+          visits: number;
+          winRate: number;
+          mctsScore: number;
+          nnPrior?: number;
+          combinedScore: number;
+        }
+      >();
+      const prior = nnPriors?.get(singleCardId) ?? 1.0;
+      cardStats.set(singleCardId, {
+        visits: 1,
+        winRate: 1.0,
+        mctsScore: 100,
+        nnPrior: prior,
+        combinedScore: 100 + prior * 80,
+      });
       return {
         bestCardId: singleCardId,
         cardStats,
@@ -125,8 +151,21 @@ export class ISMCTSEngine {
         // Check for untried moves
         const untried = legalIds.filter((id) => !currNode.children.has(id));
         if (untried.length > 0) {
-          // Expansion: pick an untried action
-          const chosenActionId = untried[Math.floor(Math.random() * untried.length)]!;
+          // Expansion: pick an untried action (prioritizing higher ONNX prior at root)
+          let chosenActionId = untried[0]!;
+          if (currNode === root && nnPriors && nnPriors.size > 0) {
+            let maxP = -1;
+            for (const uid of untried) {
+              const p = nnPriors.get(uid) ?? 0;
+              if (p > maxP) {
+                maxP = p;
+                chosenActionId = uid;
+              }
+            }
+          } else {
+            chosenActionId = untried[Math.floor(Math.random() * untried.length)]!;
+          }
+
           const handOfSeat = simState.hands[simState.turnSeat]!;
           const cardToPlay = handOfSeat.find((c) => c.id === chosenActionId)!;
 
@@ -159,7 +198,12 @@ export class ISMCTSEngine {
           const rawWinRate = qWins / nVisits;
           // Observer team maximizes observer win rate; opponents minimize it
           const teamWinRate = isObserverTeam ? rawWinRate : 1.0 - rawWinRate;
-          const ucb = teamWinRate + explorationC * Math.sqrt((2 * Math.log(nAvail)) / nVisits);
+          const prior = (currNode === root && nnPriors)
+            ? (nnPriors.get(actionId) ?? (1.0 / legalIds.length))
+            : (1.0 / legalIds.length);
+
+          // Policy-augmented PUCT: balances simulation win-rate with neural network prior
+          const ucb = teamWinRate + explorationC * (0.5 + prior) * Math.sqrt((2 * Math.log(nAvail)) / nVisits);
 
           if (ucb > bestUCB) {
             bestUCB = ucb;
@@ -204,23 +248,36 @@ export class ISMCTSEngine {
     }
 
     const elapsedMs = Date.now() - startTime;
-    const cardStats = new Map<string, { visits: number; winRate: number; mctsScore: number }>();
+    const cardStats = new Map<
+      string,
+      {
+        visits: number;
+        winRate: number;
+        mctsScore: number;
+        nnPrior?: number;
+        combinedScore: number;
+      }
+    >();
 
     let bestCardId = legalCardIds[0]!;
     let bestScore = -Infinity;
+    const nnWeight = weights.neuralNetworkWeight ?? 80;
 
     for (const cardId of legalCardIds) {
       const visits = root.actionVisits.get(cardId) || 0;
       const wins = root.actionWins.get(cardId) || 0;
       const winRate = visits > 0 ? wins / visits : 0.5;
       const visitRatio = iterationsRun > 0 ? visits / iterationsRun : 0;
+      const prior = nnPriors?.get(cardId) ?? 0;
 
       // Robust child scoring: primarily win rate, weighted by visits
       const mctsScore = winRate * 120 + visitRatio * 60;
-      cardStats.set(cardId, { visits, winRate, mctsScore });
+      // Combined hybrid score incorporating tree search win rate + visits + neural policy prior
+      const combinedScore = mctsScore + (prior > 0 ? prior * nnWeight : 0);
+      cardStats.set(cardId, { visits, winRate, mctsScore, nnPrior: prior, combinedScore });
 
-      if (mctsScore > bestScore) {
-        bestScore = mctsScore;
+      if (combinedScore > bestScore) {
+        bestScore = combinedScore;
         bestCardId = cardId;
       }
     }

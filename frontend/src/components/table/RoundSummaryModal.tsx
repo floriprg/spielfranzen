@@ -4,7 +4,7 @@ import React from 'react';
 
 interface RoundSummaryModalProps {
   roundResult: RoundResult;
-  players: [SanitizedPlayerSeat, SanitizedPlayerSeat, SanitizedPlayerSeat];
+  players: SanitizedPlayerSeat[];
   onNextRound: () => void;
   isHost: boolean;
   mySeatIndex?: number | null;
@@ -127,9 +127,11 @@ export const RoundSummaryModal: React.FC<RoundSummaryModalProps> = ({
         )}
 
         {/* Mode info */}
-        <div className="mt-3 text-xs text-amber-400/90 font-medium">
-          Gespielter Modus: {modeInfo?.name} (Basiswert: {modeInfo?.baseValue} Pkt)
-        </div>
+        {modeInfo && (
+          <div className="mt-3 text-xs text-amber-400/90 font-medium">
+            Gespielter Modus: {modeInfo.name} (Basiswert: {modeInfo.baseValue} Pkt)
+          </div>
+        )}
 
         {/* Score Changes Table */}
         <div className="my-5 bg-slate-950/80 rounded-xl p-4 border border-slate-800">
